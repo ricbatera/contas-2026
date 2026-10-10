@@ -5,15 +5,20 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Check;
 
 @Entity
 @Table(name = "cartao")
+@Check(constraints = "(tipo = 'PRINCIPAL' and cartao_principal_id is null) or (tipo = 'ADICIONAL' and cartao_principal_id is not null)")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -36,4 +41,21 @@ public class Cartao extends TenantAwareEntity {
 
     @Column(length = 7)
     private String cor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private TipoCartao tipo = TipoCartao.PRINCIPAL;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean virtual = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean ativo = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cartao_principal_id")
+    private Cartao cartaoPrincipal;
 }

@@ -32,6 +32,11 @@ public class CartaoController {
         return SuccessResponse.of(cartaoService.listar());
     }
 
+    @GetMapping("/principais")
+    public SuccessResponse<List<CartaoResponse>> listarPrincipais() {
+        return SuccessResponse.of(cartaoService.listarPrincipais());
+    }
+
     @GetMapping("/{id}")
     public SuccessResponse<CartaoResponse> buscarPorId(@PathVariable UUID id) {
         return SuccessResponse.of(cartaoService.buscarPorId(id));

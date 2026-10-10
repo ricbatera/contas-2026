@@ -2,17 +2,22 @@ package br.com.rdrtech.cartao;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 
 import br.com.rdrtech.cartao.dto.CartaoRequest;
 import br.com.rdrtech.cartao.dto.CartaoResponse;
 import br.com.rdrtech.exception.CartaoDuplicadoException;
 import br.com.rdrtech.exception.CartaoNaoEncontradoException;
+import br.com.rdrtech.exception.CartaoPrincipalEmUsoException;
+import br.com.rdrtech.exception.CartaoPrincipalInvalidoException;
 import br.com.rdrtech.exception.LimiteCartoesExcedidoException;
+import br.com.rdrtech.fatura.FaturaRepository;
+import br.com.rdrtech.saida.SaidaRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,12 +32,16 @@ class CartaoServiceTest {
 
     @Mock
     private CartaoRepository cartaoRepository;
+    @Mock
+    private SaidaRepository saidaRepository;
+    @Mock
+    private FaturaRepository faturaRepository;
 
     private CartaoService cartaoService;
 
     @BeforeEach
     void setUp() {
-        cartaoService = new CartaoService(cartaoRepository);
+        cartaoService = new CartaoService(cartaoRepository, saidaRepository, faturaRepository);
     }
 
     private CartaoRequest requestValido() {
@@ -69,6 +78,46 @@ class CartaoServiceTest {
     }
 
     @Test
+    void criar_deveAssociarAdicionalAoCartaoPrincipal() {
+        UUID principalId = UUID.randomUUID();
+        Cartao principal = Cartao.builder().nome("Principal").tipo(TipoCartao.PRINCIPAL).build();
+        principal.setId(principalId);
+        CartaoRequest request = new CartaoRequest(
+                "Adicional virtual", "Banco", Bandeira.VISA, "5678", null,
+                TipoCartao.ADICIONAL, true, principalId);
+        when(cartaoRepository.count()).thenReturn(0L);
+        when(cartaoRepository.existsByBandeiraAndUltimosDigitos(request.bandeira(), request.ultimosDigitos()))
+                .thenReturn(false);
+        when(cartaoRepository.buscarPrincipalPorId(principalId)).thenReturn(Optional.of(principal));
+        when(cartaoRepository.save(any(Cartao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CartaoResponse response = cartaoService.criar(request);
+
+        ArgumentCaptor<Cartao> captor = ArgumentCaptor.forClass(Cartao.class);
+        verify(cartaoRepository).save(captor.capture());
+        assertThat(captor.getValue().getTipo()).isEqualTo(TipoCartao.ADICIONAL);
+        assertThat(captor.getValue().isVirtual()).isTrue();
+        assertThat(captor.getValue().getCartaoPrincipal()).isSameAs(principal);
+        assertThat(response.cartaoPrincipalId()).isEqualTo(principalId);
+    }
+
+    @Test
+    void criar_deveRejeitarPrincipalQueNaoExisteOuNaoEhPrincipal() {
+        UUID principalId = UUID.randomUUID();
+        CartaoRequest request = new CartaoRequest(
+                "Adicional", "Banco", Bandeira.VISA, "5678", null,
+                TipoCartao.ADICIONAL, false, principalId);
+        when(cartaoRepository.count()).thenReturn(0L);
+        when(cartaoRepository.existsByBandeiraAndUltimosDigitos(request.bandeira(), request.ultimosDigitos()))
+                .thenReturn(false);
+        when(cartaoRepository.buscarPrincipalPorId(principalId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> cartaoService.criar(request))
+                .isInstanceOf(CartaoPrincipalInvalidoException.class);
+        verify(cartaoRepository, never()).save(any());
+    }
+
+    @Test
     void criar_deveLancarLimiteCartoesExcedidoException_quandoJaTem20Cartoes() {
         when(cartaoRepository.count()).thenReturn(20L);
 
@@ -94,6 +143,19 @@ class CartaoServiceTest {
         when(cartaoRepository.buscarPorId(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> cartaoService.buscarPorId(id)).isInstanceOf(CartaoNaoEncontradoException.class);
+    }
+
+    @Test
+    void listar_deveMapearCartaoLegadoSemAuditoria_quandoAuditoriaAusente() {
+        Cartao legado = cartaoExistente(UUID.randomUUID());
+        legado.setAuditoria(null);
+        when(cartaoRepository.findAll()).thenReturn(List.of(legado));
+
+        List<CartaoResponse> resposta = cartaoService.listar();
+
+        assertThat(resposta).hasSize(1);
+        assertThat(resposta.getFirst().nome()).isEqualTo(legado.getNome());
+        assertThat(resposta.getFirst().criadoEm()).isNull();
     }
 
     @Test
@@ -146,6 +208,19 @@ class CartaoServiceTest {
         cartaoService.excluir(id);
 
         verify(cartaoRepository).delete(existente);
+    }
+
+    @Test
+    void excluir_deveImpedirRemocaoDePrincipalComAdicionais() {
+        UUID id = UUID.randomUUID();
+        Cartao principal = cartaoExistente(id);
+        principal.setTipo(TipoCartao.PRINCIPAL);
+        when(cartaoRepository.buscarPorId(id)).thenReturn(Optional.of(principal));
+        when(cartaoRepository.existsByCartaoPrincipal_Id(id)).thenReturn(true);
+
+        assertThatThrownBy(() -> cartaoService.excluir(id))
+                .isInstanceOf(CartaoPrincipalEmUsoException.class);
+        verify(cartaoRepository, never()).delete(any());
     }
 
     @Test

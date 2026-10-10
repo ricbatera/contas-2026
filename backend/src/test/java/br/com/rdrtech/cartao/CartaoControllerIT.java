@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import br.com.rdrtech.auth.dto.RegisterRequest;
 import br.com.rdrtech.cartao.dto.CartaoRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -62,7 +63,65 @@ class CartaoControllerIT {
                 .andExpect(jsonPath("$.data.banco").value("Nubank"))
                 .andExpect(jsonPath("$.data.bandeira").value("MASTERCARD"))
                 .andExpect(jsonPath("$.data.ultimosDigitos").value("1234"))
-                .andExpect(jsonPath("$.data.cor").value("#8A05BE"));
+                .andExpect(jsonPath("$.data.cor").value("#8A05BE"))
+                .andExpect(jsonPath("$.data.tipo").value("PRINCIPAL"))
+                .andExpect(jsonPath("$.data.virtual").value(false))
+                .andExpect(jsonPath("$.data.cartaoPrincipalId").value(Matchers.nullValue()));
+    }
+
+    @Test
+    void criar_deveAssociarCartaoAdicionalVirtualAoPrincipal() throws Exception {
+        String token = registrarERetornarToken("adicional");
+        String principalId = criarCartaoERetornarId(token,
+                new CartaoRequest("Principal", "Banco", Bandeira.VISA, "2468", null));
+        CartaoRequest adicional = new CartaoRequest(
+                "Virtual adicional", "Banco", Bandeira.VISA, "1357", "#123456",
+                TipoCartao.ADICIONAL, true, java.util.UUID.fromString(principalId));
+
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adicional)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.tipo").value("ADICIONAL"))
+                .andExpect(jsonPath("$.data.virtual").value(true))
+                .andExpect(jsonPath("$.data.cartaoPrincipalId").value(principalId));
+
+        mockMvc.perform(get("/api/cartoes/principais").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(principalId));
+    }
+
+    @Test
+    void criar_deveRetornar400_quandoAdicionalNaoInformaPrincipal() throws Exception {
+        String token = registrarERetornarToken("adicional-sem-principal");
+        CartaoRequest request = new CartaoRequest(
+                "Adicional sem principal", "Banco", Bandeira.VISA, "8642", null,
+                TipoCartao.ADICIONAL, false, null);
+
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void criar_deveRetornar400_quandoAdicionalTentaUsarPrincipalDeOutroUsuario() throws Exception {
+        String tokenDono = registrarERetornarToken("principal-dono");
+        String tokenOutro = registrarERetornarToken("principal-outro");
+        String principalId = criarCartaoERetornarId(tokenDono,
+                new CartaoRequest("Principal privado", "Banco", Bandeira.VISA, "8641", null));
+        CartaoRequest adicional = new CartaoRequest(
+                "Adicional", "Banco", Bandeira.VISA, "8642", null,
+                TipoCartao.ADICIONAL, false, java.util.UUID.fromString(principalId));
+
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + tokenOutro)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adicional)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -193,6 +252,29 @@ class CartaoControllerIT {
                 .andExpect(jsonPath("$.data.bandeira").value("MASTERCARD"))
                 .andExpect(jsonPath("$.data.ultimosDigitos").value("2020"))
                 .andExpect(jsonPath("$.data.cor").value("#000000"));
+    }
+
+    @Test
+    void atualizar_devePermitirInativarCartaoEExcluirPrincipaisInativosDoSeletor() throws Exception {
+        String token = registrarERetornarToken("cartao-inativo");
+        String id = criarCartaoERetornarId(
+                token, new CartaoRequest("Cartão", "Banco", Bandeira.VISA, "8080", null));
+        CartaoRequest inativacao = new CartaoRequest(
+                "Cartão", "Banco", Bandeira.VISA, "8080", null, TipoCartao.PRINCIPAL, false, null, false);
+
+        mockMvc.perform(put("/api/cartoes/" + id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(inativacao)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.ativo").value(false));
+
+        mockMvc.perform(get("/api/cartoes/principais").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+        mockMvc.perform(get("/api/cartoes").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].ativo").value(false));
     }
 
     @Test

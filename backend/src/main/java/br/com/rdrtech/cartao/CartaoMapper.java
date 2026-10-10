@@ -15,6 +15,10 @@ public final class CartaoMapper {
                 cartao.getBandeira(),
                 cartao.getUltimosDigitos(),
                 cartao.getCor(),
-                cartao.getAuditoria().getCreatedAt());
+                cartao.getAuditoria() != null ? cartao.getAuditoria().getCreatedAt() : null,
+                cartao.getTipo(),
+                cartao.isVirtual(),
+                cartao.getCartaoPrincipal() != null ? cartao.getCartaoPrincipal().getId() : null,
+                cartao.isAtivo());
     }
 }

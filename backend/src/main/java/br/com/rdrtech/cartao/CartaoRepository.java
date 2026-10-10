@@ -20,4 +20,12 @@ public interface CartaoRepository extends JpaRepository<Cartao, UUID> {
      */
     @Query("select c from Cartao c where c.id = :id")
     Optional<Cartao> buscarPorId(@Param("id") UUID id);
+
+    @Query("select c from Cartao c where c.tipo = br.com.rdrtech.cartao.TipoCartao.PRINCIPAL")
+    java.util.List<Cartao> listarPrincipais();
+
+    @Query("select c from Cartao c where c.id = :id and c.tipo = br.com.rdrtech.cartao.TipoCartao.PRINCIPAL")
+    Optional<Cartao> buscarPrincipalPorId(@Param("id") UUID id);
+
+    boolean existsByCartaoPrincipal_Id(UUID cartaoPrincipalId);
 }
