@@ -18,6 +18,8 @@ set -euo pipefail
 
 # No Git Bash, impede a conversão de argumentos como /opt/... em caminhos do Windows.
 export MSYS_NO_PATHCONV=1
+# PuTTY (plink) instalado na pasta padrão do Windows, mesmo fora do PATH.
+[ -d "/c/Program Files/PuTTY" ] && PATH="$PATH:/c/Program Files/PuTTY"
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONF="$RAIZ/scripts/deploy/deploy.conf"
@@ -79,7 +81,14 @@ configurar_ssh() {
     opcoes+=(-o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no)
     SSH_CMD=(sshpass -e ssh -p "$SSH_PORT" "${opcoes[@]}" "$destino")
   elif [ -n "$SSH_PASSWORD" ] && command -v plink >/dev/null 2>&1; then
-    SSH_CMD=(plink -ssh -batch -P "$SSH_PORT" -pw "$SSH_PASSWORD" "$destino")
+    # Em modo batch o plink não confirma chave nova: aceita as que o OpenSSH já conhece.
+    local alvo="$SSH_HOST" hostkeys=() chave
+    [ "$SSH_PORT" = 22 ] || alvo="[$SSH_HOST]:$SSH_PORT"
+    while read -r chave; do
+      hostkeys+=(-hostkey "$chave")
+    done < <(ssh-keygen -l -F "$alvo" 2>/dev/null | grep -o 'SHA256:[^ ]*' || true)
+    [ ${#hostkeys[@]} -gt 0 ] || erro "chave do servidor $alvo não está em known_hosts. Conecte uma vez com: ssh -p $SSH_PORT $destino"
+    SSH_CMD=(plink -ssh -batch -P "$SSH_PORT" -pw "$SSH_PASSWORD" "${hostkeys[@]}" "$destino")
   else
     command -v ssh >/dev/null 2>&1 || erro "comando 'ssh' não encontrado no PATH."
     SSH_CMD=(ssh -p "$SSH_PORT" "${opcoes[@]}" -o BatchMode=yes "$destino")
