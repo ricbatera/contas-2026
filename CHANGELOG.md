@@ -2,6 +2,17 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## frontend 1.0.0 — 2026-10-17
+
+- Imagem: `ricardo1782/financas-frontend:1.0.0` (também `latest`)
+- Commit: `e21f837` (tag `frontend-v1.0.0`)
+- Próxima versão de desenvolvimento: 1.0.1
+- Mudanças:
+  - b96efd7 feat: scripts de build e publicação das imagens no Docker Hub
+  - 563e414 feat: dockerizar frontend, backend e banco com Docker Compose
+  - 6c7bcd0 chore: incorporar frontend ao repositório único
+  - 32236a5 inicio do projeto
+
 ## backend 1.0.0 — 2026-10-17
 
 - Imagem: `ricardo1782/financas-backend:1.0.0` (também `latest`)
