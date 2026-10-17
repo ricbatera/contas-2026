@@ -1,0 +1,97 @@
+<section class="cards-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">INTELIGÊNCIA ARTIFICIAL</p>
+      <h2>Provedores de IA</h2>
+      <p class="section-description">Configure as integrações de IA usadas pelo sistema.</p>
+    </div>
+    <div class="toolbar-actions">
+      <a class="secondary-button" routerLink="/home/ia/teste">Testar integração</a>
+      <a class="primary-button" routerLink="/home/ia/provedores/novo">
+        <span aria-hidden="true">+</span>
+        Novo provedor
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="account-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading() && provedores().length === 0) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando provedores...</div>
+  } @else if (provedores().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">✦</div>
+      <h3>Nenhum provedor configurado</h3>
+      <p>Cadastre um provedor (OpenAI, Anthropic, Gemini ou Ollama) para habilitar os recursos de IA.</p>
+      <a class="primary-button" routerLink="/home/ia/provedores/novo">Cadastrar provedor</a>
+    </div>
+  } @else if (provedores().length > 0) {
+    <div class="account-grid">
+      @for (provedor of provedores(); track provedor.id) {
+        <article class="account-item">
+          <div class="provider-body">
+            <div class="card-title">
+              <h3>{{ provedor.nome }}</h3>
+              @if (provedor.padrao) {
+                <span class="type-badge">Padrão</span>
+              }
+              @if (!provedor.ativo) {
+                <span class="type-badge inactive">Inativo</span>
+              }
+            </div>
+            <dl class="provider-info">
+              <dt>Tipo</dt>
+              <dd>{{ nomeTipo(provedor.tipo) }}</dd>
+              <dt>Modelo</dt>
+              <dd>{{ provedor.modelo }}</dd>
+              @if (provedor.baseUrl) {
+                <dt>URL base</dt>
+                <dd>{{ provedor.baseUrl }}</dd>
+              }
+              <dt>API key</dt>
+              <dd>{{ provedor.possuiApiKey ? provedor.apiKeyMascarada : 'Não usa' }}</dd>
+            </dl>
+          </div>
+          <div class="account-details">
+            <a
+              class="edit-button"
+              routerLink="/home/ia/teste"
+              [queryParams]="{ provedor: provedor.id }"
+              [attr.aria-label]="'Testar provedor ' + provedor.nome"
+            >
+              Testar
+            </a>
+            <div class="account-actions">
+              <a
+                class="edit-button"
+                [routerLink]="['/home/ia/provedores', provedor.id, 'editar']"
+                [attr.aria-label]="'Editar provedor ' + provedor.nome"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m3 17.25 11.06-11.06 3.75 3.75L6.75 21H3v-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z" />
+                </svg>
+                Editar
+              </a>
+              <button
+                class="delete-button"
+                type="button"
+                [disabled]="deletingId() === provedor.id"
+                [attr.aria-label]="'Excluir provedor ' + provedor.nome"
+                (click)="excluir(provedor)"
+              >
+                {{ deletingId() === provedor.id ? 'Excluindo...' : 'Excluir' }}
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

@@ -29,6 +29,7 @@ services:
       DB_USERNAME: ${POSTGRES_USER:?defina em .env-prod}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?defina em .env-prod}
       JWT_SECRET: ${JWT_SECRET:?defina em .env-prod}
+      IA_CRYPTO_KEY: ${IA_CRYPTO_KEY:?defina em .env-prod}
       SPRINGDOC_SWAGGER_UI_ENABLED: ${SWAGGER_ENABLED:-false}
       SPRINGDOC_API_DOCS_ENABLED: ${SWAGGER_ENABLED:-false}
     healthcheck:

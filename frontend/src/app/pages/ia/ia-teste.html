@@ -1,0 +1,75 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/ia/provedores">
+      <span aria-hidden="true">←</span>
+      Voltar para provedores
+    </a>
+    <p class="section-kicker">INTELIGÊNCIA ARTIFICIAL</p>
+    <h2>Testar integração</h2>
+    <p class="section-description">Envie um prompt a um provedor e confira a resposta, o tempo e os tokens usados.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando provedores...</div>
+  } @else if (provedores().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">✦</div>
+      <h3>Nenhum provedor configurado</h3>
+      <p>Cadastre um provedor de IA antes de testar a integração.</p>
+      <a class="primary-button" routerLink="/home/ia/provedores/novo">Cadastrar provedor</a>
+    </div>
+  } @else {
+    <form class="card-form" [formGroup]="form" (ngSubmit)="testar()" novalidate>
+      @if (error()) {
+        <div class="form-error" role="alert">{{ error() }}</div>
+      }
+
+      <label class="form-field full-width">
+        <span>Provedor</span>
+        <select formControlName="provedorId">
+          @for (provedor of provedores(); track provedor.id) {
+            <option [value]="provedor.id">{{ descricao(provedor) }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="form-field full-width">
+        <span>Prompt <span class="optional-label">(opcional)</span></span>
+        <textarea
+          formControlName="prompt"
+          maxlength="4000"
+          placeholder="Deixe em branco para um teste rápido de conexão."
+        ></textarea>
+        @if (form.controls.prompt.invalid && form.controls.prompt.touched) {
+          <small class="field-error">Use até 4000 caracteres.</small>
+        }
+      </label>
+
+      <div class="form-actions">
+        @if (testing() && provedorSelecionado(); as p) {
+          <small class="test-wait">Se o provedor não responder, o teste é encerrado em até {{ p.timeoutSegundos }} s.</small>
+        }
+        <button class="primary-button" type="submit" [disabled]="testing()">
+          {{ testing() ? 'Aguardando resposta...' : 'Enviar' }}
+        </button>
+      </div>
+    </form>
+
+    @if (resultado(); as r) {
+      <div class="test-result" [class.success]="r.sucesso" [class.failure]="!r.sucesso" role="status">
+        <div class="test-status">{{ r.sucesso ? '✓ Integração funcionando' : '✕ Falha na integração' }}</div>
+        <pre class="test-response">{{ r.sucesso ? r.resposta : r.erro }}</pre>
+        <p class="test-metrics">
+          <span>Modelo: <strong>{{ r.modelo }}</strong></span>
+          <span>Tempo: <strong>{{ r.latenciaMs | number: '1.0-0' : 'pt-BR' }} ms</strong></span>
+          @if (r.tokensEntrada !== null) {
+            <span>Tokens de entrada: <strong>{{ r.tokensEntrada }}</strong></span>
+          }
+          @if (r.tokensSaida !== null) {
+            <span>Tokens de saída: <strong>{{ r.tokensSaida }}</strong></span>
+          }
+        </p>
+      </div>
+    }
+  }
+</section>

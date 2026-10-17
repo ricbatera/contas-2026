@@ -19,6 +19,7 @@ const SECTIONS = [
   { name: 'Contas', icon: 'wallet', path: '/home/contas' },
   { name: 'Pessoas', icon: 'people', path: '/home/pessoas' },
   { name: 'Categorias', icon: 'categories', path: '/home/categorias' },
+  { name: 'IA', icon: 'ai', path: '/home/ia' },
 ] as const;
 
 @Component({

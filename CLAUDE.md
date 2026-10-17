@@ -24,7 +24,7 @@ Código, nomes de domínio, mensagens e commits são em português.
 ./mvnw test -Dtest=SaidaControllerIT#deveAceitarSaidaComSessentaParcelas   # um método
 ```
 
-Sem perfil, `application.properties` exige as variáveis `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET`. `application-local.properties` e `application-h2.properties` são ignorados pelo git (contêm credenciais locais). O perfil `h2` desliga o Flyway e usa o schema gerado pelo Hibernate.
+Sem perfil, `application.properties` exige as variáveis `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` e `IA_CRYPTO_KEY`. `application-local.properties` e `application-h2.properties` são ignorados pelo git (contêm credenciais locais). O perfil `h2` desliga o Flyway e usa o schema gerado pelo Hibernate.
 
 O PostgreSQL local roda no container Docker `postgres-financas` dentro do WSL (porta 5432, acessível do Windows), com os bancos `financas` (app) e `financas_test` (testes). Acesso via `wsl docker exec postgres-financas psql -U postgres -d financas`. A senha do banco de teste fica em `backend/src/test/resources/application-test-local.properties` (ignorado pelo git), ou nas variáveis `TEST_DB_URL`/`TEST_DB_USERNAME`/`TEST_DB_PASSWORD`. Se um teste falhar com `ClassFormatError`, rode `./mvnw clean test`: a IDE às vezes deixa classes corrompidas em `target/`.
 
@@ -42,7 +42,7 @@ npx ng test --include src/app/core/saida.service.spec.ts   # um arquivo
 ### Docker (produção)
 
 ```bash
-cp .env-prod.example .env-prod                       # preencha POSTGRES_PASSWORD e JWT_SECRET; o arquivo não é versionado
+cp .env-prod.example .env-prod                       # preencha POSTGRES_PASSWORD, JWT_SECRET e IA_CRYPTO_KEY; o arquivo não é versionado
 docker compose --env-file .env-prod up -d --build    # sobe db (postgres), backend e frontend (nginx)
 ```
 
@@ -78,7 +78,7 @@ O script pergunta as imagens (Enter = `:latest`; só uma tag, como `1.0.3`, comp
 
 ## Arquitetura do backend
 
-**Organização por feature:** cada domínio (`saida`, `fatura`, `cartao`, `bucket`, `dashboard`, `categoria`, `subcategoria`, `pessoa`, `contabancaria`, `usuario`, `auth`) é um pacote com Entidade, `*Controller`, `*Service`, `*Repository`, `*Mapper` e `dto/` (records `*Request`/`*Response`). Os pacotes genéricos `model/`, `repository/`, `service/`, `dto/` e `api/controller` estão vazios. Não coloque código novo neles.
+**Organização por feature:** cada domínio (`saida`, `fatura`, `cartao`, `bucket`, `dashboard`, `categoria`, `subcategoria`, `pessoa`, `contabancaria`, `ia`, `usuario`, `auth`) é um pacote com Entidade, `*Controller`, `*Service`, `*Repository`, `*Mapper` e `dto/` (records `*Request`/`*Response`). Os pacotes genéricos `model/`, `repository/`, `service/`, `dto/` e `api/controller` estão vazios. Não coloque código novo neles.
 
 **Multi-tenancy por usuário:** entidades de negócio estendem `tenant.TenantAwareEntity`, não `audit.BaseEntity` diretamente. Ela preenche `tenant_id` com o id do usuário autenticado no `@PrePersist` e aplica um `@Filter` Hibernate com `autoEnabled`, de modo que toda query dessas entidades é filtrada por `tenant_id` sem código nos repositórios. O Javadoc da classe explica por que **não** se usa `@TenantId`/`CurrentTenantIdentifierResolver`: isso quebra o boot. Toda tabela de negócio nova precisa da coluna `tenant_id UUID NOT NULL`. `Usuario`, `Role` e `RefreshToken` não são tenant-aware.
 
@@ -96,6 +96,8 @@ O script pergunta as imagens (Enter = `:latest`; só uma tag, como `1.0.3`, comp
 - `scripts/legacy/` guarda os scripts anteriores ao Flyway, só como referência.
 
 **Domínio central:** uma `Saida` (despesa) gera `SaidaParcela`s e pode ter vários `SaidaResponsavel` (usuário ou `Pessoa`). Compras no cartão são agrupadas em `Fatura` por competência, e cartões adicionais compartilham a fatura do cartão principal. `Bucket` é o orçamento mensal por subcategoria e responsável. `DashboardService` consolida saídas, buckets, contas fixas e projeção mensal (`/api/dashboard`, `/projecao`, `/saidas`, `/buckets`, `/contas-fixas`).
+
+**IA (`ia/`):** cada usuário cadastra `ProvedorIa`s (OpenAI e compatíveis via `baseUrl`, Anthropic, Gemini, Ollama), e só um pode ser o padrão (índice único parcial). `ChatModelFactory` monta o `ChatModel` do LangChain4j em runtime pelos builders, com cache invalidado quando o registro muda. **Não use os starters Spring Boot do LangChain4j**, porque a configuração é dinâmica. A API key é cifrada com AES-GCM por `CifradorSegredos`, usando `ia.chave-criptografia` (`IA_CRYPTO_KEY`, base64 de 32 bytes). Trocar essa chave torna ilegíveis as chaves já gravadas. A API devolve só a chave mascarada. Para novos recursos de IA, use `ProvedorIaService.chatModelPadrao()`. Nos IT, substitua `ChatModelFactory` por `@MockitoBean` para não chamar provedores reais.
 
 **Cadastro de usuário:** `AuthService.register` chama `CategoriasPadraoService.criarPara`, que cria 19 categorias padrão (11 de despesa e 8 de receita) com subcategorias na mesma transação. Como não há usuário autenticado nesse momento, o tenant é atribuído com `TenantAwareEntity.definirTenant`. Use esse método sempre que gravar entidades tenant-aware sem JWT no contexto. Testes que criam categorias via API não podem reutilizar nomes padrão (ex.: "Moradia"), senão recebem 409.
 

@@ -1,0 +1,167 @@
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.provider-body {
+  padding: 17px 17px 4px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.provider-body .card-title h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #26364d;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-info {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 14px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+
+.provider-info dt {
+  color: #8995a7;
+}
+
+.provider-info dd {
+  margin: 0;
+  overflow: hidden;
+  color: #42536b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-field textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 11px;
+  border: 1px solid #dfe5ed;
+  border-radius: 7px;
+  outline: none;
+  box-sizing: border-box;
+  color: #26364d;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.form-field textarea:focus {
+  border-color: #1e6fd0;
+  box-shadow: 0 0 0 3px rgb(30 111 208 / 12%);
+}
+
+.test-wait {
+  align-self: center;
+  margin-right: auto;
+  color: #8995a7;
+  font-size: 11px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.provider-help {
+  padding: 18px;
+  border: 1px solid #e9edf3;
+  border-radius: 13px;
+  color: #42536b;
+  background: #f8fbff;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.provider-help h3 {
+  margin: 0 0 6px;
+  color: #26364d;
+  font-size: 14px;
+}
+
+.provider-help p {
+  margin: 0 0 8px;
+}
+
+.test-result {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #e9edf3;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.test-result.success {
+  border-color: #bfe6d0;
+}
+
+.test-result.failure {
+  border-color: #f1cbc7;
+  background: #fffafa;
+}
+
+.test-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.success .test-status {
+  color: #277956;
+}
+
+.failure .test-status {
+  color: #a33027;
+}
+
+.test-response {
+  margin: 0 0 14px;
+  padding: 14px;
+  border-radius: 9px;
+  color: #26364d;
+  background: #f5f7fa;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.failure .test-response {
+  color: #a33027;
+  background: #fff1ef;
+}
+
+.test-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  color: #718096;
+  font-size: 12px;
+}
+
+.test-metrics strong {
+  color: #26364d;
+}
+
+@media (max-width: 760px) {
+  .form-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

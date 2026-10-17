@@ -107,6 +107,23 @@ export const routes: Routes = [
         path: 'cartoes/:id/editar',
         loadComponent: () => import('./pages/cartoes/cartao-form').then((module) => module.CartaoForm),
       },
+      { path: 'ia', pathMatch: 'full', redirectTo: 'ia/provedores' },
+      {
+        path: 'ia/provedores',
+        loadComponent: () => import('./pages/ia/provedores-ia-list').then((module) => module.ProvedoresIaList),
+      },
+      {
+        path: 'ia/provedores/novo',
+        loadComponent: () => import('./pages/ia/provedor-ia-form').then((module) => module.ProvedorIaForm),
+      },
+      {
+        path: 'ia/provedores/:id/editar',
+        loadComponent: () => import('./pages/ia/provedor-ia-form').then((module) => module.ProvedorIaForm),
+      },
+      {
+        path: 'ia/teste',
+        loadComponent: () => import('./pages/ia/ia-teste').then((module) => module.IaTeste),
+      },
       { path: '**', redirectTo: 'dashboard' },
     ],
   },

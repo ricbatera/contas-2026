@@ -1,0 +1,144 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/ia/provedores">
+      <span aria-hidden="true">←</span>
+      Voltar para provedores
+    </a>
+    <p class="section-kicker">INTELIGÊNCIA ARTIFICIAL</p>
+    <h2>{{ editing ? 'Editar provedor' : 'Novo provedor' }}</h2>
+    <p class="section-description">
+      {{ editing ? 'Atualize a configuração do provedor de IA.' : 'Configure a conexão com um provedor de IA.' }}
+    </p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando provedor...</div>
+  } @else {
+    <div class="form-layout">
+      <form class="card-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        @if (error()) {
+          <div class="form-error" role="alert">{{ error() }}</div>
+        }
+
+        <label class="form-field">
+          <span>Nome</span>
+          <input type="text" formControlName="nome" maxlength="50" autocomplete="off" placeholder="Ex.: OpenAI pessoal" />
+          @if (form.controls.nome.invalid && form.controls.nome.touched) {
+            <small class="field-error">Informe um nome com até 50 caracteres.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Provedor</span>
+          <select formControlName="tipo">
+            @for (tipo of tipos; track tipo) {
+              <option [value]="tipo">{{ nomeTipo(tipo) }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Modelo</span>
+          <input
+            type="text"
+            formControlName="modelo"
+            maxlength="100"
+            autocomplete="off"
+            list="modelos-sugeridos"
+            [placeholder]="'Ex.: ' + info().modelos[0]"
+          />
+          <datalist id="modelos-sugeridos">
+            @for (modelo of info().modelos; track modelo) {
+              <option [value]="modelo"></option>
+            }
+          </datalist>
+          @if (form.controls.modelo.invalid && form.controls.modelo.touched) {
+            <small class="field-error">Informe o modelo (até 100 caracteres).</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>
+            URL base
+            @if (!exigeBaseUrl()) {
+              <span class="optional-label">(opcional)</span>
+            }
+          </span>
+          <input type="url" formControlName="baseUrl" maxlength="255" autocomplete="off" [placeholder]="info().baseUrlPadrao" />
+          @if (form.controls.baseUrl.invalid && form.controls.baseUrl.touched) {
+            <small class="field-error">Use uma URL começando com http:// ou https://.</small>
+          }
+        </label>
+
+        @if (usaApiKey()) {
+          <label class="form-field full-width">
+            <span>API key</span>
+            <input
+              type="password"
+              formControlName="apiKey"
+              maxlength="500"
+              autocomplete="new-password"
+              [placeholder]="editing && possuiApiKey() ? 'Chave atual: ' + apiKeyMascarada() : 'Cole a chave do provedor'"
+            />
+            <small>
+              @if (editing && possuiApiKey()) {
+                Deixe em branco para manter a chave atual.
+              }
+              A chave é guardada cifrada e nunca é exibida novamente.
+            </small>
+          </label>
+        }
+
+        <label class="form-field">
+          <span>Temperatura <span class="optional-label">(opcional, 0 a 2)</span></span>
+          <input type="number" formControlName="temperatura" min="0" max="2" step="0.1" placeholder="Padrão do modelo" />
+          @if (form.controls.temperatura.invalid && form.controls.temperatura.touched) {
+            <small class="field-error">Use um valor entre 0 e 2.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Máximo de tokens <span class="optional-label">(opcional)</span></span>
+          <input type="number" formControlName="maxTokens" min="1" max="200000" step="1" placeholder="Padrão do modelo" />
+          @if (form.controls.maxTokens.invalid && form.controls.maxTokens.touched) {
+            <small class="field-error">Use um valor entre 1 e 200000.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Timeout (segundos)</span>
+          <input type="number" formControlName="timeoutSegundos" min="5" max="300" step="1" />
+          @if (form.controls.timeoutSegundos.invalid && form.controls.timeoutSegundos.touched) {
+            <small class="field-error">Use um valor entre 5 e 300.</small>
+          }
+        </label>
+
+        <label class="form-field virtual-option">
+          <input type="checkbox" formControlName="padrao" />
+          <span>Provedor padrão</span>
+          <small>Usado pelos recursos de IA do sistema. Só um provedor pode ser o padrão.</small>
+        </label>
+
+        <label class="form-field virtual-option">
+          <input type="checkbox" formControlName="ativo" />
+          <span>Provedor ativo</span>
+          <small>Provedores inativos não são usados pelo sistema, mas podem ser testados.</small>
+        </label>
+
+        <div class="form-actions">
+          <a class="secondary-button" routerLink="/home/ia/provedores">Cancelar</a>
+          <button class="primary-button" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar provedor' }}
+          </button>
+        </div>
+      </form>
+
+      <aside class="provider-help">
+        <h3>{{ info().nome }}</h3>
+        <p>{{ info().ajuda }}</p>
+        <p>URL padrão: <code>{{ info().baseUrlPadrao }}</code></p>
+        <p>Depois de salvar, use “Testar integração” para confirmar que o provedor responde.</p>
+      </aside>
+    </div>
+  }
+</section>

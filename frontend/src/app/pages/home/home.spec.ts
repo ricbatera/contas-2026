@@ -27,7 +27,7 @@ describe('Home', () => {
 
     const element = fixture.nativeElement as HTMLElement;
     expect(element.textContent).toContain('Ana Silva');
-    for (const section of ['Dashboard', 'Fatura', 'Buckets', 'Simulação', 'Saídas', 'Entradas', 'Cartões', 'Contas', 'Pessoas', 'Categorias']) {
+    for (const section of ['Dashboard', 'Fatura', 'Buckets', 'Simulação', 'Saídas', 'Entradas', 'Cartões', 'Contas', 'Pessoas', 'Categorias', 'IA']) {
       expect(element.textContent).toContain(section);
     }
   });
