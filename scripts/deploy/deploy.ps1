@@ -70,8 +70,16 @@ function Configurar-Ssh($c) {
         $script:SshExe = 'ssh'; $script:SshArgs = @('-i', $chave, '-p', $c.Porta) + $opcoes
         $script:ScpExe = 'scp'; $script:ScpArgs = @('-i', $chave, '-P', $c.Porta) + $opcoes
     } elseif ((Get-Command plink -ErrorAction SilentlyContinue) -and (Get-Command pscp -ErrorAction SilentlyContinue)) {
-        $script:SshExe = 'plink'; $script:SshArgs = @('-ssh', '-P', $c.Porta, '-pw', $c.Senha)
-        $script:ScpExe = 'pscp'; $script:ScpArgs = @('-scp', '-P', $c.Porta, '-pw', $c.Senha)
+        # Sem -batch o plink trava perguntando se aceita a chave do servidor (o stdin já foi lido).
+        # Aceita as chaves que o OpenSSH já conhece para o host, em known_hosts.
+        $alvo = if ($c.Porta -eq '22') { $c.Host } else { "[$($c.Host)]:$($c.Porta)" }
+        $chaves = @(& ssh-keygen -l -F $alvo 2>$null | Where-Object { $_ -match '\sSHA256:' } | ForEach-Object { ($_ -split '\s+')[2] })
+        if ($chaves.Count -eq 0) {
+            Erro "chave do servidor $alvo não está em known_hosts. Conecte uma vez com: ssh -p $($c.Porta) $($script:Destino)"
+        }
+        $hostkeys = @($chaves | ForEach-Object { '-hostkey', $_ })
+        $script:SshExe = 'plink'; $script:SshArgs = @('-ssh', '-batch', '-P', $c.Porta, '-pw', $c.Senha) + $hostkeys
+        $script:ScpExe = 'pscp'; $script:ScpArgs = @('-scp', '-batch', '-P', $c.Porta, '-pw', $c.Senha) + $hostkeys
     } else {
         Write-Warning 'SSH_PASSWORD definido, mas plink/pscp (PuTTY) não estão no PATH: o ssh vai pedir a senha a cada conexão (3 vezes).'
         Write-Warning 'Para não digitar: instale o PuTTY (winget install PuTTY.PuTTY) ou use SSH_KEY.'
