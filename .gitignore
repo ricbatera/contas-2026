@@ -33,6 +33,7 @@ pnpm-debug.log*
 # =========================
 .env
 .env.*
+.env-prod
 !.env.example
 !.env.template
 *.local

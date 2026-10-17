@@ -39,6 +39,15 @@ npm test             # ng test (Vitest + jsdom)
 npx ng test --include src/app/core/saida.service.spec.ts   # um arquivo
 ```
 
+### Docker (produção)
+
+```bash
+cp .env-prod.example .env-prod                       # preencha POSTGRES_PASSWORD e JWT_SECRET; o arquivo não é versionado
+docker compose --env-file .env-prod up -d --build    # sobe db (postgres), backend e frontend (nginx)
+```
+
+O nginx do frontend serve o build do Angular e faz proxy de `/api/` para o backend, que fica na mesma origem, sem CORS. Só o frontend publica porta (`APP_PORT`, padrão 80). O banco usa o volume `pgdata` e o Flyway cria o schema na subida. O Docker roda no WSL: `wsl docker compose ...` a partir de `/mnt/c/projetos/minhasContas/2026-Novo`. Sem `--env-file .env-prod`, o compose falha de propósito.
+
 ## Arquitetura do backend
 
 **Organização por feature:** cada domínio (`saida`, `fatura`, `cartao`, `bucket`, `dashboard`, `categoria`, `subcategoria`, `pessoa`, `contabancaria`, `usuario`, `auth`) é um pacote com Entidade, `*Controller`, `*Service`, `*Repository`, `*Mapper` e `dto/` (records `*Request`/`*Response`). Os pacotes genéricos `model/`, `repository/`, `service/`, `dto/` e `api/controller` estão vazios. Não coloque código novo neles.

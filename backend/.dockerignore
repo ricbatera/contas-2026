@@ -1,0 +1,8 @@
+target/
+.mvn/wrapper/*.jar
+.idea/
+.vscode/
+*.iml
+**/application-local.properties
+**/application-h2.properties
+**/application-test-local.properties
