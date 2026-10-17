@@ -8,6 +8,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,14 +44,22 @@ public class LeitorFaturaIa {
               }]
             }
             Regras:
-            - "vencimento" é a data de vencimento da fatura e "total" é o valor total a pagar.
-            - Identifique cada cartão (titular e adicionais) pelos 4 últimos dígitos e informe em cada \
-            item o cartão em que ele aparece. Use null se não houver.
-            - Liste todos os lançamentos da fatura atual, um por linha. Não liste o resumo das próximas \
-            faturas nem o saldo da fatura anterior.
-            - "valor" é sempre positivo, com ponto decimal. Para compras parceladas, use o valor da parcela.
-            - Para compras parceladas (ex.: "02/10" ou "PARC 02/10"), informe "parcelaAtual" e \
-            "totalParcelas"; para compras à vista, use 1 e 1.
+            - Você recebe UMA página da fatura por vez. Liste TODOS os lançamentos desta página, um por \
+            linha, sem pular nenhum: parcelamentos, despesas, IOF, tarifas e créditos, de todos os \
+            cartões (titular e adicionais). Uma página pode ter dezenas de lançamentos.
+            - "vencimento" é a data de vencimento da fatura e "total" é o valor total a pagar. Preencha \
+            só se aparecerem nesta página; senão, use null.
+            - Identifique cada cartão (titular e adicionais) pelos 4 últimos dígitos do cabeçalho da sua \
+            seção e informe em cada item o cartão da seção em que ele aparece.
+            - Não são lançamentos: totais ("VALOR TOTAL"), resumo da fatura, saldo anterior, limites, \
+            cotação do dólar, saldo de obrigações futuras, simulações de juros, CET e opções de \
+            parcelamento da fatura.
+            - "valor" é sempre positivo, com ponto decimal. Para compras parceladas, use o valor da \
+            parcela. Se a linha trouxer valor em R$ e em US$, use o valor em R$.
+            - A parcela aparece depois da descrição, no formato NN/NN (ex.: "LOJA X 07/10 292,23" é a \
+            parcela 7 de 10). Informe "parcelaAtual" e "totalParcelas"; para compras à vista, use 1 e 1. \
+            Números soltos antes da data (ex.: "3 23/09 LOJA") NÃO são parcela.
+            - Linhas sem data, como "IOF DESPESA NO EXTERIOR 2,04", também são lançamentos.
             - Quando a data da compra não trouxer o ano, deduza-o pelo vencimento da fatura. Nas \
             parceladas, "data" é a data da compra original.
             - "tipo": COMPRA, TARIFA (anuidade e tarifas), IOF, JUROS (juros, multa e encargos), \
@@ -139,8 +148,16 @@ public class LeitorFaturaIa {
         return pares;
     }
 
-    /** Resposta da IA antes da interpretação, para ser guardada mesmo quando o JSON vier inválido. */
-    public record Resposta(String texto, String modelo) {
+    /** Abaixo desta fração das linhas de lançamento do PDF, a leitura gera aviso de itens faltando. */
+    static final double PROPORCAO_MINIMA_LIDA = 0.9;
+    /** Máximo de linhas de lançamento enviadas à IA numa mesma consulta. */
+    static final int LANCAMENTOS_POR_TRECHO = 40;
+
+    /**
+     * Leitura juntada de todas as páginas. {@code respostaBruta} guarda a resposta de cada página
+     * para auditoria; {@code avisos} vão para o resumo da importação.
+     */
+    public record Leitura(FaturaLidaIa fatura, String respostaBruta, String modelo, List<String> avisos) {
     }
 
     /** Categoria de despesa disponível para a IA sugerir, com suas subcategorias. */
@@ -150,17 +167,102 @@ public class LeitorFaturaIa {
     public record OpcaoSubcategoria(UUID id, String nome) {
     }
 
-    public Resposta consultar(ChatModel chatModel, String textoFatura, List<OpcaoCategoria> categorias) {
-        String texto = textoFatura.length() > TAMANHO_MAXIMO_TEXTO
-                ? textoFatura.substring(0, TAMANHO_MAXIMO_TEXTO)
-                : textoFatura;
-        ChatResponse resposta = chatModel.chat(ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(INSTRUCOES),
-                        UserMessage.from("Categorias de despesa disponíveis:\n" + descreverCategorias(categorias)
-                                + "\n\nTexto da fatura:\n" + texto))
-                .build());
-        return new Resposta(resposta.aiMessage() == null ? null : resposta.aiMessage().text(), resposta.modelName());
+    /**
+     * Lê a fatura em trechos: uma página por vez, e páginas com muitos lançamentos divididas em
+     * partes, porque modelos menores deixam itens de fora quando recebem listas longas. Cada trecho
+     * recebe o último cartão visto antes dele, já que a seção de um cartão pode continuar no trecho
+     * seguinte sem repetir o cabeçalho. A parcela de cada item é conferida contra a própria linha.
+     */
+    public Leitura ler(ChatModel chatModel, List<String> paginas, List<OpcaoCategoria> categorias) {
+        String descricaoCategorias = descreverCategorias(categorias);
+        boolean algumaComLancamentos = paginas.stream().anyMatch(ConferenciaTextoFatura::temLancamentos);
+        String vencimento = null;
+        BigDecimal total = null;
+        Map<String, FaturaLidaIa.CartaoLido> cartoes = new LinkedHashMap<>();
+        List<FaturaLidaIa.ItemLido> itens = new ArrayList<>();
+        StringBuilder bruta = new StringBuilder();
+        String modelo = null;
+        String ultimoCartao = null;
+        int esperados = 0;
+
+        for (int indice = 0; indice < paginas.size(); indice++) {
+            String pagina = paginas.get(indice);
+            // A primeira página sempre vai (costuma trazer o vencimento); as demais, só com lançamentos.
+            if (pagina.isBlank() || (indice > 0 && algumaComLancamentos && !ConferenciaTextoFatura.temLancamentos(pagina))) {
+                continue;
+            }
+            esperados += ConferenciaTextoFatura.contarLancamentos(pagina);
+            List<String> trechos = ConferenciaTextoFatura.dividir(pagina, LANCAMENTOS_POR_TRECHO);
+            for (int parte = 0; parte < trechos.size(); parte++) {
+                String rotulo = "Página " + (indice + 1) + " de " + paginas.size()
+                        + (trechos.size() > 1 ? ", parte " + (parte + 1) + " de " + trechos.size() : "");
+                String trecho = trechos.get(parte);
+                String mensagem = "Categorias de despesa disponíveis:\n" + descricaoCategorias
+                        + "\n\n" + rotulo + " da fatura."
+                        + (ultimoCartao == null ? "" : " No texto anterior, o último cartão identificado foi o final "
+                                + ultimoCartao + ": os lançamentos do início deste trecho, antes de um novo cabeçalho "
+                                + "de cartão, pertencem a ele.")
+                        + "\n\nTexto:\n"
+                        + (trecho.length() > TAMANHO_MAXIMO_TEXTO ? trecho.substring(0, TAMANHO_MAXIMO_TEXTO) : trecho);
+
+                ChatResponse resposta = lerTrecho(chatModel, mensagem, rotulo, bruta);
+                FaturaLidaIa lida = interpretar(resposta.aiMessage().text());
+                modelo = modelo != null ? modelo : resposta.modelName();
+                vencimento = vencimento != null ? vencimento : lida.vencimento();
+                total = total != null ? total : lida.total();
+                lida.cartoes().stream()
+                        .filter(cartao -> cartao.ultimosDigitos() != null)
+                        .forEach(cartao -> cartoes.putIfAbsent(cartao.ultimosDigitos(), cartao));
+                List<FaturaLidaIa.ItemLido> lidos = ConferenciaTextoFatura.corrigirParcelas(lida.itens(), trecho);
+                itens.addAll(lidos);
+                ultimoCartao = ultimoCartao(lidos, lida.cartoes(), ultimoCartao);
+            }
+        }
+
+        List<String> avisos = new ArrayList<>();
+        if (esperados > 0 && itens.size() < esperados * PROPORCAO_MINIMA_LIDA) {
+            avisos.add("A IA leu " + itens.size() + " lançamentos, mas o PDF parece ter cerca de " + esperados
+                    + " linhas de lançamento. Confira a fatura: alguns itens podem ter ficado de fora.");
+        }
+        return new Leitura(new FaturaLidaIa(vencimento, total, List.copyOf(cartoes.values()), itens),
+                bruta.toString(), modelo, avisos);
+    }
+
+    /** Consulta a IA para um trecho, com uma nova tentativa quando a resposta não vem como JSON válido. */
+    private ChatResponse lerTrecho(ChatModel chatModel, String mensagem, String rotulo, StringBuilder bruta) {
+        for (int tentativa = 1; ; tentativa++) {
+            ChatResponse resposta = chatModel.chat(ChatRequest.builder()
+                    .messages(SystemMessage.from(INSTRUCOES), UserMessage.from(mensagem))
+                    .build());
+            String texto = resposta.aiMessage() == null ? null : resposta.aiMessage().text();
+            bruta.append("=== ").append(rotulo).append(tentativa > 1 ? " (nova tentativa)" : "")
+                    .append(" ===\n").append(texto).append('\n');
+            try {
+                interpretar(texto);
+                return resposta;
+            } catch (FaturaImportacaoInvalidaException e) {
+                if (tentativa >= 2) {
+                    throw new FaturaImportacaoInvalidaException(rotulo + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private static String ultimoCartao(List<FaturaLidaIa.ItemLido> itens, List<FaturaLidaIa.CartaoLido> cartoes,
+            String anterior) {
+        for (int i = itens.size() - 1; i >= 0; i--) {
+            String digitos = MotorConciliacao.normalizarDigitos(itens.get(i).ultimosDigitos());
+            if (digitos != null) {
+                return digitos;
+            }
+        }
+        for (int i = cartoes.size() - 1; i >= 0; i--) {
+            String digitos = MotorConciliacao.normalizarDigitos(cartoes.get(i).ultimosDigitos());
+            if (digitos != null) {
+                return digitos;
+            }
+        }
+        return anterior;
     }
 
     public FaturaLidaIa interpretar(String resposta) {

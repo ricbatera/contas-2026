@@ -103,7 +103,7 @@ public class FaturaImportacaoService {
                 .tamanhoBytes(original.length)
                 .status(StatusImportacao.PROCESSANDO)
                 .build()).getId());
-        agendar(id, pdf.texto());
+        agendar(id, pdf.paginas());
         return emTransacao(() -> buscarPorId(id));
     }
 
@@ -133,19 +133,19 @@ public class FaturaImportacaoService {
         importacaoRepository.delete(importacao);
     }
 
-    private void agendar(UUID id, String texto) {
-        if (!executor.agendar(() -> executarProcessamento(id, texto))) {
+    private void agendar(UUID id, List<String> paginas) {
+        if (!executor.agendar(() -> executarProcessamento(id, paginas))) {
             registrarErro(id, "Há muitas faturas sendo processadas. Reprocesse esta importação em instantes.", null, null);
         }
     }
 
     /** Roda na thread do {@link ExecutorImportacaoFatura}; qualquer falha termina como status ERRO. */
-    private void executarProcessamento(UUID id, String texto) {
+    private void executarProcessamento(UUID id, List<String> paginas) {
         try {
             ChatModel chatModel = provedorIaService.chatModelPadrao();
-            String conteudo = texto != null
-                    ? texto
-                    : pdfLeitor.ler(emTransacao(() -> buscarEntidade(id).getPdf()), null).texto();
+            List<String> conteudo = paginas != null
+                    ? paginas
+                    : pdfLeitor.ler(emTransacao(() -> buscarEntidade(id).getPdf()), null).paginas();
             processar(id, chatModel, conteudo);
         } catch (BusinessException e) {
             registrarErro(id, e.getMessage(), null, null);
@@ -155,11 +155,14 @@ public class FaturaImportacaoService {
         }
     }
 
-    private void processar(UUID id, ChatModel chatModel, String texto) {
+    private void processar(UUID id, ChatModel chatModel, List<String> paginas) {
         List<OpcaoCategoria> categorias = emTransacao(this::opcoesCategorias);
-        LeitorFaturaIa.Resposta resposta;
+        LeitorFaturaIa.Leitura leitura;
         try {
-            resposta = leitorIa.consultar(chatModel, texto, categorias);
+            leitura = leitorIa.ler(chatModel, paginas, categorias);
+        } catch (BusinessException e) {
+            registrarErro(id, e.getMessage(), null, null);
+            return;
         } catch (RuntimeException e) {
             log.warn("Falha ao consultar a IA na importação de fatura {}: {}", id, e.toString());
             registrarErro(id, "Falha ao consultar o provedor de IA: " + ProvedorIaService.mensagemErro(e), null, null);
@@ -167,15 +170,15 @@ public class FaturaImportacaoService {
         }
 
         try {
-            FaturaLidaIa lida = leitorIa.interpretar(resposta.texto());
-            List<String> avisosDesempate = new ArrayList<>();
-            List<MotorConciliacao.ParIa> pares = desempatar(id, chatModel, lida, avisosDesempate);
+            FaturaLidaIa lida = leitura.fatura();
+            List<String> avisosLeitura = new ArrayList<>(leitura.avisos());
+            List<MotorConciliacao.ParIa> pares = desempatar(id, chatModel, lida, avisosLeitura);
             emTransacao(() -> {
                 FaturaImportacao importacao = buscarEntidade(id);
-                importacao.setRespostaIa(resposta.texto());
-                importacao.setProvedorModelo(limitar(resposta.modelo(), 100));
+                importacao.setRespostaIa(leitura.respostaBruta());
+                importacao.setProvedorModelo(limitar(leitura.modelo(), 100));
                 preSaidaRepository.excluirPendentesDaImportacao(id);
-                ResumoImportacao resumo = conciliacaoService.aplicar(importacao, lida, pares, avisosDesempate);
+                ResumoImportacao resumo = conciliacaoService.aplicar(importacao, lida, pares, avisosLeitura);
                 if (importacaoRepository.existeOutraComHash(importacao.getHashSha256(), id)) {
                     List<String> avisos = new ArrayList<>();
                     avisos.add("Este mesmo arquivo já foi importado antes; itens repetidos não foram duplicados.");
@@ -189,10 +192,10 @@ public class FaturaImportacaoService {
                 return null;
             });
         } catch (BusinessException e) {
-            registrarErro(id, e.getMessage(), resposta.texto(), resposta.modelo());
+            registrarErro(id, e.getMessage(), leitura.respostaBruta(), leitura.modelo());
         } catch (RuntimeException e) {
             log.error("Erro ao conciliar a importação de fatura {}", id, e);
-            registrarErro(id, "Erro inesperado ao conciliar a fatura.", resposta.texto(), resposta.modelo());
+            registrarErro(id, "Erro inesperado ao conciliar a fatura.", leitura.respostaBruta(), leitura.modelo());
         }
     }
 
