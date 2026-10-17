@@ -83,6 +83,35 @@ class AuthControllerIT {
     }
 
     @Test
+    void register_deveCriarCategoriasPadraoApenasParaONovoUsuario() throws Exception {
+        String tokenA = registrar("categorias-padrao-a");
+        String tokenB = registrar("categorias-padrao-b");
+
+        mockMvc.perform(get("/api/categorias").header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(19))
+                .andExpect(jsonPath("$.data[?(@.nome == 'Moradia' && @.tipo == 'DESPESA')].subcategorias.length()")
+                        .value(4))
+                .andExpect(jsonPath("$.data[?(@.nome == 'Salário')].tipo").value("RECEITA"))
+                .andExpect(jsonPath("$.data[?(@.padrao == true)]").isEmpty());
+
+        mockMvc.perform(get("/api/categorias").header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(19));
+    }
+
+    private String registrar(String prefix) throws Exception {
+        RegisterRequest request = new RegisterRequest(
+                "Ana", "Silva", prefix + "-" + System.nanoTime() + "@example.com", "Senha123!", null);
+        String response = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).at("/data/accessToken").asText();
+    }
+
+    @Test
     void register_deveRetornar400ComDoisFieldErrors_quandoEmailInvalidoESenhaFraca() throws Exception {
         RegisterRequest invalido = new RegisterRequest("Nome", "Sobrenome", "email-invalido", "123", null);
 

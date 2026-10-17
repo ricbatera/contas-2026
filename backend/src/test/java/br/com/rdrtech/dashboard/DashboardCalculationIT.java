@@ -223,6 +223,7 @@ class DashboardCalculationIT {
                 .valorPorParcela(valorParcela)
                 .quantidadeParcelas(1)
                 .formaPagamento(FormaPagamento.PIX)
+                .dataInicial(vencimento)
                 .modoResponsabilidade(partePessoa == null ? ModoResponsabilidade.USUARIO : ModoResponsabilidade.DIVIDIR)
                 .categoria(categoria)
                 .subcategoria(subcategoria)

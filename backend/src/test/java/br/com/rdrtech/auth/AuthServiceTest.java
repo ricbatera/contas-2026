@@ -14,6 +14,7 @@ import br.com.rdrtech.auth.dto.LoginRequest;
 import br.com.rdrtech.auth.dto.RefreshRequest;
 import br.com.rdrtech.auth.dto.RegisterRequest;
 import br.com.rdrtech.auth.dto.TokenResponse;
+import br.com.rdrtech.categoria.CategoriasPadraoService;
 import br.com.rdrtech.exception.CredenciaisInvalidasException;
 import br.com.rdrtech.exception.EmailJaCadastradoException;
 import br.com.rdrtech.exception.RefreshTokenInvalidoException;
@@ -49,6 +50,8 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtService jwtService;
+    @Mock
+    private CategoriasPadraoService categoriasPadraoService;
 
     private AuthService authService;
 
@@ -57,7 +60,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(usuarioRepository, roleRepository, refreshTokenRepository, passwordEncoder, jwtService);
+        authService = new AuthService(usuarioRepository, roleRepository, refreshTokenRepository, passwordEncoder, jwtService, categoriasPadraoService);
 
         roleUser = Role.builder().nome(NomePerfil.USER).build();
         usuario = Usuario.builder()
@@ -92,6 +95,7 @@ class AuthServiceTest {
         Usuario salvo = captor.getValue();
         assertThat(salvo.getSenha()).isEqualTo("hash-gerado");
         assertThat(salvo.getRoles()).containsExactly(roleUser);
+        verify(categoriasPadraoService).criarPara(salvo.getId());
         assertThat(result.accessToken()).isEqualTo("access-token");
         assertThat(result.refreshToken()).isEqualTo("refresh-token");
         assertThat(result.tokenType()).isEqualTo("Bearer");
@@ -105,6 +109,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(request)).isInstanceOf(EmailJaCadastradoException.class);
         verify(usuarioRepository, never()).save(any());
+        verify(categoriasPadraoService, never()).criarPara(any());
     }
 
     @Test

@@ -4,6 +4,7 @@ import br.com.rdrtech.auth.dto.LoginRequest;
 import br.com.rdrtech.auth.dto.RefreshRequest;
 import br.com.rdrtech.auth.dto.RegisterRequest;
 import br.com.rdrtech.auth.dto.TokenResponse;
+import br.com.rdrtech.categoria.CategoriasPadraoService;
 import br.com.rdrtech.exception.CredenciaisInvalidasException;
 import br.com.rdrtech.exception.EmailJaCadastradoException;
 import br.com.rdrtech.exception.RefreshTokenInvalidoException;
@@ -33,6 +34,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final CategoriasPadraoService categoriasPadraoService;
 
     @Transactional
     public TokenResponse register(RegisterRequest request) {
@@ -53,6 +55,7 @@ public class AuthService {
                 .roles(Set.of(roleUser))
                 .build();
         usuarioRepository.save(usuario);
+        categoriasPadraoService.criarPara(usuario.getId());
         return issueTokens(usuario);
     }
 

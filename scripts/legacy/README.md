@@ -5,5 +5,5 @@ Histórico de referência. **Não aplicar** em bancos novos: o schema agora vem 
 destes scripts que não estavam no banco).
 
 Exceção: `seed-categorias.sql` popula categorias e subcategorias padrão para os usuários já
-existentes. Não é migration (os dados dependem de cada usuário) e pode ser rodado manualmente
-com `psql` quando necessário.
+existentes. Usuários novos recebem as mesmas categorias no cadastro (`CategoriasPadraoService`);
+o script só serve para backfill e pode ser rodado manualmente com `psql`.

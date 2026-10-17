@@ -18,8 +18,9 @@ Código, nomes de domínio, mensagens e commits são em português.
 ```bash
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local   # usa application-local.properties (PostgreSQL local)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2      # usa application-h2.properties (H2)
-./mvnw test                                               # todos os testes (PostgreSQL financas_test, perfil "test")
-./mvnw test -Dtest=SaidaControllerIT                      # uma classe
+./mvnw test                                               # só testes unitários (*Test, *Tests) via Surefire
+./mvnw verify                                             # unitários + integração (*IT) via Failsafe; use este para validar mudanças
+./mvnw test -Dtest=SaidaControllerIT                      # uma classe (com -Dtest o Surefire roda também *IT)
 ./mvnw test -Dtest=SaidaControllerIT#deveAceitarSaidaComSessentaParcelas   # um método
 ```
 
@@ -58,6 +59,8 @@ npx ng test --include src/app/core/saida.service.spec.ts   # um arquivo
 - `scripts/legacy/` guarda os scripts anteriores ao Flyway, só como referência.
 
 **Domínio central:** uma `Saida` (despesa) gera `SaidaParcela`s e pode ter vários `SaidaResponsavel` (usuário ou `Pessoa`). Compras no cartão são agrupadas em `Fatura` por competência, e cartões adicionais compartilham a fatura do cartão principal. `Bucket` é o orçamento mensal por subcategoria e responsável. `DashboardService` consolida saídas, buckets, contas fixas e projeção mensal (`/api/dashboard`, `/projecao`, `/saidas`, `/buckets`, `/contas-fixas`).
+
+**Cadastro de usuário:** `AuthService.register` chama `CategoriasPadraoService.criarPara`, que cria 19 categorias padrão (11 de despesa e 8 de receita) com subcategorias na mesma transação. Como não há usuário autenticado nesse momento, o tenant é atribuído com `TenantAwareEntity.definirTenant`. Use esse método sempre que gravar entidades tenant-aware sem JWT no contexto. Testes que criam categorias via API não podem reutilizar nomes padrão (ex.: "Moradia"), senão recebem 409.
 
 **Testes:** `*Test` são testes unitários de service. `*IT` são `@SpringBootTest` + MockMvc ponta a ponta: registram um usuário novo por teste via `/api/auth/register` (e-mail com `System.nanoTime()`) e usam o `accessToken` retornado. Isso também isola os dados por tenant. `tenant/TenantFilterIT` cobre o isolamento.
 

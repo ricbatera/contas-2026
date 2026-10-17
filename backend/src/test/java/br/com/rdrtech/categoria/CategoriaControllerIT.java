@@ -65,12 +65,12 @@ class CategoriaControllerIT {
     @Test
     void fluxoCompleto_deveGerenciarCategoriaESubcategoriaEExcluirEmCascata() throws Exception {
         String token = registrarERetornarToken("categoria-crud");
-        String categoryId = criarCategoria(token, "Moradia", TipoCategoria.DESPESA);
+        String categoryId = criarCategoria(token, "Residência", TipoCategoria.DESPESA);
         String subcategoryId = criarSubcategoria(token, categoryId, "Aluguel");
 
         mockMvc.perform(get("/api/categorias").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].subcategorias[0].nome").value("Aluguel"));
+                .andExpect(jsonPath("$.data[?(@.id == '%s')].subcategorias[0].nome", categoryId).value("Aluguel"));
 
         CategoriaRequest update = new CategoriaRequest("Casa", TipoCategoria.DESPESA, false);
         mockMvc.perform(put("/api/categorias/" + categoryId)
@@ -107,7 +107,7 @@ class CategoriaControllerIT {
 
         mockMvc.perform(get("/api/categorias").header("Authorization", "Bearer " + tokenB))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(0));
+                .andExpect(jsonPath("$.data[?(@.id == '%s')]", categoryId).isEmpty());
         mockMvc.perform(get("/api/categorias/" + categoryId).header("Authorization", "Bearer " + tokenB))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/subcategorias/" + subcategoryId).header("Authorization", "Bearer " + tokenB))
@@ -119,12 +119,12 @@ class CategoriaControllerIT {
     @Test
     void naoDevePermitirNomesDuplicadosNoMesmoTipoOuCategoria() throws Exception {
         String token = registrarERetornarToken("categoria-duplicada");
-        String categoryId = criarCategoria(token, "Moradia", TipoCategoria.DESPESA);
+        String categoryId = criarCategoria(token, "Residência", TipoCategoria.DESPESA);
         mockMvc.perform(post("/api/categorias")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new CategoriaRequest("moradia", TipoCategoria.DESPESA, true))))
+                                new CategoriaRequest("residência", TipoCategoria.DESPESA, true))))
                 .andExpect(status().isConflict());
 
         criarSubcategoria(token, categoryId, "Aluguel");
@@ -139,9 +139,9 @@ class CategoriaControllerIT {
     @Test
     void deveManterUmaSubcategoriaPadraoPorTipoEOrdenarCategoriaPaiNoTopo() throws Exception {
         String token = registrarERetornarToken("categoria-default");
-        String moradia = criarCategoria(token, "Moradia", TipoCategoria.DESPESA);
-        String alimentacao = criarCategoria(token, "Alimentação", TipoCategoria.DESPESA);
-        String salario = criarCategoria(token, "Salário", TipoCategoria.RECEITA);
+        String moradia = criarCategoria(token, "Residência", TipoCategoria.DESPESA);
+        String alimentacao = criarCategoria(token, "Mercado e feira", TipoCategoria.DESPESA);
+        String salario = criarCategoria(token, "Pró-labore", TipoCategoria.RECEITA);
         String aluguel = criarSubcategoria(token, moradia, "Aluguel");
         String supermercado = criarSubcategoria(token, alimentacao, "Supermercado");
         String salarioMensal = criarSubcategoria(token, salario, "Salário mensal");
@@ -186,8 +186,7 @@ class CategoriaControllerIT {
                 .andExpect(jsonPath("$.data[0].padrao").value(true))
                 .andExpect(jsonPath("$.data[1].id").value(salario))
                 .andExpect(jsonPath("$.data[1].padrao").value(true))
-                .andExpect(jsonPath("$.data[2].id").value(moradia))
-                .andExpect(jsonPath("$.data[2].padrao").value(false));
+                .andExpect(jsonPath("$.data[?(@.id == '%s')].padrao", moradia).value(false));
     }
 
     @Test
