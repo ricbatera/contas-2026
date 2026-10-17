@@ -112,6 +112,23 @@ class SaidaControllerIT {
     }
 
     @Test
+    void deveAceitarSaidaComSessentaParcelas() throws Exception {
+        String token = registrar("saida-sessenta-parcelas");
+        ExpenseReferences references = criarReferencias(token, true);
+        SaidaRequest request = requestCredito(
+                references, new BigDecimal("100.00"), LocalDate.of(2026, 11, 15), 60, false);
+
+        mockMvc.perform(post("/api/saidas")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.quantidadeParcelas").value(60))
+                .andExpect(jsonPath("$.data.parcelas.length()").value(60))
+                .andExpect(jsonPath("$.data.parcelas[59].numero").value(60));
+    }
+
+    @Test
     void comprasDeCartaoAdicionalEPrincipalDevemCompartilharFaturaPorCompetencia() throws Exception {
         String token = registrar("saida-fatura");
         ExpenseReferences references = criarReferencias(token, true);

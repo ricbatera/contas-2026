@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS saida (
     descricao VARCHAR(120) NOT NULL,
     descricao_fatura VARCHAR(120),
     valor_por_parcela NUMERIC(12, 2) NOT NULL CHECK (valor_por_parcela > 0),
-    quantidade_parcelas INTEGER NOT NULL CHECK (quantidade_parcelas BETWEEN 1 AND 36),
+    quantidade_parcelas INTEGER NOT NULL,
     forma_pagamento VARCHAR(20) NOT NULL
         CHECK (forma_pagamento IN ('CARTAO_CREDITO', 'BOLETO', 'DEBITO', 'PIX')),
     modo_responsabilidade VARCHAR(20) NOT NULL
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS saida_parcela (
     created_by VARCHAR(120),
     updated_at TIMESTAMP,
     updated_by VARCHAR(120),
-    numero INTEGER NOT NULL CHECK (numero BETWEEN 1 AND 36),
+    numero INTEGER NOT NULL,
     valor NUMERIC(12, 2) NOT NULL CHECK (valor > 0),
     vencimento DATE NOT NULL,
     saida_id UUID NOT NULL REFERENCES saida (id) ON DELETE CASCADE,
@@ -64,6 +64,16 @@ CREATE TABLE IF NOT EXISTS saida_parcela (
     tenant_id UUID NOT NULL REFERENCES usuario (id),
     CONSTRAINT uk_saida_parcela_numero UNIQUE (saida_id, numero)
 );
+
+ALTER TABLE saida DROP CONSTRAINT IF EXISTS saida_quantidade_parcelas_check;
+ALTER TABLE saida DROP CONSTRAINT IF EXISTS ck_saida_quantidade_parcelas;
+ALTER TABLE saida
+    ADD CONSTRAINT ck_saida_quantidade_parcelas CHECK (quantidade_parcelas BETWEEN 1 AND 60);
+
+ALTER TABLE saida_parcela DROP CONSTRAINT IF EXISTS saida_parcela_numero_check;
+ALTER TABLE saida_parcela DROP CONSTRAINT IF EXISTS ck_saida_parcela_numero;
+ALTER TABLE saida_parcela
+    ADD CONSTRAINT ck_saida_parcela_numero CHECK (numero BETWEEN 1 AND 60);
 
 CREATE TABLE IF NOT EXISTS saida_responsavel (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -19,7 +19,7 @@ public record SaidaRequest(
         @NotBlank @Size(max = 120) String descricao,
         @Size(max = 120) String descricaoFatura,
         @NotNull @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal valorPorParcela,
-        @NotNull @Min(1) @Max(36) Integer quantidadeParcelas,
+        @NotNull @Min(1) @Max(60) Integer quantidadeParcelas,
         @NotNull FormaPagamento formaPagamento,
         LocalDate dataInicial,
         LocalDate primeiroVencimento,
