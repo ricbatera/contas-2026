@@ -1,0 +1,155 @@
+.import-alerts {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 50;
+  display: grid;
+  width: min(360px, calc(100vw - 32px));
+  gap: 10px;
+}
+
+.import-alert {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+  padding: 14px 14px 14px 13px;
+  border: 1px solid #dfe5ed;
+  border-left: 4px solid #1e6fd0;
+  border-radius: 10px;
+  color: #26364d;
+  background: #fff;
+  box-shadow: 0 10px 28px rgb(24 45 80 / 14%);
+  font-size: 12px;
+  animation: entrar 180ms ease-out;
+}
+
+.import-alert.success {
+  border-left-color: #1d7a46;
+}
+
+.import-alert.failure {
+  border-left-color: #c0392b;
+}
+
+.import-alert-body {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  line-height: 1.4;
+}
+
+.import-alert-body strong {
+  font-size: 13px;
+}
+
+.import-alert-body span {
+  color: #5d6b80;
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-alert-body .alert-error {
+  color: #a33027;
+  overflow-wrap: anywhere;
+}
+
+.alert-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.success .alert-icon {
+  background: #1d7a46;
+}
+
+.failure .alert-icon {
+  background: #c0392b;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  margin: 2px;
+  border: 2px solid #cfe0f6;
+  border-top-color: #1e6fd0;
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+.import-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.alert-link,
+.alert-close {
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.alert-link {
+  color: #1761b5;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.alert-link:hover {
+  background: #eaf3ff;
+}
+
+.alert-close {
+  color: #8995a7;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.alert-close:hover {
+  color: #26364d;
+  background: #f2f4f7;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+
+  .import-alert {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .import-alerts {
+    right: 16px;
+    bottom: 16px;
+  }
+}

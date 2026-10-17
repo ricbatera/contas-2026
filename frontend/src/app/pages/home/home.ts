@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService, ApiResponse } from '../../core/auth.service';
+import { ImportacaoMonitorService } from '../../core/importacao-monitor.service';
+import { ImportacaoAlertas } from './importacao-alertas';
 
 interface UserProfile {
   nome: string;
@@ -24,7 +26,7 @@ const SECTIONS = [
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, ImportacaoAlertas],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
@@ -33,6 +35,7 @@ export class Home {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  protected readonly monitor = inject(ImportacaoMonitorService);
 
   protected readonly sections = SECTIONS;
   protected readonly collapsed = signal(window.innerWidth <= 760);
@@ -54,6 +57,10 @@ export class Home {
   constructor() {
     const timer = window.setInterval(() => this.now.set(new Date()), 1000);
     this.destroyRef.onDestroy(() => window.clearInterval(timer));
+
+    // Acompanha faturas sendo lidas pela IA em segundo plano, inclusive após recarregar a página.
+    this.monitor.iniciar();
+    this.destroyRef.onDestroy(() => this.monitor.parar());
 
     this.http.get<ApiResponse<UserProfile>>('/api/usuarios/me').subscribe({
       next: ({ data }) => this.profile.set(data),

@@ -1,0 +1,68 @@
+<section class="cards-page faturas-page">
+  <div class="cards-toolbar">
+    <div>
+      <a class="back-link" routerLink="/home/faturas">
+        <span aria-hidden="true">←</span>
+        Voltar para faturas
+      </a>
+      <p class="section-kicker">CARTÕES DE CRÉDITO</p>
+      <h2>Importações de fatura</h2>
+      <p class="section-description">PDFs enviados, o resultado da leitura e as pré-saídas aguardando aprovação.</p>
+    </div>
+    <div class="toolbar-actions">
+      <a class="primary-button" routerLink="/home/faturas/importar">
+        <span aria-hidden="true">↑</span>
+        Importar fatura (PDF)
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="form-error fatura-error" role="alert">
+      <span>{{ error() }}</span>
+      <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando importações...</div>
+  } @else if (!error() && !importacoes().length) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">▤</div>
+      <h3>Nenhuma fatura importada</h3>
+      <p>Envie o PDF de uma fatura para conferir os lançamentos com a IA.</p>
+      <a class="primary-button" routerLink="/home/faturas/importar">Importar fatura</a>
+    </div>
+  } @else {
+    <section class="fatura-items" aria-label="Importações">
+      @for (item of importacoes(); track item.id) {
+        <a class="fatura-item import-link" [routerLink]="['/home/faturas/importacoes', item.id]">
+          <div class="fatura-item-main">
+            <h4>{{ item.nomeArquivo }}</h4>
+            <div class="fatura-item-meta">
+              <span class="status-badge" [class]="'status-' + item.status.toLowerCase()">
+                @if (item.status === 'PROCESSANDO') {
+                  <span class="spinner" aria-hidden="true"></span>
+                }
+                {{ rotuloStatus[item.status] }}
+              </span>
+              @if (item.cartaoNome) {
+                <span>{{ item.cartaoNome }} · final {{ item.cartaoUltimosDigitos }}</span>
+              }
+              @if (item.competencia) {
+                <span class="capitalize">{{ rotuloCompetencia(item.competencia) }}</span>
+              }
+              <span>Enviada em {{ item.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</span>
+              @if (item.preSaidasPendentes) {
+                <span class="pending-count">{{ item.preSaidasPendentes }} pré-saída(s) pendente(s)</span>
+              }
+            </div>
+          </div>
+          @if (item.totalPdf !== null) {
+            <strong>{{ item.totalPdf | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          }
+        </a>
+      }
+    </section>
+  }
+</section>

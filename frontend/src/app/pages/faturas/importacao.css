@@ -1,0 +1,297 @@
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.optional-label {
+  color: #8995a7;
+  font-weight: 400;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.import-wait,
+.confirm-text {
+  align-self: center;
+  margin-right: auto;
+  color: #718096;
+  font-size: 11px;
+}
+
+.import-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.import-link:hover h4 {
+  color: #1761b5;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #42536b;
+  background: #edf0f4;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.status-badge.status-concluida {
+  color: #1d7a46;
+  background: #e5f5ec;
+}
+
+.status-badge.status-erro {
+  color: #a33027;
+  background: #fdecea;
+}
+
+.status-badge.status-processando {
+  color: #8a5a00;
+  background: #fff4dc;
+}
+
+.pending-count {
+  color: #1761b5;
+  font-weight: 600;
+}
+
+.import-message {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  border: 1px solid #cde6d7;
+  border-radius: 7px;
+  color: #1d7a46;
+  background: #f2fbf6;
+  font-size: 12px;
+}
+
+.import-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.import-actions .confirm-text {
+  margin-right: 0;
+}
+
+.import-error-detail {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.import-section {
+  margin-bottom: 18px;
+}
+
+.import-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.import-section-heading h3,
+.import-section > h3 {
+  margin: 0 0 6px;
+  color: #26364d;
+  font-size: 15px;
+}
+
+.import-section > .section-description {
+  margin: 0 0 12px;
+}
+
+.import-warnings {
+  margin: 0;
+  padding-left: 18px;
+  color: #8a5a00;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.pre-saida-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.pre-saida-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pre-saida-heading h4 {
+  margin: 0;
+  color: #26364d;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.pre-saida-heading p {
+  margin: 4px 0 0;
+  color: #8995a7;
+  font-size: 11px;
+}
+
+.pre-saida-heading strong {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  color: #172b4d;
+  font-size: 13px;
+}
+
+.pre-saida-heading small {
+  color: #718096;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.pre-saida-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pre-saida-grid .wide {
+  grid-column: span 2;
+}
+
+.pre-saida-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pre-saida-actions small {
+  margin-right: auto;
+  color: #8995a7;
+  font-size: 11px;
+}
+
+.field-error {
+  color: #c0392b;
+  font-size: 11px;
+}
+
+.delete-button {
+  padding: 7px 9px;
+  border: 1px solid #f0ddda;
+  border-radius: 7px;
+  color: #b34439;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: #fff6f5;
+}
+
+.delete-button:disabled,
+.link-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  color: #1761b5;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fatura-item-meta a {
+  color: #1761b5;
+}
+
+@media (max-width: 640px) {
+  .pre-saida-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pre-saida-grid .wide {
+    grid-column: auto;
+  }
+
+  .import-actions {
+    margin-left: 0;
+  }
+}
+
+.import-processing {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 13px 14px;
+  border: 1px solid #cfe0f6;
+  border-radius: 8px;
+  color: #26364d;
+  background: #f4f8fe;
+  font-size: 12px;
+}
+
+.import-processing div {
+  display: grid;
+  gap: 3px;
+}
+
+.import-processing span:not(.spinner) {
+  color: #5d6b80;
+  line-height: 1.4;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin: 2px;
+  border: 2px solid #cfe0f6;
+  border-top-color: #1e6fd0;
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+.status-badge.status-processando .spinner {
+  width: 8px;
+  height: 8px;
+  margin: 0 5px 0 0;
+  border-width: 1.5px;
+  vertical-align: -1px;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

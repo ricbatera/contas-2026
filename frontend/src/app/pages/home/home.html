@@ -89,6 +89,9 @@
           }
         </svg>
         <span class="nav-label">{{ section.name }}</span>
+        @if (section.icon === 'invoice' && monitor.emProcessamento().length) {
+          <span class="nav-activity" title="Fatura sendo processada" aria-label="Fatura sendo processada"></span>
+        }
       </a>
     }
   </nav>
@@ -98,3 +101,5 @@
 <main class="content" [class.content-wide]="collapsed()">
   <router-outlet />
 </main>
+
+<app-importacao-alertas />

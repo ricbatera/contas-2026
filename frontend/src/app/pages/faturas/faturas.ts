@@ -1,4 +1,5 @@
 import { CurrencyPipe, DatePipe, registerLocaleData } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import localePtBr from '@angular/common/locales/pt';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
@@ -9,9 +10,9 @@ registerLocaleData(localePtBr);
 
 @Component({
   selector: 'app-faturas',
-  imports: [CurrencyPipe, DatePipe],
+  imports: [CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './faturas.html',
-  styleUrls: ['../cartoes/cartoes.css', './faturas.css'],
+  styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })
 export class Faturas implements OnInit {
   private readonly cartaoService = inject(CartaoService);

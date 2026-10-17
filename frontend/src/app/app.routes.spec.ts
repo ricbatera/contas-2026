@@ -18,6 +18,8 @@ describe('Application routes', () => {
   });
 
   afterEach(() => {
+    // O shell inicia o monitor de importações de fatura, que consulta as que estão processando.
+    http.match('/api/faturas/importacoes').forEach((request) => request.flush({ data: [] }));
     http.verify();
     localStorage.clear();
   });

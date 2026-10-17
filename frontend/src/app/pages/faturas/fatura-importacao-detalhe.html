@@ -1,0 +1,329 @@
+<section class="cards-page faturas-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/faturas/importacoes">
+      <span aria-hidden="true">←</span>
+      Voltar para importações
+    </a>
+    <p class="section-kicker">IMPORTAÇÃO DE FATURA</p>
+    <h2>Revisar fatura</h2>
+    <p class="section-description">
+      Confira o que a IA leu, ajuste as pré-saídas e aprove para incluí-las nas saídas.
+    </p>
+  </div>
+
+  @if (error()) {
+    <div class="form-error fatura-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!importacao()) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+  @if (mensagem()) {
+    <div class="import-message" role="status">{{ mensagem() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando importação...</div>
+  } @else if (importacao(); as imp) {
+    <article class="fatura-summary">
+      <div class="fatura-summary-heading">
+        <div>
+          <p class="section-kicker">{{ imp.nomeArquivo }}</p>
+          <h3>
+            @if (imp.cartaoNome) {
+              {{ imp.cartaoNome }} · final {{ imp.cartaoUltimosDigitos }}
+            } @else {
+              Cartão não identificado
+            }
+          </h3>
+          <p class="section-description">
+            {{ rotuloCompetencia(imp.competencia) }}
+            @if (imp.vencimento) {
+              · vence {{ imp.vencimento | date: 'dd/MM/yyyy' }}
+            }
+          </p>
+        </div>
+        <div class="fatura-total">
+          <span>Total no PDF</span>
+          <strong>{{ (imp.totalPdf ?? 0) | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          @if (imp.resumo; as resumo) {
+            <span>No sistema antes da importação: {{ resumo.totalSistema | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span>
+            <span>Em pré-saídas: {{ resumo.totalPreSaidas | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span>
+          }
+        </div>
+      </div>
+      <div class="fatura-due-date import-meta">
+        <span class="status-badge" [class]="'status-' + imp.status.toLowerCase()">
+          @if (processando()) {
+            <span class="spinner" aria-hidden="true"></span>
+          }
+          {{ rotuloStatus[imp.status] }}
+        </span>
+        <span>Enviada em {{ imp.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</span>
+        @if (imp.provedorModelo) {
+          <span>Lida por {{ imp.provedorModelo }}</span>
+        }
+        <div class="import-actions">
+          <button class="secondary-button" type="button" (click)="verPdf()">Ver PDF</button>
+          @if (processando()) {
+            <!-- Reprocessar e excluir ficam bloqueados até a leitura terminar. -->
+          } @else if (confirmar() === 'reprocessar') {
+            <span class="confirm-text">Ajustes não salvos nas pendentes serão descartados.</span>
+            <button class="primary-button" type="button" (click)="reprocessar()">Confirmar</button>
+            <button class="secondary-button" type="button" (click)="confirmar.set(null)">Cancelar</button>
+          } @else if (confirmar() === 'excluir') {
+            <span class="confirm-text">Excluir a importação e as pré-saídas pendentes? As saídas já aprovadas ficam.</span>
+            <button class="delete-button" type="button" (click)="excluir()">Excluir</button>
+            <button class="secondary-button" type="button" (click)="confirmar.set(null)">Cancelar</button>
+          } @else {
+            <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="confirmar.set('reprocessar')">
+              {{ ocupado() === 'reprocessar' ? 'Lendo com IA...' : 'Reprocessar' }}
+            </button>
+            <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="confirmar.set('excluir')">
+              Excluir
+            </button>
+          }
+        </div>
+      </div>
+      @if (processando()) {
+        <div class="import-processing" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <div>
+            <strong>A IA está lendo a fatura...</strong>
+            <span>
+              Esta tela se atualiza sozinha quando terminar. Pode levar alguns minutos; você pode sair daqui
+              e será avisado quando a leitura for concluída.
+            </span>
+          </div>
+        </div>
+      }
+      @if (imp.status === 'ERRO') {
+        <div class="form-error import-error-detail" role="alert">
+          <strong>Não foi possível concluir a leitura.</strong>
+          <span>{{ imp.erro }}</span>
+          <span>Corrija a causa (por exemplo, cadastre o cartão ou ajuste o provedor de IA) e reprocesse.</span>
+        </div>
+      }
+    </article>
+
+    @if (imp.resumo?.avisos?.length) {
+      <section class="fatura-items import-section" aria-label="Avisos">
+        <h3>Avisos</h3>
+        <ul class="import-warnings">
+          @for (aviso of imp.resumo!.avisos; track $index) {
+            <li>{{ aviso }}</li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (imp.status === 'CONCLUIDA' || pendentes().length) {
+      <section class="fatura-items import-section" aria-label="Pré-saídas pendentes">
+        <div class="import-section-heading">
+          <h3>Pré-saídas pendentes ({{ pendentes().length }})</h3>
+          @if (pendentes().length) {
+            <button
+              class="primary-button"
+              type="button"
+              [disabled]="!prontas().length || !!ocupado()"
+              (click)="aprovarProntas()"
+            >
+              {{ ocupado() === 'lote' ? 'Aprovando...' : 'Aprovar completas (' + prontas().length + ')' }}
+            </button>
+          }
+        </div>
+        <p class="section-description">
+          Compras da fatura que ainda não estão nas saídas. Parceladas são criadas com todas as parcelas,
+          inclusive as de faturas anteriores.
+        </p>
+
+        @for (item of pendentes(); track item.id) {
+          @let r = rascunhos()[item.id];
+          <article class="pre-saida-card">
+            <div class="pre-saida-heading">
+              <div>
+                <h4>{{ item.descricaoFatura }}</h4>
+                <p>
+                  @if (item.dataCompra) {
+                    Compra em {{ item.dataCompra | date: 'dd/MM/yyyy' }} ·
+                  }
+                  1ª parcela em {{ item.primeiroVencimento | date: 'MM/yyyy' }}
+                </p>
+              </div>
+              <strong>
+                {{ r.valorPorParcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                @if (r.quantidadeParcelas > 1) {
+                  <small>{{ r.numeroParcela }}/{{ r.quantidadeParcelas }}</small>
+                }
+              </strong>
+            </div>
+
+            <div class="pre-saida-grid">
+              <label class="form-field wide">
+                <span>Descrição</span>
+                <input type="text" maxlength="120" [value]="r.descricao" (input)="alterar(item.id, 'descricao', $event)" />
+              </label>
+              <label class="form-field">
+                <span>Cartão</span>
+                <select [value]="r.cartaoId ?? ''" (change)="alterar(item.id, 'cartaoId', $event)">
+                  <option value="">Selecione</option>
+                  @for (cartao of cartoesDaFatura(); track cartao.id) {
+                    <option [value]="cartao.id" [selected]="cartao.id === r.cartaoId">{{ rotuloCartao(cartao) }}</option>
+                  }
+                </select>
+              </label>
+              <label class="form-field">
+                <span>Valor da parcela</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  [value]="r.valorPorParcela"
+                  (input)="alterar(item.id, 'valorPorParcela', $event)"
+                />
+              </label>
+              <label class="form-field">
+                <span>Categoria</span>
+                <select [value]="r.categoriaId ?? ''" (change)="alterar(item.id, 'categoriaId', $event)">
+                  <option value="">Selecione</option>
+                  @for (categoria of categoriasDespesa(); track categoria.id) {
+                    <option [value]="categoria.id" [selected]="categoria.id === r.categoriaId">{{ categoria.nome }}</option>
+                  }
+                </select>
+              </label>
+              <label class="form-field">
+                <span>Subcategoria</span>
+                <select
+                  [value]="r.subcategoriaId ?? ''"
+                  [disabled]="!r.categoriaId"
+                  (change)="alterar(item.id, 'subcategoriaId', $event)"
+                >
+                  <option value="">Selecione</option>
+                  @for (sub of subcategoriasDe(r.categoriaId); track sub.id) {
+                    <option [value]="sub.id" [selected]="sub.id === r.subcategoriaId">{{ sub.nome }}</option>
+                  }
+                </select>
+              </label>
+              <label class="form-field">
+                <span>Parcela na fatura</span>
+                <select [value]="r.numeroParcela" (change)="alterar(item.id, 'numeroParcela', $event)">
+                  @for (n of parcelas; track n) {
+                    <option [value]="n" [selected]="n === r.numeroParcela">{{ n }}</option>
+                  }
+                </select>
+              </label>
+              <label class="form-field">
+                <span>Total de parcelas</span>
+                <select [value]="r.quantidadeParcelas" (change)="alterar(item.id, 'quantidadeParcelas', $event)">
+                  @for (n of parcelas; track n) {
+                    <option [value]="n" [selected]="n === r.quantidadeParcelas">{{ n }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+
+            @if (r.numeroParcela > r.quantidadeParcelas) {
+              <small class="field-error">A parcela atual não pode ser maior que o total de parcelas.</small>
+            }
+            @if (errosItem()[item.id]; as erro) {
+              <div class="form-error" role="alert">{{ erro }}</div>
+            }
+
+            <div class="pre-saida-actions">
+              @if (!completa(r)) {
+                <small>Informe cartão, categoria e subcategoria para aprovar.</small>
+              }
+              <button class="delete-button" type="button" [disabled]="!!ocupado()" (click)="rejeitar(item)">Rejeitar</button>
+              @if (r.alterado) {
+                <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="salvar(item)">Salvar</button>
+              }
+              <button class="primary-button" type="button" [disabled]="!completa(r) || !!ocupado()" (click)="aprovar(item)">
+                {{ ocupado() === item.id ? 'Aguarde...' : 'Aprovar' }}
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="state-card">Nenhuma pré-saída pendente.</div>
+        }
+      </section>
+    }
+
+    @if (imp.resumo?.conciliados?.length) {
+      <section class="fatura-items import-section" aria-label="Lançamentos conciliados">
+        <h3>Já lançados ({{ imp.resumo!.conciliados.length }})</h3>
+        <p class="section-description">Compras que já existiam nas saídas. A descrição da fatura foi atualizada com o texto do PDF.</p>
+        @for (item of imp.resumo!.conciliados; track $index) {
+          <article class="fatura-item">
+            <div class="fatura-item-main">
+              <h4>{{ item.descricaoPdf }}</h4>
+              <p>Saída: {{ item.descricaoSaida }}</p>
+              <div class="fatura-item-meta">
+                @if (item.quantidadeParcelas > 1) {
+                  <span>{{ item.numeroParcela }}/{{ item.quantidadeParcelas }}ª parcela</span>
+                }
+                @if (item.ultimosDigitos) {
+                  <span>Final {{ item.ultimosDigitos }}</span>
+                }
+                <a [routerLink]="['/home/saidas', item.saidaId, 'editar']">Abrir saída</a>
+              </div>
+            </div>
+            <strong>{{ item.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          </article>
+        }
+      </section>
+    }
+
+    @if (aprovadas().length || rejeitadas().length) {
+      <section class="fatura-items import-section" aria-label="Pré-saídas revisadas">
+        <h3>Revisadas</h3>
+        @for (item of aprovadas(); track item.id) {
+          <article class="fatura-item">
+            <div class="fatura-item-main">
+              <h4>{{ item.descricao }}</h4>
+              <div class="fatura-item-meta">
+                <span class="status-badge status-concluida">Aprovada</span>
+                @if (item.saidaId) {
+                  <a [routerLink]="['/home/saidas', item.saidaId, 'editar']">Abrir saída</a>
+                }
+              </div>
+            </div>
+            <strong>{{ item.valorPorParcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          </article>
+        }
+        @for (item of rejeitadas(); track item.id) {
+          <article class="fatura-item">
+            <div class="fatura-item-main">
+              <h4>{{ item.descricao }}</h4>
+              <div class="fatura-item-meta">
+                <span class="status-badge status-erro">Rejeitada</span>
+                <button class="link-button" type="button" [disabled]="!!ocupado()" (click)="reabrir(item)">Reabrir</button>
+              </div>
+              @if (errosItem()[item.id]; as erro) {
+                <p class="field-error">{{ erro }}</p>
+              }
+            </div>
+            <strong>{{ item.valorPorParcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          </article>
+        }
+      </section>
+    }
+
+    @if (imp.resumo?.ignorados?.length) {
+      <section class="fatura-items import-section" aria-label="Lançamentos ignorados">
+        <h3>Ignorados ({{ imp.resumo!.ignorados.length }})</h3>
+        @for (item of imp.resumo!.ignorados; track $index) {
+          <article class="fatura-item">
+            <div class="fatura-item-main">
+              <h4>{{ item.descricao }}</h4>
+              <p>{{ item.motivo }}</p>
+            </div>
+            @if (item.valor !== null) {
+              <strong>{{ item.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+            }
+          </article>
+        }
+      </section>
+    }
+  }
+</section>

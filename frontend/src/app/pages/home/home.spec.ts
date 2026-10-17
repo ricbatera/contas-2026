@@ -15,7 +15,11 @@ describe('Home', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // O shell inicia o monitor de importações de fatura, que consulta as que estão processando.
+    http.match('/api/faturas/importacoes').forEach((request) => request.flush({ data: [] }));
+    http.verify();
+  });
 
   it('loads the profile and shows all navigation sections', () => {
     const fixture = TestBed.createComponent(Home);

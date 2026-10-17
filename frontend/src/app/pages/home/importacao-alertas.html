@@ -1,0 +1,46 @@
+<div class="import-alerts" aria-live="polite">
+  @for (item of monitor.emProcessamento(); track item.id) {
+    @if (monitor.visualizando() !== item.id) {
+      <div class="import-alert processing" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <div class="import-alert-body">
+          <strong>Lendo fatura com IA</strong>
+          <span class="file-name">{{ item.nomeArquivo }}</span>
+          <span>Você pode continuar usando o sistema; avisaremos quando terminar.</span>
+        </div>
+        <button class="alert-link" type="button" (click)="abrir(item.id)">Acompanhar</button>
+      </div>
+    }
+  }
+
+  @for (alerta of monitor.alertas(); track alerta.id) {
+    <div class="import-alert" [class.success]="alerta.sucesso" [class.failure]="!alerta.sucesso" role="alert">
+      <span class="alert-icon" aria-hidden="true">{{ alerta.sucesso ? '✓' : '✕' }}</span>
+      <div class="import-alert-body">
+        @if (alerta.sucesso) {
+          <strong>Fatura processada</strong>
+          <span class="file-name">{{ alerta.nomeArquivo }}</span>
+          <span>
+            @if (alerta.preSaidasPendentes) {
+              {{ alerta.preSaidasPendentes }} pré-saída(s) aguardando sua aprovação.
+            } @else {
+              Nenhuma compra nova para aprovar.
+            }
+          </span>
+        } @else {
+          <strong>Não foi possível ler a fatura</strong>
+          <span class="file-name">{{ alerta.nomeArquivo }}</span>
+          @if (alerta.erro) {
+            <span class="alert-error">{{ alerta.erro }}</span>
+          }
+        }
+      </div>
+      <div class="import-alert-actions">
+        <button class="alert-link" type="button" (click)="abrir(alerta.id)">
+          {{ alerta.sucesso ? 'Revisar' : 'Ver detalhes' }}
+        </button>
+        <button class="alert-close" type="button" aria-label="Dispensar aviso" (click)="monitor.dispensar(alerta.id)">×</button>
+      </div>
+    </div>
+  }
+</div>

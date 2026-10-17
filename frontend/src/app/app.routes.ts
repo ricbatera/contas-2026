@@ -23,6 +23,20 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/faturas/faturas').then((module) => module.Faturas),
       },
       {
+        path: 'faturas/importar',
+        loadComponent: () => import('./pages/faturas/fatura-importar').then((module) => module.FaturaImportar),
+      },
+      {
+        path: 'faturas/importacoes',
+        loadComponent: () =>
+          import('./pages/faturas/fatura-importacoes-list').then((module) => module.FaturaImportacoesList),
+      },
+      {
+        path: 'faturas/importacoes/:id',
+        loadComponent: () =>
+          import('./pages/faturas/fatura-importacao-detalhe').then((module) => module.FaturaImportacaoDetalhe),
+      },
+      {
         path: 'buckets',
         loadComponent: () => import('./pages/buckets/buckets-list').then((module) => module.BucketsList),
       },

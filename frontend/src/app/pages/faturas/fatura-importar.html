@@ -1,0 +1,57 @@
+<section class="cards-page faturas-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/faturas">
+      <span aria-hidden="true">←</span>
+      Voltar para faturas
+    </a>
+    <p class="section-kicker">CARTÕES DE CRÉDITO</p>
+    <h2>Importar fatura</h2>
+    <p class="section-description">
+      Envie o PDF da fatura. A IA lê os lançamentos, identifica os cartões pelos 4 últimos dígitos, atualiza
+      a descrição das compras já lançadas e cria pré-saídas para você aprovar as que faltam.
+    </p>
+  </div>
+
+  <form class="card-form" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+    @if (error()) {
+      <div class="form-error" role="alert">{{ error() }}</div>
+    }
+
+    <label class="form-field full-width">
+      <span>Arquivo PDF</span>
+      <input type="file" accept="application/pdf,.pdf" (change)="selecionarArquivo($event)" [disabled]="enviando()" />
+      @if (arquivo(); as selecionado) {
+        <small>{{ selecionado.name }} · {{ tamanho(selecionado.size) }}</small>
+      } @else {
+        <small>Até 10 MB. PDFs digitalizados (só imagem) não podem ser lidos.</small>
+      }
+      @if (arquivoErro()) {
+        <small class="field-error">{{ arquivoErro() }}</small>
+      }
+    </label>
+
+    <label class="form-field full-width">
+      <span>Senha do PDF <span class="optional-label">(opcional)</span></span>
+      <input
+        type="password"
+        formControlName="senha"
+        maxlength="100"
+        autocomplete="off"
+        placeholder="PDF protegido? Informe a senha para abrir"
+      />
+      @if (senhaErro()) {
+        <small class="field-error">{{ senhaErro() }}</small>
+      } @else {
+        <small>A senha é usada só para abrir o arquivo. O PDF é guardado sem a proteção.</small>
+      }
+    </label>
+
+    <div class="form-actions">
+      <small class="import-wait">A leitura com IA continua em segundo plano; você será avisado quando terminar.</small>
+      <a class="secondary-button" routerLink="/home/faturas">Cancelar</a>
+      <button class="primary-button" type="submit" [disabled]="enviando()">
+        {{ enviando() ? 'Enviando PDF...' : 'Importar fatura' }}
+      </button>
+    </div>
+  </form>
+</section>

@@ -28,4 +28,6 @@ public interface CartaoRepository extends JpaRepository<Cartao, UUID> {
     Optional<Cartao> buscarPrincipalPorId(@Param("id") UUID id);
 
     boolean existsByCartaoPrincipal_Id(UUID cartaoPrincipalId);
-}
+
+    @Query("select c from Cartao c left join fetch c.cartaoPrincipal where c.ultimosDigitos in :digitos")
+    java.util.List<Cartao> listarPorUltimosDigitos(@Param("digitos") java.util.Collection<String> digitos);}

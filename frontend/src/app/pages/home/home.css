@@ -331,3 +331,31 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Indicador de fatura sendo lida pela IA em segundo plano. */
+.nav-item {
+  position: relative;
+}
+
+.nav-activity {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: #1e6fd0;
+  animation: pulsar 1.2s ease-in-out infinite;
+}
+
+.collapsed .nav-activity {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+}
+
+@keyframes pulsar {
+  50% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+}

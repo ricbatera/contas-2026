@@ -189,7 +189,7 @@ public class ProvedorIaService {
         return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
-    static String mensagemErro(RuntimeException e) {
+    public static String mensagemErro(RuntimeException e) {
         Throwable causa = e;
         while (causa.getMessage() == null && causa.getCause() != null) {
             causa = causa.getCause();
