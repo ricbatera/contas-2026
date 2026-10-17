@@ -1,0 +1,26 @@
+<div class="circle">
+  <h1>LOGIN</h1>
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="field" [class.invalid]="invalid('email')">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z" /></svg>
+      </span>
+      <input type="email" formControlName="email" placeholder="Email" autocomplete="username" />
+    </div>
+    <div class="field" [class.invalid]="invalid('senha')">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6z" /></svg>
+      </span>
+      <input type="password" formControlName="senha" placeholder="Password" autocomplete="current-password" />
+    </div>
+    <div class="options">
+      <label><input type="checkbox" formControlName="remember" /> Remember me</label>
+      <a (click)="$event.preventDefault()" href="#">Forgot password?</a>
+    </div>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <button type="submit" [disabled]="loading()">{{ loading() ? '...' : 'LOGIN' }}</button>
+    <span class="switch">Sem conta? <a routerLink="/register">Cadastre-se</a></span>
+  </form>
+</div>

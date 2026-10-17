@@ -1,0 +1,267 @@
+<section class="cards-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">MOVIMENTAÇÕES FINANCEIRAS</p>
+      <h2>Saídas</h2>
+      <p class="section-description">Acompanhe despesas, parcelas e responsáveis.</p>
+    </div>
+    <div class="saida-toolbar-actions">
+      @if (saidas().length > 0) {
+        <span class="saida-visible-total" aria-live="polite" aria-label="Total das parcelas exibidas">
+          Total: {{ totalCardsVisiveis() | currency: 'BRL' }}
+        </span>
+        <button
+          class="secondary-button filter-open-button"
+          type="button"
+          aria-haspopup="dialog"
+          (click)="abrirFiltros()"
+        >
+          <span aria-hidden="true">☷</span>
+          Filtros
+          @if (quantidadeFiltrosAtivos() > 0) {
+            <span class="filter-count">{{ quantidadeFiltrosAtivos() }}</span>
+          }
+        </button>
+      }
+      <a class="primary-button" routerLink="/home/saidas/nova"><span aria-hidden="true">+</span> Nova saída</a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="form-error saida-page-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading()) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando saídas...</div>
+  } @else if (saidas().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">−</div>
+      <h3>Nenhuma saída cadastrada</h3>
+      <p>Cadastre uma saída para acompanhar parcelas e dividir valores por pessoa.</p>
+      <a class="primary-button" routerLink="/home/saidas/nova">Cadastrar saída</a>
+    </div>
+  } @else {
+    @if (quantidadeFiltrosAtivos() > 0) {
+      <p class="filter-results-count" aria-live="polite">
+        {{ cardsVisiveis().length }} parcela(s) em {{ saidasFiltradas().length }} de {{ saidas().length }} saída(s)
+      </p>
+    }
+    @if (cardsVisiveis().length === 0) {
+      <div class="state-card empty-state">
+        <div class="empty-icon" aria-hidden="true">⌕</div>
+        <h3>Nenhuma saída corresponde aos filtros</h3>
+        <p>Altere os critérios ou limpe os filtros para ver todas as saídas.</p>
+        <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+      </div>
+    } @else {
+      <div class="saida-list">
+        @for (card of cardsVisiveis(); track card.key) {
+        @let saida = card.saida;
+        <article class="saida-card">
+          <div class="saida-card-main">
+            <div class="saida-heading">
+              <div>
+                <h3>{{ saida.descricao }}</h3>
+                <p>{{ saida.categoriaNome }} · {{ saida.subcategoriaNome }}</p>
+                @if (saida.contaFixa) {
+                  <span class="type-badge">Conta fixa</span>
+                }
+              </div>
+              @if (card.parcela; as parcela) {
+                <div class="saida-installment-highlight">
+                  <strong>{{ card.valorParcela | currency: 'BRL' }}</strong>
+                  <span>{{ parcela.numero }}/{{ saida.quantidadeParcelas }}</span>
+                </div>
+              }
+            </div>
+            <div class="saida-meta">
+              <span>Total da compra: {{ card.valorTotalCompra | currency: 'BRL' }}</span>
+              <span>{{ nomeForma(saida.formaPagamento) }}</span>
+              <span>
+                Responsável:
+                @for (responsavel of saida.responsabilidades; track $index) {
+                  @if ($index > 0) {, }
+                  {{ responsavel.nome }}
+                  @if (saida.modoResponsabilidade === 'DIVIDIR') {
+                    ({{ responsavel.valorPorParcela | currency: 'BRL' }})
+                  }
+                }
+              </span>
+              @if (saida.cartaoNome) { <span>Cartão: {{ saida.cartaoNome }}</span> }
+              @if (card.parcela; as parcela) {
+                <span>Vencimento da parcela: {{ parcela.vencimento | date: 'dd/MM/yyyy' }}</span>
+              }
+            </div>
+          </div>
+          <div class="saida-actions">
+            <a class="edit-button" [routerLink]="['/home/saidas', saida.id, 'editar']">Editar</a>
+            <button
+              class="delete-button"
+              type="button"
+              [disabled]="workingId() === saida.id"
+              (click)="excluir(saida)"
+            >{{ workingId() === saida.id ? 'Excluindo...' : 'Excluir' }}</button>
+          </div>
+        </article>
+        }
+      </div>
+    }
+  }
+
+  @if (filtrosAbertos()) {
+    <div class="filter-backdrop" (click)="cancelarFiltros()">
+      <section
+        class="filter-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="saida-filter-title"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="cancelarFiltros()"
+      >
+        <header class="filter-dialog-header">
+          <div>
+            <p class="section-kicker">PERSONALIZE A LISTA</p>
+            <h2 id="saida-filter-title">Filtrar saídas</h2>
+          </div>
+          <button class="filter-close-button" type="button" aria-label="Fechar filtros" (click)="cancelarFiltros()">
+            ×
+          </button>
+        </header>
+
+        <div class="filter-dialog-content">
+          <label class="form-field filter-full">
+            Descrição
+            <input
+              type="search"
+              [value]="filtrosRascunho().texto"
+              (input)="atualizarFiltro('texto', $event)"
+              placeholder="Descrição da saída ou da fatura"
+            />
+          </label>
+
+          <label class="form-field">
+            Forma de pagamento
+            <select [value]="filtrosRascunho().formaPagamento" (change)="atualizarFiltro('formaPagamento', $event)">
+              <option value="">Todas</option>
+              <option value="CARTAO_CREDITO">Cartão de crédito</option>
+              <option value="BOLETO">Boleto</option>
+              <option value="DEBITO">Débito</option>
+              <option value="PIX">Pix</option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            Conta fixa
+            <select [value]="filtrosRascunho().contaFixa" (change)="atualizarFiltro('contaFixa', $event)">
+              <option value="">Todas</option>
+              <option value="SIM">Somente contas fixas</option>
+              <option value="NAO">Somente não fixas</option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            Categoria
+            <select [value]="filtrosRascunho().categoriaId" (change)="atualizarFiltro('categoriaId', $event)">
+              <option value="">Todas</option>
+              @for (categoria of categoriasDisponiveis(); track categoria.id) {
+                <option [value]="categoria.id">{{ categoria.nome }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="form-field">
+            Subcategoria
+            <select [value]="filtrosRascunho().subcategoriaId" (change)="atualizarFiltro('subcategoriaId', $event)">
+              <option value="">Todas</option>
+              @for (subcategoria of subcategoriasDisponiveis(); track subcategoria.id) {
+                <option [value]="subcategoria.id">{{ subcategoria.nome }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="form-field">
+            Cartão
+            <select [value]="filtrosRascunho().cartaoId" (change)="atualizarFiltro('cartaoId', $event)">
+              <option value="">Todos</option>
+              @for (cartao of cartoesDisponiveis(); track cartao.id) {
+                <option [value]="cartao.id">{{ cartao.nome }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="form-field">
+            Responsável
+            <select [value]="filtrosRascunho().responsavelId" (change)="atualizarFiltro('responsavelId', $event)">
+              <option value="">Todos</option>
+              @for (responsavel of responsaveisDisponiveis(); track responsavel.id) {
+                <option [value]="responsavel.id">{{ responsavel.nome }}</option>
+              }
+            </select>
+          </label>
+
+          <fieldset class="filter-range filter-full">
+            <legend>Competência dos vencimentos</legend>
+            <label class="form-field">
+              Mês
+              <select [value]="filtrosRascunho().mesVencimento" (change)="atualizarFiltro('mesVencimento', $event)">
+                @for (mes of mesesDisponiveis; track mes.id) {
+                  <option [value]="mes.id" [selected]="mes.id === filtrosRascunho().mesVencimento">{{ mes.nome }}</option>
+                }
+              </select>
+            </label>
+            <label class="form-field">
+              Ano
+              <select [value]="filtrosRascunho().anoVencimento" (change)="atualizarFiltro('anoVencimento', $event)">
+                @for (ano of anosDisponiveis(); track ano) {
+                  <option [value]="ano" [selected]="ano === filtrosRascunho().anoVencimento">{{ ano }}</option>
+                }
+              </select>
+            </label>
+            <small>Exibe um card para cada parcela com vencimento no mês e ano selecionados.</small>
+          </fieldset>
+
+          <fieldset class="filter-range filter-full">
+            <legend>Valor por parcela (R$)</legend>
+            <label class="form-field">
+              Mínimo
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                [value]="filtrosRascunho().valorMinimo"
+                (input)="atualizarFiltro('valorMinimo', $event)"
+              />
+            </label>
+            <label class="form-field">
+              Máximo
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                [value]="filtrosRascunho().valorMaximo"
+                (input)="atualizarFiltro('valorMaximo', $event)"
+              />
+            </label>
+          </fieldset>
+
+          @if (erroFiltros()) {
+            <div class="form-error filter-full" role="alert">{{ erroFiltros() }}</div>
+          }
+        </div>
+
+        <footer class="filter-dialog-actions">
+          <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+          <div>
+            <button class="secondary-button" type="button" (click)="cancelarFiltros()">Cancelar</button>
+            <button class="primary-button" type="button" (click)="aplicarFiltros()">Aplicar filtros</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  }
+</section>

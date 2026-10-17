@@ -1,0 +1,179 @@
+<section class="simulation-page">
+  <header class="simulation-header">
+    <div>
+      <p class="section-kicker">PLANEJAMENTO FINANCEIRO</p>
+      <h2>Simulação</h2>
+      <p class="section-description">
+        Veja como novas parcelas podem impactar seus gastos previstos, sem criar saídas reais.
+      </p>
+    </div>
+    <label class="form-field simulation-period">
+      Meses projetados
+      <select [value]="quantidadeMeses()" (change)="atualizarQuantidadeMeses($event)">
+        @for (quantidade of mesesDisponiveis; track quantidade) {
+          <option [value]="quantidade" [selected]="quantidade === quantidadeMeses()">
+            {{ quantidade }} meses
+          </option>
+        }
+      </select>
+    </label>
+  </header>
+
+  @if (storageError()) {
+    <div class="form-error simulation-alert" role="alert">
+      <span>{{ storageError() }}</span>
+      @if (storageCorrupt()) {
+        <button class="secondary-button" type="button" (click)="descartarDadosInvalidos()">
+          Descartar dados inválidos
+        </button>
+      }
+    </div>
+  }
+
+  <div class="simulation-layout">
+    <section class="simulation-panel simulation-editor" aria-labelledby="add-simulation-title">
+      <div class="panel-heading">
+        <div class="simulation-icon" aria-hidden="true">＋</div>
+        <div>
+          <p class="section-kicker">NOVA DESPESA</p>
+          <h3 id="add-simulation-title">Adicionar à simulação</h3>
+        </div>
+      </div>
+
+      <form class="simulation-form" [formGroup]="formulario" (ngSubmit)="adicionar()" novalidate>
+        <label class="form-field">
+          Nome
+          <input type="text" formControlName="nome" maxlength="100" autocomplete="off"
+            placeholder="Ex.: Notebook novo" />
+          @if (formulario.controls.nome.invalid && formulario.controls.nome.touched) {
+            <small class="field-error">Informe um nome com até 100 caracteres.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          Valor por parcela
+          <div class="money-input">
+            <span aria-hidden="true">R$</span>
+            <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela"
+              inputmode="decimal" placeholder="0,00" />
+          </div>
+          @if (formulario.controls.valorPorParcela.invalid && formulario.controls.valorPorParcela.touched) {
+            <small class="field-error">Informe um valor maior que zero.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          Quantidade de parcelas
+          <select formControlName="quantidadeParcelas">
+            @for (numero of quantidadesParcelas; track numero) {
+              <option [value]="numero">{{ numero }}x</option>
+            }
+          </select>
+        </label>
+
+        <button class="primary-button add-simulation-button" type="submit" [disabled]="!storageReady()">
+          <span aria-hidden="true">+</span> Adicionar despesa
+        </button>
+      </form>
+      <p class="privacy-note">
+        As simulações ficam salvas somente neste navegador e não alteram seus lançamentos.
+      </p>
+
+      <div class="simulation-list-heading">
+        <div>
+          <h4>Despesas simuladas</h4>
+          <span>{{ simulacoes().length }} {{ simulacoes().length === 1 ? 'item' : 'itens' }}</span>
+        </div>
+      </div>
+
+      @if (simulacoes().length === 0) {
+        <div class="simulation-empty">
+          <span aria-hidden="true">＋</span>
+          <p>Adicione uma despesa para visualizar o impacto mês a mês.</p>
+        </div>
+      } @else {
+        <ul class="simulation-list">
+          @for (item of simulacoes(); track item.id) {
+            <li class="simulation-item">
+              <div class="simulation-item-icon" aria-hidden="true">↗</div>
+              <div class="simulation-item-description">
+                <strong>{{ item.nome }}</strong>
+                <span>{{ item.quantidadeParcelas }}x de
+                  {{ item.valorPorParcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span>
+              </div>
+              <button class="remove-simulation-button" type="button" [attr.aria-label]="'Remover ' + item.nome"
+                (click)="remover(item.id)">×</button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="simulation-panel simulation-forecast" aria-labelledby="simulation-forecast-title">
+      <div class="forecast-title-row">
+        <div>
+          <p class="section-kicker">VISÃO MENSAL</p>
+          <h3 id="simulation-forecast-title">Impacto no orçamento</h3>
+          <p class="forecast-description">Gastos previstos atuais comparados com suas novas parcelas.</p>
+        </div>
+        <div class="forecast-title-icon" aria-hidden="true">▥</div>
+      </div>
+
+      <div class="chart-legend" aria-label="Legenda do gráfico">
+        <span><i class="legend-current"></i>Gastos atuais</span>
+        <span><i class="legend-simulated"></i>Novas parcelas</span>
+      </div>
+
+      @if (loading()) {
+        <div class="forecast-state" role="status">Carregando a projeção dos seus gastos...</div>
+      } @else if (error()) {
+        <div class="forecast-state forecast-error" role="alert">
+          <span>{{ error() }}</span>
+          <button class="secondary-button" type="button" (click)="recarregar()">
+            Tentar novamente
+          </button>
+        </div>
+      } @else if (mesesSimulados().length === 0) {
+        <div class="forecast-state">Não há meses disponíveis nesta projeção.</div>
+      } @else {
+        <div class="projection-months">
+          @for (mes of mesesSimulados(); track mes.ano + '-' + mes.mes) {
+            <article class="projection-month">
+              <div class="month-heading">
+                <h4>{{ rotuloMes(mes) }}</h4>
+                <div class="month-totals">
+                  <span>{{ mes.totalPrevisto | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span>
+                  @if (mes.valorSimulado > 0) {
+                    <strong>{{ mes.totalComSimulacao | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+                  }
+                </div>
+              </div>
+              <div class="projection-track" role="img"
+                [attr.aria-label]="rotuloMes(mes) + ': gastos atuais ' + mes.totalPrevisto
+                  + ', novas parcelas ' + mes.valorSimulado + ', total ' + mes.totalComSimulacao">
+                <span class="projection-current" [style.width.%]="larguraBase(mes)"></span>
+                <span class="projection-simulated" [style.left.%]="larguraBase(mes)"
+                  [style.width.%]="larguraSimulada(mes)"></span>
+              </div>
+              <div class="month-breakdown">
+                <span>Atual {{ mes.totalPrevisto | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span>
+                @if (mes.valorSimulado > 0) {
+                  <span class="simulated-amount">
+                    +{{ mes.valorSimulado | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                  </span>
+                } @else {
+                  <span>Sem novas parcelas</span>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      }
+
+      <p class="forecast-footnote">
+        A previsão atual considera saídas, buckets e contas fixas cadastradas. As despesas simuladas começam
+        no primeiro mês exibido.
+      </p>
+    </section>
+  </div>
+</section>

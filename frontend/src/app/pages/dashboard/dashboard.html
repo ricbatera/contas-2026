@@ -1,0 +1,193 @@
+<section class="dashboard-page">
+  <div class="dashboard-toolbar">
+    <div>
+      <p class="section-kicker">VISÃO GERAL</p>
+      <h2>Dashboard</h2>
+      <p class="section-description">Acompanhe a previsão mensal dos seus gastos.</p>
+    </div>
+  </div>
+
+  <div class="dashboard-period" aria-label="Competência dos gastos">
+    <label class="form-field">
+      Mês
+      <select [value]="mes()" (change)="atualizarMes($event)">
+        @for (opcao of meses; track opcao.valor) {
+          <option [value]="opcao.valor" [selected]="opcao.valor === mes()">{{ opcao.nome }}</option>
+        }
+      </select>
+    </label>
+    <label class="form-field">
+      Ano
+      <input type="number" min="1900" max="9999" [value]="ano()" (input)="atualizarAno($event)" />
+    </label>
+    <button class="secondary-button" type="button" (click)="carregar()">Consultar</button>
+  </div>
+
+  @if (competenciaError()) {
+    <div class="form-error dashboard-error" role="alert">{{ competenciaError() }}</div>
+  }
+
+  @if (error()) {
+    <div class="form-error dashboard-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading()) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando previsão de gastos...</div>
+  } @else if (resumo(); as dados) {
+    <article class="forecast-card" aria-labelledby="forecast-title">
+      <div class="forecast-heading">
+        <div>
+          <p>PREVISÃO DE GASTOS</p>
+          <h3 id="forecast-title">{{ meses[mes() - 1].nome }} de {{ ano() }}</h3>
+        </div>
+        <strong class="forecast-total">{{ dados.totalPrevisto | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+      </div>
+      <div class="forecast-breakdown">
+        <button class="forecast-breakdown-item" type="button" (click)="abrirDetalhes('saidas')">
+          <span>Saídas lançadas no mês</span>
+          <strong>{{ dados.gastosLancados | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <small>Parcelas do mês atribuídas a você</small>
+        </button>
+        <button class="forecast-breakdown-item" type="button" (click)="abrirDetalhes('buckets')">
+          <span>Reservas dos buckets</span>
+          <strong>{{ dados.bucketsReservados | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <small>Soma dos seus orçamentos mensais</small>
+        </button>
+        <button class="forecast-breakdown-item" type="button" (click)="abrirDetalhes('contas-fixas')">
+          <span>Contas fixas do mês anterior</span>
+          <strong>{{ dados.contasFixasMesAnterior | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <small>Soma das parcelas fixas atribuídas a você</small>
+        </button>
+      </div>
+      @if (dados.totalPrevisto === 0) {
+        <p class="forecast-empty">Ainda não há gastos, buckets ou histórico de contas fixas para esta previsão.</p>
+      }
+    </article>
+
+    <article class="projection-card" aria-labelledby="projection-title">
+      <div class="projection-heading">
+        <div>
+          <p class="section-kicker">PRÓXIMOS MESES</p>
+          <h3 id="projection-title">Previsão de gastos</h3>
+          <p>Valores empilhados pelas mesmas categorias da previsão mensal.</p>
+        </div>
+        <label class="form-field projection-count">
+          Meses exibidos
+          <select [value]="quantidadeMeses()" (change)="atualizarQuantidadeMeses($event)">
+            @for (quantidade of quantidadesMeses; track quantidade) {
+              <option [value]="quantidade" [selected]="quantidade === quantidadeMeses()">
+                {{ quantidade }} meses
+              </option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="projection-legend" aria-label="Legenda do gráfico">
+        <span><i class="legend-expenses"></i>Saídas lançadas</span>
+        <span><i class="legend-buckets"></i>Buckets</span>
+        <span><i class="legend-fixed"></i>Contas Fixas do mês anterior</span>
+      </div>
+
+      @if (projecaoLoading()) {
+        <div class="projection-state" role="status">Carregando previsão dos próximos meses...</div>
+      } @else if (projecaoError()) {
+        <div class="projection-state projection-error" role="alert">
+          <span>{{ projecaoError() }}</span>
+          <button class="secondary-button" type="button" (click)="carregarProjecao()">Tentar novamente</button>
+        </div>
+      } @else {
+        <div class="projection-chart-scroll">
+          <svg class="projection-chart" [attr.width]="larguraGrafico()" height="300"
+            [attr.viewBox]="'0 0 ' + larguraGrafico() + ' 300'" role="group"
+            aria-label="Gráfico de barras empilhadas da previsão mensal">
+            <title>Previsão mensal de gastos por componente</title>
+            @for (eixo of eixosGrafico(); track eixo.valor) {
+              <g class="chart-axis">
+                <line x1="76" [attr.x2]="larguraGrafico() - 18" [attr.y1]="eixo.y" [attr.y2]="eixo.y"></line>
+                <text x="68" [attr.y]="eixo.y + 4" text-anchor="end">{{ eixo.rotulo }}</text>
+              </g>
+            }
+            @for (barra of barrasGrafico(); track barra.ano + '-' + barra.mes) {
+              <g class="chart-bar" tabindex="0" role="img" [attr.aria-label]="barra.descricao">
+                <title>{{ barra.descricao }}</title>
+                @for (segmento of barra.segmentos; track segmento.chave) {
+                  <rect [attr.x]="barra.x" [attr.y]="segmento.y" [attr.width]="barra.largura"
+                    [attr.height]="segmento.altura" [attr.fill]="segmento.cor" rx="2">
+                    <title>{{ segmento.rotulo }}: {{ segmento.valor }}</title>
+                  </rect>
+                }
+                <text class="chart-total" [attr.x]="barra.centro" [attr.y]="barra.topoValor"
+                  text-anchor="middle">{{ barra.rotuloTotal }}</text>
+                <text class="chart-month" [attr.x]="barra.centro" y="282" text-anchor="middle">{{ barra.rotuloMes }}</text>
+              </g>
+            }
+          </svg>
+        </div>
+        <p class="projection-note">
+          Saídas consideram parcelas atribuídas a você; os buckets se repetem mensalmente; Contas Fixas usam
+          as parcelas do mês anterior. Passe o cursor ou foque em uma barra para ver os valores.
+        </p>
+      }
+    </article>
+
+    @if (detalhesAbertos()) {
+      <div class="dashboard-modal-backdrop" (click)="fecharDetalhes()">
+        <section class="dashboard-modal" role="dialog" aria-modal="true" aria-labelledby="details-title"
+          (click)="$event.stopPropagation()">
+          <header class="dashboard-modal-header">
+            <div>
+              <p class="section-kicker">DETALHAMENTO</p>
+              <h3 id="details-title">{{ detalhesTitulo() }}</h3>
+            </div>
+            <button class="dashboard-modal-close" type="button" aria-label="Fechar detalhamento" autofocus
+              (click)="fecharDetalhes()">×</button>
+          </header>
+
+          @if (detalhesLoading()) {
+            <div class="dashboard-modal-state" role="status">Carregando itens...</div>
+          } @else if (detalhesError()) {
+            <div class="form-error" role="alert">{{ detalhesError() }}</div>
+          } @else {
+            @if (detalhes().length === 0) {
+              <div class="dashboard-modal-state">Nenhum item compõe este valor.</div>
+            } @else {
+              <div class="dashboard-detail-list">
+                @for (item of detalhes(); track $index) {
+                  <article class="dashboard-detail-item">
+                    <div>
+                      @if (item.descricao) {
+                        <strong>{{ item.descricao }}</strong>
+                      }
+                      <span>{{ item.categoriaNome }} · {{ item.subcategoriaNome }}</span>
+                      @if (item.vencimento) {
+                        <small>
+                          Vencimento: {{ item.vencimento | date: 'dd/MM/yyyy' : '' : 'pt-BR' }}
+                          @if (item.numeroParcela && item.quantidadeParcelas) {
+                            · Parcela {{ item.numeroParcela }}/{{ item.quantidadeParcelas }}
+                          }
+                        </small>
+                      }
+                    </div>
+                    <strong class="dashboard-detail-value">
+                      {{ item.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                    </strong>
+                  </article>
+                }
+              </div>
+            }
+            <footer class="dashboard-modal-total">
+              <span>Total dos itens</span>
+              <strong>{{ totalDetalhes() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+            </footer>
+          }
+        </section>
+      </div>
+    }
+  }
+</section>

@@ -1,0 +1,97 @@
+<header class="topbar">
+  <button
+    class="icon-button menu-toggle"
+    type="button"
+    (click)="toggleSidebar()"
+    [attr.aria-label]="collapsed() ? 'Expandir menu' : 'Recolher menu'"
+    [attr.aria-expanded]="!collapsed()"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" />
+    </svg>
+  </button>
+
+  <a class="brand" routerLink="/home/dashboard">Minhas contas</a>
+
+  <div class="date-time" aria-live="off">{{ dateTime() }}</div>
+
+  <div class="user-actions">
+    <div
+      class="user-name"
+      [attr.title]="profile() ? profile()!.nome + ' ' + profile()!.sobrenome : null"
+    >
+      @if (profile()) {
+        <span class="avatar" aria-hidden="true">{{ profile()!.nome.charAt(0) }}</span>
+        <span>{{ profile()!.nome }} {{ profile()!.sobrenome }}</span>
+      } @else if (profileError()) {
+        <span class="user-unavailable">Usuário indisponível</span>
+      } @else {
+        <span class="user-loading">Carregando...</span>
+      }
+    </div>
+    <button class="logout-button" type="button" (click)="logout()">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 17v-2h4v-2h-4v-2l-5 3 5 3zm9-14H5a2 2 0 0 0-2 2v4h2V5h14v14H5v-4H3v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+      </svg>
+      <span>Sair</span>
+    </button>
+  </div>
+</header>
+
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <nav aria-label="Navegação principal">
+    @for (section of sections; track section.name) {
+      <a
+        class="nav-item"
+        [routerLink]="section.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: false }"
+        #activeLink="routerLinkActive"
+        [attr.aria-current]="activeLink.isActive ? 'page' : null"
+        [attr.title]="collapsed() ? section.name : null"
+        (click)="closeSidebarOnMobile()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          @switch (section.icon) {
+            @case ('dashboard') {
+              <path d="M3 3h8v8H3zm10 0h8v5h-8zm0 7h8v11h-8zM3 13h8v8H3z" />
+            }
+            @case ('arrow-up') {
+              <path d="M12 3 5 10h4v10h6V10h4z" />
+            }
+            @case ('arrow-down') {
+              <path d="M9 4h6v10h4l-7 7-7-7h4z" />
+            }
+            @case ('card') {
+              <path d="M3 5h18a2 2 0 0 1 2 2v2H1V7a2 2 0 0 1 2-2zm-2 6h22v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2zm4 5v2h5v-2z" />
+            }
+            @case ('invoice') {
+              <path d="M5 2h14v20l-3-2-4 2-4-2-3 2V2zm3 4v2h8V6H8zm0 4v2h8v-2H8zm0 4v2h5v-2H8z" />
+            }
+            @case ('wallet') {
+              <path d="M4 4h16a2 2 0 0 1 2 2v2H4a2 2 0 0 0-2 2v8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 6h18v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2zm11 3v3h4v-3z" />
+            }
+            @case ('people') {
+              <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM9 13c-4 0-7 2-7 5v3h14v-3c0-3-3-5-7-5zm8 1c-.5 0-1 .05-1.5.15 1.5 1 2.5 2.3 2.5 4.1V21h4v-3c0-2.5-2.1-4-5-4z" />
+            }
+            @case ('categories') {
+              <path d="M3 4a1 1 0 0 1 1-1h6l2 2h8a1 1 0 0 1 1 1v2H3V4zm0 6h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9zm4 3v2h10v-2H7z" />
+            }
+            @case ('buckets') {
+              <path d="M4 4h16l-1.5 16h-13L4 4zm3 3 .8 10h8.4L17 7H7zm2 2h2v5H9V9zm4 0h2v5h-2V9z" />
+            }
+            @case ('simulation') {
+              <path d="M4 19h16v2H2V3h2v16zm2-3 4-5 3 2 5-7 2 1.4-6.2 8.7-3.2-2.1L7.6 17 6 16z" />
+            }
+          }
+        </svg>
+        <span class="nav-label">{{ section.name }}</span>
+      </a>
+    }
+  </nav>
+  <div class="sidebar-footer">MINHAS CONTAS</div>
+</aside>
+
+<main class="content" [class.content-wide]="collapsed()">
+  <router-outlet />
+</main>

@@ -1,0 +1,99 @@
+<section class="cards-page faturas-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">CARTÕES DE CRÉDITO</p>
+      <h2>Faturas</h2>
+      <p class="section-description">Consulte faturas atuais, anteriores e futuras dos cartões.</p>
+    </div>
+  </div>
+
+  <div class="fatura-filters">
+    <label class="form-field">
+      Cartão principal
+      <select [value]="cartaoId()" (change)="selecionarCartao($event)" [disabled]="!cartoes().length">
+        @for (cartao of cartoes(); track cartao.id) {
+          <option [value]="cartao.id">{{ cartao.nome }} · {{ cartao.banco }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="form-field">
+      Competência
+      <select
+        [value]="competencia() ?? ''"
+        (change)="selecionarCompetencia($event)"
+        [disabled]="!competencias().length"
+      >
+        @for (item of competencias(); track item.competencia) {
+          <option [value]="item.competencia">
+            {{ rotuloCompetencia(item.competencia) }} · vence {{ item.vencimento | date: 'dd/MM/yyyy' }}
+          </option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (error()) {
+    <div class="form-error fatura-error" role="alert">
+      <span>{{ error() }}</span>
+      <button class="secondary-button" type="button" (click)="carregarCartoes()">Tentar novamente</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando fatura...</div>
+  } @else if (!error() && !cartoes().length) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">▤</div>
+      <h3>Nenhum cartão principal ativo</h3>
+      <p>Ative ou cadastre um cartão principal para consultar as faturas.</p>
+    </div>
+  } @else if (!error() && !competencias().length) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">▤</div>
+      <h3>Nenhuma fatura para este cartão</h3>
+      <p>As competências aparecerão aqui quando houver parcelas de compras no cartão.</p>
+    </div>
+  } @else if (fatura(); as atual) {
+    <article class="fatura-summary">
+      <div class="fatura-summary-heading">
+        <div>
+          <p class="section-kicker">{{ atual.banco }}</p>
+          <h3>{{ atual.cartaoNome }}</h3>
+          <p class="section-description">{{ rotuloCompetencia(atual.competencia) }}</p>
+        </div>
+        <div class="fatura-total">
+          <span>Total da fatura</span>
+          <strong>{{ atual.total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+        </div>
+      </div>
+      <p class="fatura-due-date">Vencimento: <strong>{{ atual.vencimento | date: 'dd/MM/yyyy' }}</strong></p>
+    </article>
+
+    <section class="fatura-items" aria-label="Lançamentos da fatura">
+      <h3>Compras e parcelas</h3>
+      @for (parcela of atual.parcelas; track parcela.saidaId + '-' + parcela.numeroParcela) {
+        <article class="fatura-item">
+          <div class="fatura-item-main">
+            <h4>{{ parcela.descricaoFatura || parcela.descricao }}</h4>
+            @if (parcela.descricaoFatura) {
+              <p>{{ parcela.descricao }}</p>
+            }
+            <div class="fatura-item-meta">
+              <span>{{ parcela.numeroParcela }}/{{ parcela.quantidadeParcelas }}ª parcela</span>
+              @if (parcela.cartaoNome && parcela.cartaoId !== atual.cartaoId) {
+                <span>Cartão adicional: {{ parcela.cartaoNome }}</span>
+              }
+              @if (nomesResponsaveis(parcela); as responsaveis) {
+                <span>Responsáveis: {{ responsaveis }}</span>
+              }
+            </div>
+          </div>
+          <strong>{{ parcela.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+        </article>
+      } @empty {
+        <div class="state-card">Esta fatura não possui parcelas.</div>
+      }
+    </section>
+  }
+</section>

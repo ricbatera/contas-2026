@@ -1,0 +1,79 @@
+<section class="cards-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">MEIOS DE PAGAMENTO</p>
+      <h2>Seus cartões</h2>
+      <p class="section-description">Gerencie os cartões cadastrados nas suas contas.</p>
+    </div>
+    <a class="primary-button" routerLink="/home/cartoes/novo">
+      <span aria-hidden="true">+</span>
+      Novo cartão
+    </a>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando cartões...</div>
+  } @else if (error()) {
+    <div class="state-card state-error" role="alert">
+      <p>{{ error() }}</p>
+      <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+    </div>
+  } @else if (cartoes().length === 0) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">▣</div>
+      <h3>Nenhum cartão cadastrado</h3>
+      <p>Adicione seu primeiro cartão para começar a organizar seus meios de pagamento.</p>
+      <a class="primary-button" routerLink="/home/cartoes/novo">Cadastrar cartão</a>
+    </div>
+  } @else {
+    <div class="cards-grid">
+      @for (cartao of cartoes(); track cartao.id) {
+        <article class="card-item">
+          <div class="payment-card" [style.--card-color]="cartao.cor">
+            <div class="payment-card-top">
+              <span class="card-chip" aria-hidden="true"></span>
+              <span class="card-brand">
+                {{ nomeBandeira(cartao.bandeira) }}
+                @if (cartao.virtual) { · VIRTUAL }
+              </span>
+            </div>
+            <p class="payment-card-name">{{ cartao.nome }}</p>
+            <p class="payment-card-number">•••• &nbsp;•••• &nbsp;•••• &nbsp;{{ cartao.ultimosDigitos }}</p>
+            <span class="payment-card-bank">{{ cartao.banco }}</span>
+          </div>
+          <div class="card-details">
+            <div class="card-description">
+              <div class="card-title">
+                <h3>{{ cartao.nome }}</h3>
+                <span class="type-badge" [class.additional]="cartao.tipo === 'ADICIONAL'">
+                  {{ cartao.tipo === 'ADICIONAL' ? 'Adicional' : 'Principal' }}
+                </span>
+                @if (cartao.virtual) {
+                  <span class="type-badge virtual-badge">Virtual</span>
+                }
+                <span class="type-badge" [class.inactive]="!cartao.ativo">
+                  {{ cartao.ativo ? 'Ativo' : 'Inativo' }}
+                </span>
+              </div>
+              <p>{{ cartao.banco }} · final {{ cartao.ultimosDigitos }}</p>
+              @if (cartao.tipo === 'ADICIONAL' && nomePrincipal(cartao.cartaoPrincipalId); as principal) {
+                <span class="created-date">Adicional de {{ principal }}</span>
+              }
+              <span class="created-date">Cadastrado em {{ cartao.criadoEm | date: 'dd/MM/yyyy' }}</span>
+            </div>
+            <a
+              class="edit-button"
+              [routerLink]="['/home/cartoes', cartao.id, 'editar']"
+              [attr.aria-label]="'Editar cartão ' + cartao.nome"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m3 17.25 11.06-11.06 3.75 3.75L6.75 21H3v-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z" />
+              </svg>
+              Editar
+            </a>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

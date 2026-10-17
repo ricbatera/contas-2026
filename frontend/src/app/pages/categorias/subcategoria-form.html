@@ -1,0 +1,49 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/categorias"><span aria-hidden="true">←</span> Voltar para categorias</a>
+    <p class="section-kicker">ORGANIZAÇÃO FINANCEIRA</p>
+    <h2>{{ editing ? 'Editar subcategoria' : 'Nova subcategoria' }}</h2>
+    <p class="section-description">Subcategoria da categoria {{ categoria()?.nome || 'selecionada' }}.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando subcategoria...</div>
+  } @else {
+    <form class="card-form category-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (error()) { <div class="form-error" role="alert">{{ error() }}</div> }
+      @if (categoria()) {
+        <div class="category-parent">
+          <span>Categoria</span>
+          <strong>{{ categoria()!.nome }}</strong>
+          <small>{{ categoria()!.tipo === 'DESPESA' ? 'Despesa' : 'Receita' }}</small>
+        </div>
+      }
+      <label class="form-field">
+        <span>Nome da subcategoria</span>
+        <input type="text" formControlName="nome" maxlength="100" placeholder="Ex.: Aluguel" autocomplete="off" />
+        @if (form.controls.nome.invalid && form.controls.nome.touched) {
+          <small>Informe um nome válido com até 100 caracteres.</small>
+        }
+      </label>
+      <label class="form-field category-active">
+        <input type="checkbox" formControlName="ativo" (change)="aoAlterarStatus()" />
+        <span>Subcategoria ativa</span>
+        <small>Subcategorias inativas permanecem visíveis e podem ser reativadas.</small>
+      </label>
+      <label class="form-field category-active">
+        <input type="checkbox" formControlName="padrao" />
+        <span>Usar como padrão de {{ categoria()?.tipo === 'DESPESA' ? 'despesas' : 'receitas' }}</span>
+        <small>
+          Esta subcategoria e a categoria "{{ categoria()?.nome }}" serão selecionadas por padrão.
+          {{ categoria()?.ativo ? '' : 'Ative a categoria para defini-la como padrão.' }}
+        </small>
+      </label>
+      <div class="form-actions">
+        <a class="secondary-button" routerLink="/home/categorias">Cancelar</a>
+        <button class="primary-button" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar subcategoria' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

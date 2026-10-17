@@ -1,0 +1,50 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/pessoas">
+      <span aria-hidden="true">←</span>
+      Voltar para pessoas
+    </a>
+    <p class="section-kicker">ORGANIZAÇÃO FINANCEIRA</p>
+    <h2>{{ editing ? 'Editar pessoa' : 'Nova pessoa' }}</h2>
+    <p class="section-description">
+      {{ editing ? 'Atualize o nome ou o status.' : 'Cadastre uma pessoa para suas movimentações.' }}
+    </p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando dados da pessoa...</div>
+  } @else {
+    <form class="card-form person-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (error()) {
+        <div class="form-error" role="alert">{{ error() }}</div>
+      }
+
+      <label class="form-field">
+        <span>Nome</span>
+        <input
+          type="text"
+          formControlName="nome"
+          maxlength="100"
+          autocomplete="off"
+          placeholder="Ex.: Maria Silva"
+        />
+        @if (form.controls.nome.invalid && form.controls.nome.touched) {
+          <small>Informe um nome válido com até 100 caracteres.</small>
+        }
+      </label>
+
+      <label class="form-field person-active">
+        <input type="checkbox" formControlName="ativo" />
+        <span>Pessoa ativa</span>
+        <small>Pessoas inativas permanecem na lista e podem ser reativadas.</small>
+      </label>
+
+      <div class="form-actions">
+        <a class="secondary-button" routerLink="/home/pessoas">Cancelar</a>
+        <button class="primary-button" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar pessoa' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

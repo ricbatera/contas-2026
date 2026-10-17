@@ -1,0 +1,135 @@
+<section class="cards-page categories-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">ORGANIZAÇÃO FINANCEIRA</p>
+      <h2>Categorias</h2>
+      <p class="section-description">Organize suas receitas e despesas por categorias e subcategorias.</p>
+    </div>
+    <a class="primary-button" routerLink="/home/categorias/nova">
+      <span aria-hidden="true">+</span>
+      Nova categoria
+    </a>
+  </div>
+
+  @if (error()) {
+    <div class="category-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading()) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando categorias...</div>
+  } @else {
+    <div class="category-tabs" role="tablist" aria-label="Tipo de categoria">
+      @for (tipo of tipos; track tipo) {
+        <button
+          class="category-tab"
+          type="button"
+          role="tab"
+          [class.active]="tipoSelecionado() === tipo"
+          [attr.aria-selected]="tipoSelecionado() === tipo"
+          [attr.tabindex]="tipoSelecionado() === tipo ? 0 : -1"
+          (click)="selecionarTipo(tipo)"
+        >
+          {{ tituloTipo(tipo) }}
+          <span class="category-tab-count">{{ porTipo(tipo).length }}</span>
+        </button>
+      }
+    </div>
+
+    @let tipo = tipoSelecionado();
+    <section class="category-group" role="tabpanel" [attr.aria-label]="tituloTipo(tipo)">
+      <div class="category-group-heading">
+        <div>
+          <p class="section-kicker">{{ tipo }}</p>
+          <h3>{{ tituloTipo(tipo) }}</h3>
+        </div>
+        <a class="secondary-button" [routerLink]="['/home/categorias/nova']" [queryParams]="{ tipo }">
+          + Adicionar
+        </a>
+      </div>
+
+      @if (porTipo(tipo).length === 0) {
+        <div class="state-card empty-state category-empty-state">
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 3h16a2 2 0 0 1 2 2v3H2V5a2 2 0 0 1 2-2zm-2 7h20v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm4 3v2h6v-2z" /></svg>
+          </div>
+          <h3>Nenhuma categoria de {{ tituloTipo(tipo).toLowerCase() }}</h3>
+          <p>Cadastre categorias ou execute o script de dados padrão para começar.</p>
+          <a class="primary-button" [routerLink]="['/home/categorias/nova']" [queryParams]="{ tipo }">
+            Cadastrar categoria
+          </a>
+        </div>
+      } @else {
+        <div class="category-list">
+          @for (categoria of porTipo(tipo); track categoria.id) {
+              <article class="category-card">
+                <div class="category-card-heading">
+                  <div class="category-symbol" [class.inactive]="!categoria.ativo" aria-hidden="true">
+                    {{ tipo === 'DESPESA' ? '−' : '+' }}
+                  </div>
+                  <div class="category-title">
+                    <h4>{{ categoria.nome }}</h4>
+                    <span class="category-status" [class.inactive]="!categoria.ativo">
+                      {{ categoria.ativo ? 'Ativa' : 'Inativa' }}
+                    </span>
+                    @if (categoria.padrao) {
+                      <span class="default-badge">Padrão</span>
+                    }
+                  </div>
+                  <div class="category-actions">
+                    <a class="edit-button" [routerLink]="['/home/categorias', categoria.id, 'editar']">
+                      Editar
+                    </a>
+                    <button
+                      class="category-delete-button"
+                      type="button"
+                      [disabled]="workingId() === categoria.id"
+                      [attr.aria-label]="'Excluir categoria ' + categoria.nome"
+                      (click)="excluirCategoria(categoria)"
+                    >
+                      {{ workingId() === categoria.id ? 'Excluindo...' : 'Excluir' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="subcategory-list">
+                  @for (subcategoria of categoria.subcategorias; track subcategoria.id) {
+                    <div class="subcategory-row" [class.inactive]="!subcategoria.ativo">
+                      <span class="subcategory-marker" aria-hidden="true"></span>
+                      <span class="subcategory-name">{{ subcategoria.nome }}</span>
+                      <span class="subcategory-status">{{ subcategoria.ativo ? 'Ativa' : 'Inativa' }}</span>
+                      @if (subcategoria.padrao) {
+                        <span class="subcategory-default-badge">Padrão</span>
+                      }
+                      <a
+                        class="subcategory-edit"
+                        [routerLink]="['/home/subcategorias', subcategoria.id, 'editar']"
+                        [attr.aria-label]="'Editar subcategoria ' + subcategoria.nome"
+                      >Editar</a>
+                      <button
+                        class="subcategory-delete"
+                        type="button"
+                        [disabled]="workingId() === subcategoria.id"
+                        [attr.aria-label]="'Excluir subcategoria ' + subcategoria.nome"
+                        (click)="excluirSubcategoria(categoria.id, subcategoria.id, subcategoria.nome)"
+                      >Excluir</button>
+                    </div>
+                  } @empty {
+                    <p class="subcategory-empty">Sem subcategorias.</p>
+                  }
+                  <a
+                    class="add-subcategory"
+                    [routerLink]="['/home/categorias', categoria.id, 'subcategorias', 'nova']"
+                  >+ Nova subcategoria</a>
+                </div>
+              </article>
+          }
+        </div>
+      }
+    </section>
+  }
+</section>

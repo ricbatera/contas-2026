@@ -1,0 +1,237 @@
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+}
+
+.account-item {
+  overflow: hidden;
+  border: 1px solid #e9edf3;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.account-card,
+.account-preview {
+  position: relative;
+  display: flex;
+  min-height: 176px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 19px 21px 16px;
+  overflow: hidden;
+  box-sizing: border-box;
+  color: #fff;
+  background: var(--card-color, #1e6fd0);
+  isolation: isolate;
+}
+
+.account-card::before,
+.account-preview::before {
+  position: absolute;
+  z-index: -1;
+  top: -66px;
+  right: -34px;
+  width: 200px;
+  height: 200px;
+  border: 1px solid rgb(255 255 255 / 19%);
+  border-radius: 50%;
+  content: '';
+}
+
+.account-card-top,
+.account-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-icon,
+.preview-bank-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 12%);
+}
+
+.account-icon svg,
+.preview-bank-icon svg {
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
+}
+
+.account-type {
+  padding: 5px 9px;
+  border: 1px solid rgb(255 255 255 / 26%);
+  border-radius: 20px;
+  background: rgb(0 0 0 / 10%);
+  font-size: 10px;
+}
+
+.account-balance-label {
+  margin-top: 12px;
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.account-balance {
+  margin-top: 3px;
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+}
+
+.account-card-bottom {
+  margin-top: 12px;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.account-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: rgb(0 0 0 / 12%);
+  font-size: 10px;
+}
+
+.account-status.inactive {
+  background: rgb(0 0 0 / 25%);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8ff0b6;
+}
+
+.account-status.inactive .status-dot {
+  background: #d2d6dc;
+}
+
+.account-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px 17px;
+}
+
+.account-description {
+  min-width: 0;
+}
+
+.account-description h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #26364d;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-description p {
+  margin: 4px 0 2px;
+  color: #718096;
+  font-size: 11px;
+}
+
+.account-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.delete-button {
+  padding: 7px 9px;
+  border: 1px solid #f0ddda;
+  border-radius: 7px;
+  color: #b34439;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: #fff6f5;
+}
+
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.account-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #f1cbc7;
+  border-radius: 8px;
+  color: #a33027;
+  background: #fff6f5;
+  font-size: 12px;
+}
+
+.account-preview {
+  min-height: 205px;
+  padding: 23px;
+  border-radius: 13px;
+  box-shadow: 0 8px 22px rgb(24 45 80 / 12%);
+}
+
+.account-preview-type {
+  position: absolute;
+  top: 26px;
+  right: 20px;
+  padding: 5px 8px;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 20px;
+  background: rgb(0 0 0 / 12%);
+  font-size: 10px;
+}
+
+.account-preview-balance {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.optional-label {
+  color: #8995a7;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.account-preview .preview-caption {
+  z-index: 1;
+}
+
+@media (max-width: 600px) {
+  .account-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .account-details {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-actions {
+    align-self: flex-end;
+  }
+}

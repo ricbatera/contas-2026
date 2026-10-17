@@ -1,0 +1,156 @@
+.bucket-period {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.bucket-period .form-field {
+  min-width: 140px;
+}
+
+.bucket-period input,
+.bucket-period select {
+  box-sizing: border-box;
+  min-height: 40px;
+}
+
+.bucket-list {
+  display: grid;
+  gap: 12px;
+}
+
+.bucket-card {
+  padding: 18px;
+  border: 1px solid #e1e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.bucket-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.bucket-card-heading p {
+  margin: 0 0 5px;
+  color: #718096;
+  font-size: 12px;
+}
+
+.bucket-card-heading h3 {
+  margin: 0 0 5px;
+  color: #24364b;
+}
+
+.bucket-responsible {
+  color: #718096;
+  font-size: 12px;
+}
+
+.bucket-budget {
+  color: #1e6fd0;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.bucket-progress-track {
+  height: 8px;
+  margin: 16px 0 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #edf1f6;
+}
+
+.bucket-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2b8a66;
+  transition: width 150ms ease;
+}
+
+.bucket-progress-fill.over-budget {
+  background: #ce4c43;
+}
+
+.bucket-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  color: #718096;
+  font-size: 12px;
+}
+
+.bucket-values strong {
+  margin-left: 4px;
+  color: #293b50;
+}
+
+.bucket-values .over-budget-text {
+  color: #b3342b;
+}
+
+.bucket-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.bucket-actions .delete-button {
+  padding: 7px 9px;
+  border: 1px solid #f0ddda;
+  border-radius: 7px;
+  color: #b34439;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.bucket-actions .delete-button:hover:not(:disabled) {
+  background: #fff6f5;
+}
+
+.bucket-actions .delete-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.bucket-page-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bucket-form {
+  display: grid;
+  gap: 15px;
+}
+
+@media (max-width: 640px) {
+  .bucket-period {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .bucket-period .form-field {
+    flex: 1 1 120px;
+  }
+
+  .bucket-period button {
+    flex: 1 1 100%;
+  }
+
+  .bucket-card {
+    padding: 15px;
+  }
+
+  .bucket-card-heading {
+    flex-direction: column;
+  }
+}

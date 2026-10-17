@@ -1,0 +1,160 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/cartoes">
+      <span aria-hidden="true">←</span>
+      Voltar para cartões
+    </a>
+    <p class="section-kicker">MEIOS DE PAGAMENTO</p>
+    <h2>{{ editing ? 'Editar cartão' : 'Novo cartão' }}</h2>
+    <p class="section-description">
+      {{ editing ? 'Atualize os dados do cartão.' : 'Preencha os dados para cadastrar um cartão.' }}
+    </p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando dados do cartão...</div>
+  } @else {
+    <div class="form-layout">
+      <form class="card-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        @if (error()) {
+          <div class="form-error" role="alert">{{ error() }}</div>
+        }
+
+        <label class="form-field">
+          <span>Nome do cartão</span>
+          <input
+            type="text"
+            formControlName="nome"
+            maxlength="50"
+            autocomplete="off"
+            placeholder="Ex.: Cartão principal"
+          />
+          @if (form.controls.nome.invalid && form.controls.nome.touched) {
+            <small>Informe um nome com até 50 caracteres.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Banco</span>
+          <input
+            type="text"
+            formControlName="banco"
+            maxlength="100"
+            autocomplete="organization"
+            placeholder="Ex.: Banco do Brasil"
+          />
+          @if (form.controls.banco.invalid && form.controls.banco.touched) {
+            <small>Informe o banco emissor (até 100 caracteres).</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Bandeira</span>
+          <select formControlName="bandeira">
+            @for (bandeira of bandeiras; track bandeira) {
+              <option [value]="bandeira">{{ bandeira }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Tipo de cartão</span>
+          <select formControlName="tipo">
+            <option value="PRINCIPAL">Principal</option>
+            <option value="ADICIONAL">Adicional</option>
+          </select>
+        </label>
+
+        <label class="form-field virtual-option">
+          <input type="checkbox" formControlName="virtual" />
+          <span>Este cartão é virtual</span>
+          <small>Cartões virtuais também podem ser principais ou adicionais.</small>
+        </label>
+
+        <label class="form-field virtual-option">
+          <input type="checkbox" formControlName="ativo" />
+          <span>Cartão ativo</span>
+          <small>Cartões inativos não podem ser usados em novas saídas.</small>
+        </label>
+
+        @if (form.controls.tipo.value === 'ADICIONAL') {
+          <label class="form-field parent-field">
+            <span>Associar ao cartão principal</span>
+            @if (principaisError()) {
+              <small class="field-error" role="alert">{{ principaisError() }}</small>
+            } @else if (principais().length === 0) {
+              <small role="status">Cadastre um cartão principal antes de adicionar um cartão adicional.</small>
+            } @else {
+              <select formControlName="cartaoPrincipalId">
+                <option value="">Selecione o cartão principal</option>
+                @for (principal of principais(); track principal.id) {
+                  <option [value]="principal.id">
+                    {{ principal.nome }} · {{ principal.banco }} · final {{ principal.ultimosDigitos }}
+                  </option>
+                }
+              </select>
+            }
+            @if (form.controls.cartaoPrincipalId.invalid && form.controls.cartaoPrincipalId.touched) {
+              <small class="field-error">Selecione um cartão principal para este adicional.</small>
+            }
+          </label>
+        }
+
+        <label class="form-field">
+          <span>Últimos 4 dígitos</span>
+          <input
+            type="text"
+            formControlName="ultimosDigitos"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="4"
+            pattern="[0-9]{4}"
+            placeholder="1234"
+          />
+          @if (form.controls.ultimosDigitos.invalid && form.controls.ultimosDigitos.touched) {
+            <small>Informe exatamente 4 dígitos numéricos.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Cor do cartão</span>
+          <div class="color-input">
+            <span class="color-preview" [style.backgroundColor]="form.controls.cor.value"></span>
+            <input
+              type="text"
+              formControlName="cor"
+              maxlength="7"
+              autocomplete="off"
+              placeholder="#1E6FD0"
+              aria-describedby="card-color-help"
+            />
+          </div>
+          <small id="card-color-help">Use o formato hexadecimal #RRGGBB.</small>
+          @if (form.controls.cor.invalid && form.controls.cor.touched) {
+            <small class="field-error">Informe uma cor hexadecimal válida, por exemplo #1E6FD0.</small>
+          }
+        </label>
+
+        <div class="form-actions">
+          <a class="secondary-button" routerLink="/home/cartoes">Cancelar</a>
+          <button class="primary-button" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar cartão' }}
+          </button>
+        </div>
+      </form>
+
+      <aside class="card-preview" [style.--card-color]="form.controls.cor.value">
+        <span class="preview-caption">PRÉVIA</span>
+        <div class="preview-chip" aria-hidden="true"></div>
+        <span class="preview-brand">{{ form.controls.bandeira.value }}</span>
+        <p class="preview-name">{{ form.controls.nome.value || 'Nome do cartão' }}</p>
+        <p class="preview-number">•••• &nbsp;•••• &nbsp;•••• &nbsp;{{ form.controls.ultimosDigitos.value || '••••' }}</p>
+        <span class="preview-bank">{{ form.controls.banco.value || 'Banco emissor' }}</span>
+        <span class="preview-type">
+          {{ form.controls.virtual.value ? 'Virtual' : 'Físico' }}
+          · {{ form.controls.tipo.value === 'ADICIONAL' ? 'Adicional' : 'Principal' }}
+        </span>
+      </aside>
+    </div>
+  }
+</section>

@@ -1,0 +1,91 @@
+<section class="cards-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">PLANEJAMENTO FINANCEIRO</p>
+      <h2>Buckets</h2>
+      <p class="section-description">Acompanhe o previsto e o utilizado em cada subcategoria.</p>
+    </div>
+    <a class="primary-button" routerLink="/home/buckets/novo"><span aria-hidden="true">+</span> Novo bucket</a>
+  </div>
+
+  <div class="bucket-period" aria-label="Competência dos gastos">
+    <label class="form-field">
+      Mês
+      <select [value]="mes()" (change)="atualizarMes($event)">
+        @for (opcao of meses; track opcao.valor) {
+          <option [value]="opcao.valor" [selected]="opcao.valor === mes()">{{ opcao.nome }}</option>
+        }
+      </select>
+    </label>
+    <label class="form-field">
+      Ano
+      <input type="number" min="1900" max="9999" [value]="ano()" (input)="atualizarAno($event)" />
+    </label>
+    <button class="secondary-button" type="button" (click)="carregar()">Consultar</button>
+  </div>
+
+  @if (competenciaError()) {
+    <div class="form-error bucket-page-error" role="alert">{{ competenciaError() }}</div>
+  }
+
+  @if (error()) {
+    <div class="form-error bucket-page-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading()) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando buckets...</div>
+  } @else if (buckets().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">◉</div>
+      <h3>Nenhum bucket cadastrado</h3>
+      <p>Crie um orçamento mensal para acompanhar os gastos de uma subcategoria.</p>
+      <a class="primary-button" routerLink="/home/buckets/novo">Criar bucket</a>
+    </div>
+  } @else if (buckets().length > 0) {
+    <div class="bucket-list">
+      @for (bucket of buckets(); track bucket.id) {
+        <article class="bucket-card">
+          <div class="bucket-card-heading">
+            <div>
+              <p>{{ bucket.categoriaNome }}</p>
+              <h3>{{ bucket.subcategoriaNome }}</h3>
+              <span class="bucket-responsible">Responsável: {{ bucket.responsavelNome }}</span>
+            </div>
+            <strong class="bucket-budget">{{ bucket.valorMensal | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          </div>
+
+          <div class="bucket-progress-track" role="progressbar"
+            [attr.aria-valuenow]="percentualBarra(bucket)"
+            [attr.aria-valuetext]="(bucket.percentualConsumido | number: '1.0-1' : 'pt-BR') + '% consumido'"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="100"
+            [attr.aria-label]="'Consumo do bucket de ' + bucket.subcategoriaNome">
+            <span
+              class="bucket-progress-fill"
+              [class.over-budget]="bucket.percentualConsumido > 100"
+              [style.width.%]="percentualBarra(bucket)"
+            ></span>
+          </div>
+
+          <div class="bucket-values">
+            <span>Consumido <strong>{{ bucket.valorConsumido | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong></span>
+            <span>Restante <strong [class.over-budget-text]="bucket.saldo < 0">{{ bucket.saldo | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong></span>
+            <span>{{ bucket.percentualConsumido | number: '1.0-0' : 'pt-BR' }}%</span>
+          </div>
+
+          <div class="bucket-actions">
+            <a class="edit-button" [routerLink]="['/home/buckets', bucket.id, 'editar']">Editar</a>
+            <button class="delete-button" type="button" [disabled]="workingId() === bucket.id" (click)="excluir(bucket)">
+              {{ workingId() === bucket.id ? 'Excluindo...' : 'Excluir' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

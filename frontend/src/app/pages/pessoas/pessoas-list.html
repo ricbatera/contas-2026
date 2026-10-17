@@ -1,0 +1,71 @@
+<section class="cards-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">ORGANIZAÇÃO FINANCEIRA</p>
+      <h2>Pessoas</h2>
+      <p class="section-description">Gerencie as pessoas relacionadas às suas movimentações.</p>
+    </div>
+    <a class="primary-button" routerLink="/home/pessoas/novo">
+      <span aria-hidden="true">+</span>
+      Nova pessoa
+    </a>
+  </div>
+
+  @if (error()) {
+    <div class="people-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading() && pessoas().length === 0) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando pessoas...</div>
+  } @else if (pessoas().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v3h16v-3c0-2.8-3.6-5-8-5z" /></svg>
+      </div>
+      <h3>Nenhuma pessoa cadastrada</h3>
+      <p>Cadastre uma pessoa para relacioná-la às suas movimentações financeiras.</p>
+      <a class="primary-button" routerLink="/home/pessoas/novo">Cadastrar pessoa</a>
+    </div>
+  } @else if (pessoas().length > 0) {
+    <div class="people-list">
+      @for (pessoa of pessoas(); track pessoa.id) {
+        <article class="person-item">
+          <div class="person-avatar" aria-hidden="true">{{ pessoa.nome.charAt(0).toLocaleUpperCase() }}</div>
+          <div class="person-info">
+            <h3>{{ pessoa.nome }}</h3>
+            <span class="person-status" [class.inactive]="!pessoa.ativo">
+              <span class="status-dot" aria-hidden="true"></span>
+              {{ pessoa.ativo ? 'Ativa' : 'Inativa' }}
+            </span>
+          </div>
+          <div class="person-actions">
+            <a
+              class="edit-button"
+              [routerLink]="['/home/pessoas', pessoa.id, 'editar']"
+              [attr.aria-label]="'Editar pessoa ' + pessoa.nome"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m3 17.25 11.06-11.06 3.75 3.75L6.75 21H3v-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z" />
+              </svg>
+              Editar
+            </a>
+            <button
+              class="delete-button"
+              type="button"
+              [disabled]="deletingId() === pessoa.id"
+              [attr.aria-label]="'Excluir pessoa ' + pessoa.nome"
+              (click)="excluir(pessoa)"
+            >
+              {{ deletingId() === pessoa.id ? 'Excluindo...' : 'Excluir' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

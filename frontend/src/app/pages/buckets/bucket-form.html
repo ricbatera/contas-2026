@@ -1,0 +1,82 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/buckets">
+      <span aria-hidden="true">←</span>
+      Voltar para buckets
+    </a>
+    <p class="section-kicker">PLANEJAMENTO MENSAL</p>
+    <h2>{{ editing ? 'Editar bucket' : 'Novo bucket' }}</h2>
+    <p class="section-description">Defina um limite mensal para uma subcategoria e responsável.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando dados do bucket...</div>
+  } @else {
+    <form class="card-form bucket-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (error()) {
+        <div class="form-error" role="alert">{{ error() }}</div>
+      }
+
+      <label class="form-field">
+        Categoria
+        <select [value]="form.controls.categoriaId.value" (change)="atualizarCategoria($event)">
+          <option value="">Selecione uma categoria</option>
+          @for (categoria of categoriasDisponiveis(); track categoria.id) {
+            <option [value]="categoria.id">{{ categoria.nome }}</option>
+          }
+        </select>
+        @if (form.controls.categoriaId.invalid && form.controls.categoriaId.touched) {
+          <small>Selecione uma categoria de despesa.</small>
+        }
+      </label>
+
+      <label class="form-field">
+        Subcategoria
+        <select formControlName="subcategoriaId">
+          <option value="">Selecione uma subcategoria</option>
+          @for (subcategoria of subcategoriasDisponiveis(); track subcategoria.id) {
+            <option [value]="subcategoria.id">{{ subcategoria.nome }}</option>
+          }
+        </select>
+        @if (form.controls.subcategoriaId.invalid && form.controls.subcategoriaId.touched) {
+          <small>Selecione uma subcategoria de despesa.</small>
+        }
+      </label>
+
+      <label class="form-field">
+        Responsável pelo orçamento
+        <select
+          [value]="form.controls.responsavelPessoaId.value"
+          (change)="atualizarPessoa($event)"
+        >
+          <option value="">Minha parte (usuário logado)</option>
+          @for (pessoa of pessoasDisponiveis(); track pessoa.id) {
+            <option [value]="pessoa.id">{{ pessoa.nome }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="form-field">
+        Valor mensal previsto (R$)
+        <input
+          type="number"
+          formControlName="valorMensal"
+          min="0.01"
+          step="0.01"
+          inputmode="decimal"
+          placeholder="200,00"
+        />
+        @if (form.controls.valorMensal.invalid && form.controls.valorMensal.touched) {
+          <small>Informe um valor mensal maior que zero.</small>
+        }
+      </label>
+
+      <div class="form-actions">
+        <a class="secondary-button" routerLink="/home/buckets">Cancelar</a>
+        <button class="primary-button" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Criar bucket' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

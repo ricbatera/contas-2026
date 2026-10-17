@@ -1,0 +1,41 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/categorias"><span aria-hidden="true">←</span> Voltar para categorias</a>
+    <p class="section-kicker">ORGANIZAÇÃO FINANCEIRA</p>
+    <h2>{{ editing ? 'Editar categoria' : 'Nova categoria' }}</h2>
+    <p class="section-description">Categorias agrupam subcategorias de receitas ou despesas.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando categoria...</div>
+  } @else {
+    <form class="card-form category-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (error()) { <div class="form-error" role="alert">{{ error() }}</div> }
+      <label class="form-field">
+        <span>Nome da categoria</span>
+        <input type="text" formControlName="nome" maxlength="100" placeholder="Ex.: Moradia" autocomplete="off" />
+        @if (form.controls.nome.invalid && form.controls.nome.touched) {
+          <small>Informe um nome válido com até 100 caracteres.</small>
+        }
+      </label>
+      <label class="form-field">
+        <span>Tipo</span>
+        <select formControlName="tipo">
+          <option value="DESPESA">Despesa</option>
+          <option value="RECEITA">Receita</option>
+        </select>
+      </label>
+      <label class="form-field category-active">
+        <input type="checkbox" formControlName="ativo" />
+        <span>Categoria ativa</span>
+        <small>Categorias inativas permanecem visíveis e podem ser reativadas.</small>
+      </label>
+      <div class="form-actions">
+        <a class="secondary-button" routerLink="/home/categorias">Cancelar</a>
+        <button class="primary-button" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar categoria' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

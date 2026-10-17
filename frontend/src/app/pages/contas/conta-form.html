@@ -1,0 +1,152 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/contas">
+      <span aria-hidden="true">←</span>
+      Voltar para contas
+    </a>
+    <p class="section-kicker">ORGANIZAÇÃO FINANCEIRA</p>
+    <h2>{{ editing ? 'Editar conta' : 'Nova conta' }}</h2>
+    <p class="section-description">
+      {{ editing ? 'Atualize os dados da conta bancária.' : 'Preencha os dados da sua conta bancária.' }}
+    </p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando dados da conta...</div>
+  } @else {
+    <div class="form-layout">
+      <form class="card-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        @if (error()) {
+          <div class="form-error" role="alert">{{ error() }}</div>
+        }
+
+        <label class="form-field">
+          <span>Nome da conta</span>
+          <input
+            type="text"
+            formControlName="nome"
+            maxlength="50"
+            autocomplete="off"
+            placeholder="Ex.: Conta principal"
+          />
+          @if (form.controls.nome.invalid && form.controls.nome.touched) {
+            <small>Informe um nome com até 50 caracteres.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Banco ou instituição</span>
+          <input
+            type="text"
+            formControlName="banco"
+            maxlength="100"
+            autocomplete="organization"
+            placeholder="Ex.: Banco do Brasil"
+          />
+          @if (form.controls.banco.invalid && form.controls.banco.touched) {
+            <small>Informe o banco (até 100 caracteres).</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Tipo de conta</span>
+          <select formControlName="tipoConta">
+            @for (tipo of tipos; track tipo) {
+              <option [value]="tipo">{{ tipoConta(tipo) }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Saldo inicial (R$)</span>
+          <input
+            type="number"
+            formControlName="saldoInicial"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            placeholder="0,00"
+          />
+          @if (form.controls.saldoInicial.invalid && form.controls.saldoInicial.touched) {
+            <small>O saldo inicial deve ser maior ou igual a R$ 0,00.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Agência <span class="optional-label">(opcional)</span></span>
+          <input
+            type="text"
+            formControlName="agencia"
+            maxlength="10"
+            autocomplete="off"
+            placeholder="Ex.: 0001"
+          />
+          @if (form.controls.agencia.invalid && form.controls.agencia.touched) {
+            <small>Use até 10 caracteres.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Número da conta <span class="optional-label">(opcional)</span></span>
+          <input
+            type="text"
+            formControlName="numeroConta"
+            maxlength="20"
+            autocomplete="off"
+            placeholder="Ex.: 12345-6"
+          />
+          @if (form.controls.numeroConta.invalid && form.controls.numeroConta.touched) {
+            <small>Use até 20 caracteres.</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Cor da conta <span class="optional-label">(opcional)</span></span>
+          <div class="color-input">
+            <span class="color-preview" [style.backgroundColor]="form.controls.cor.value || '#1e6fd0'"></span>
+            <input
+              type="text"
+              formControlName="cor"
+              maxlength="7"
+              autocomplete="off"
+              placeholder="#1E6FD0"
+              aria-describedby="account-color-help"
+            />
+          </div>
+          <small id="account-color-help">Use o formato hexadecimal #RRGGBB.</small>
+          @if (form.controls.cor.invalid && form.controls.cor.touched) {
+            <small class="field-error">Informe uma cor válida, por exemplo #1E6FD0.</small>
+          }
+        </label>
+
+        <label class="form-field virtual-option">
+          <input type="checkbox" formControlName="ativo" />
+          <span>Conta ativa</span>
+          <small>Contas inativas continuam disponíveis na lista.</small>
+        </label>
+
+        <div class="form-actions">
+          <a class="secondary-button" routerLink="/home/contas">Cancelar</a>
+          <button class="primary-button" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar conta' }}
+          </button>
+        </div>
+      </form>
+
+      <aside class="account-preview" [style.--card-color]="form.controls.cor.value || '#1e6fd0'">
+        <span class="preview-caption">PRÉVIA</span>
+        <div class="preview-bank-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3 2 8v2h20V8L12 3zm-7 9v6H3v2h18v-2h-2v-6h-2v6h-4v-6h-2v6H7v-6z" />
+          </svg>
+        </div>
+        <span class="account-preview-type">{{ tipoConta(form.controls.tipoConta.value) }}</span>
+        <p class="preview-name">{{ form.controls.nome.value || 'Nome da conta' }}</p>
+        <p class="account-preview-balance">
+          {{ form.controls.saldoInicial.value | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+        </p>
+        <span class="preview-bank">{{ form.controls.banco.value || 'Banco ou instituição' }}</span>
+      </aside>
+    </div>
+  }
+</section>

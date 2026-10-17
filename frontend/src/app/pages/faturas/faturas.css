@@ -1,0 +1,178 @@
+:host {
+  display: block;
+}
+
+.faturas-page {
+  max-width: 1000px;
+}
+
+.fatura-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #e9edf3;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.fatura-filters .form-field select {
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid #dfe5ed;
+  border-radius: 7px;
+  box-sizing: border-box;
+  color: #26364d;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.fatura-filters .form-field select:focus {
+  border-color: #1e6fd0;
+  outline: 2px solid rgb(30 111 208 / 15%);
+}
+
+.fatura-filters .form-field select:disabled {
+  color: #8995a7;
+  background: #f6f8fb;
+}
+
+.fatura-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fatura-summary,
+.fatura-items {
+  padding: 22px;
+  border: 1px solid #e9edf3;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.fatura-summary {
+  margin-bottom: 18px;
+}
+
+.fatura-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.fatura-summary-heading h3 {
+  margin: 0;
+  color: #172b4d;
+  font-size: 20px;
+}
+
+.fatura-summary-heading .section-description {
+  margin-top: 5px;
+  text-transform: capitalize;
+}
+
+.fatura-total {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+}
+
+.fatura-total span,
+.fatura-due-date {
+  color: #718096;
+  font-size: 12px;
+}
+
+.fatura-total strong {
+  color: #1761b5;
+  font-size: 22px;
+}
+
+.fatura-due-date {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f4;
+}
+
+.fatura-due-date strong {
+  color: #26364d;
+}
+
+.fatura-items > h3 {
+  margin: 0 0 14px;
+  color: #26364d;
+  font-size: 15px;
+}
+
+.fatura-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.fatura-item-main {
+  min-width: 0;
+}
+
+.fatura-item h4 {
+  margin: 0;
+  color: #26364d;
+  font-size: 13px;
+}
+
+.fatura-item-main > p {
+  margin: 4px 0 0;
+  color: #8995a7;
+  font-size: 11px;
+}
+
+.fatura-item > strong {
+  flex: 0 0 auto;
+  color: #172b4d;
+  font-size: 13px;
+}
+
+.fatura-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  margin-top: 8px;
+  color: #718096;
+  font-size: 10px;
+}
+
+@media (max-width: 640px) {
+  .fatura-filters {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .fatura-summary,
+  .fatura-items {
+    padding: 17px;
+  }
+
+  .fatura-summary-heading {
+    flex-direction: column;
+  }
+
+  .fatura-total {
+    text-align: left;
+  }
+
+  .fatura-error {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

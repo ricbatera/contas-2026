@@ -1,0 +1,94 @@
+<section class="cards-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">ORGANIZAÇÃO FINANCEIRA</p>
+      <h2>Contas bancárias</h2>
+      <p class="section-description">Gerencie suas contas, carteiras e investimentos.</p>
+    </div>
+    <a class="primary-button" routerLink="/home/contas/novo">
+      <span aria-hidden="true">+</span>
+      Nova conta
+    </a>
+  </div>
+
+  @if (error()) {
+    <div class="account-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading() && contas().length === 0) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando contas...</div>
+  } @else if (contas().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">▤</div>
+      <h3>Nenhuma conta cadastrada</h3>
+      <p>Cadastre sua primeira conta para começar a organizar suas finanças.</p>
+      <a class="primary-button" routerLink="/home/contas/novo">Cadastrar conta</a>
+    </div>
+  } @else if (contas().length > 0) {
+    <div class="account-grid">
+      @for (conta of contas(); track conta.id) {
+        <article class="account-item">
+          <div class="account-card" [style.--card-color]="conta.cor || '#1e6fd0'">
+            <div class="account-card-top">
+              <span class="account-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 3 2 8v2h20V8L12 3zm-7 9v6H3v2h18v-2h-2v-6h-2v6h-4v-6h-2v6H7v-6z" />
+                </svg>
+              </span>
+              <span class="account-type">{{ tipoConta(conta.tipoConta) }}</span>
+            </div>
+            <div class="account-balance-label">Saldo inicial</div>
+            <div class="account-balance">{{ conta.saldoInicial | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</div>
+            <div class="account-card-bottom">
+              <span>{{ conta.banco }}</span>
+              <span class="account-status" [class.inactive]="!conta.ativo">
+                <span class="status-dot" aria-hidden="true"></span>
+                {{ conta.ativo ? 'Ativa' : 'Inativa' }}
+              </span>
+            </div>
+          </div>
+          <div class="account-details">
+            <div class="account-description">
+              <h3>{{ conta.nome }}</h3>
+              <p>
+                @if (conta.agencia) { Ag. {{ conta.agencia }} }
+                @if (conta.agencia && conta.numeroConta) { · }
+                @if (conta.numeroConta) { Conta {{ conta.numeroConta }} }
+                @if (!conta.agencia && !conta.numeroConta) { Sem dados de agência/conta }
+              </p>
+              @if (conta.criadoEm) {
+                <span class="created-date">Cadastrada em {{ conta.criadoEm | date: 'dd/MM/yyyy' }}</span>
+              }
+            </div>
+            <div class="account-actions">
+              <a
+                class="edit-button"
+                [routerLink]="['/home/contas', conta.id, 'editar']"
+                [attr.aria-label]="'Editar conta ' + conta.nome"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m3 17.25 11.06-11.06 3.75 3.75L6.75 21H3v-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z" />
+                </svg>
+                Editar
+              </a>
+              <button
+                class="delete-button"
+                type="button"
+                [disabled]="deletingId() === conta.id"
+                [attr.aria-label]="'Excluir conta ' + conta.nome"
+                (click)="excluir(conta)"
+              >
+                {{ deletingId() === conta.id ? 'Excluindo...' : 'Excluir' }}
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
