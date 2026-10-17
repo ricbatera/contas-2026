@@ -136,6 +136,9 @@
         <p class="section-description">
           Compras da fatura que ainda não estão nas saídas. Parceladas são criadas com todas as parcelas,
           inclusive as de faturas anteriores.
+          @if (comSugestao()) {
+            {{ comSugestao() }} delas parece(m) ser saída(s) já lançada(s): confirme antes de aprovar.
+          }
         </p>
 
         @for (item of pendentes(); track item.id) {
@@ -158,6 +161,31 @@
                 }
               </strong>
             </div>
+
+            @if (item.saidaSugeridaId) {
+              <div class="sugestao-vinculo" role="note">
+                <div>
+                  <strong>Parece ser a saída "{{ item.saidaSugeridaDescricao }}"</strong>
+                  @if (item.saidaSugeridaDescricaoFatura) {
+                    <span>Na fatura: {{ item.saidaSugeridaDescricaoFatura }}</span>
+                  } @else {
+                    <span>Ainda sem descrição da fatura.</span>
+                  }
+                  @if (item.motivoSugestao) {
+                    <span class="sugestao-motivo">{{ item.motivoSugestao }}</span>
+                  }
+                </div>
+                <div class="sugestao-acoes">
+                  <a class="link-button" [routerLink]="['/home/saidas', item.saidaSugeridaId, 'editar']">Ver saída</a>
+                  <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="descartarSugestao(item)">
+                    É uma compra nova
+                  </button>
+                  <button class="primary-button" type="button" [disabled]="!!ocupado()" (click)="vincular(item)">
+                    Vincular a esta saída
+                  </button>
+                </div>
+              </div>
+            }
 
             <div class="pre-saida-grid">
               <label class="form-field wide">
@@ -259,6 +287,11 @@
               <h4>{{ item.descricaoPdf }}</h4>
               <p>Saída: {{ item.descricaoSaida }}</p>
               <div class="fatura-item-meta">
+                @if (item.criterio === 'VALOR') {
+                  <span class="status-badge status-processando">Pelo valor</span>
+                } @else if (item.criterio === 'VINCULO') {
+                  <span class="status-badge status-concluida">Vinculada por você</span>
+                }
                 @if (item.quantidadeParcelas > 1) {
                   <span>{{ item.numeroParcela }}/{{ item.quantidadeParcelas }}ª parcela</span>
                 }
@@ -267,6 +300,9 @@
                 }
                 <a [routerLink]="['/home/saidas', item.saidaId, 'editar']">Abrir saída</a>
               </div>
+              @if (item.observacao) {
+                <p class="conciliado-observacao">{{ item.observacao }}</p>
+              }
             </div>
             <strong>{{ item.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
           </article>
@@ -274,9 +310,26 @@
       </section>
     }
 
-    @if (aprovadas().length || rejeitadas().length) {
+    @if (aprovadas().length || rejeitadas().length || vinculadas().length) {
       <section class="fatura-items import-section" aria-label="Pré-saídas revisadas">
         <h3>Revisadas</h3>
+        @for (item of vinculadas(); track item.id) {
+          <article class="fatura-item">
+            <div class="fatura-item-main">
+              <h4>{{ item.descricaoFatura }}</h4>
+              <div class="fatura-item-meta">
+                <span class="status-badge status-concluida">Vinculada</span>
+                @if (item.saidaSugeridaDescricao) {
+                  <span>à saída "{{ item.saidaSugeridaDescricao }}"</span>
+                }
+                @if (item.saidaId) {
+                  <a [routerLink]="['/home/saidas', item.saidaId, 'editar']">Abrir saída</a>
+                }
+              </div>
+            </div>
+            <strong>{{ item.valorPorParcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          </article>
+        }
         @for (item of aprovadas(); track item.id) {
           <article class="fatura-item">
             <div class="fatura-item-main">

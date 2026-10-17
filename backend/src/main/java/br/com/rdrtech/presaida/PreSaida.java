@@ -85,4 +85,22 @@ public class PreSaida extends TenantAwareEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "saida_id")
     private Saida saida;
+
+    /** Saída já lançada que provavelmente é esta mesma compra; o usuário confirma ou descarta. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "saida_sugerida_id")
+    private Saida saidaSugerida;
+
+    @Column(name = "motivo_sugestao", length = 500)
+    private String motivoSugestao;
+
+    /** Sugestão que o usuário recusou ("é uma compra nova"); o reprocessamento respeita a decisão. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "saida_descartada_id")
+    private Saida saidaDescartada;
+
+    /** Vinculada, rejeitada ou com sugestão recusada: uma escolha do usuário que prevalece sobre a conciliação. */
+    public boolean decididaPeloUsuario() {
+        return status == StatusPreSaida.VINCULADA || status == StatusPreSaida.REJEITADA || saidaDescartada != null;
+    }
 }

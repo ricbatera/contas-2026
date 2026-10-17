@@ -9,6 +9,17 @@ import br.com.rdrtech.exception.FaturaImportacaoInvalidaException;
 import br.com.rdrtech.fatura.Fatura;
 import br.com.rdrtech.fatura.FaturaRepository;
 import br.com.rdrtech.faturaimportacao.FaturaLidaIa.ItemLido;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Decisao;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Desempate;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Exata;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Item;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Nova;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.ParIa;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Parcela;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.PorValor;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.PreSaidaExistente;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Reaproveitada;
+import br.com.rdrtech.faturaimportacao.MotorConciliacao.Resultado;
 import br.com.rdrtech.faturaimportacao.dto.ResumoImportacao;
 import br.com.rdrtech.faturaimportacao.dto.ResumoImportacao.ItemConciliado;
 import br.com.rdrtech.faturaimportacao.dto.ResumoImportacao.ItemIgnorado;
@@ -20,38 +31,36 @@ import br.com.rdrtech.saida.SaidaParcela;
 import br.com.rdrtech.subcategoria.Subcategoria;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.Normalizer;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
+import java.time.YearMonth;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Predicate;
-import java.util.function.ToDoubleFunction;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Confronta os itens lidos da fatura com as parcelas já lançadas. Item que casa com uma parcela
- * só atualiza a descrição de fatura da saída; item sem correspondência vira {@link PreSaida}.
- * A decisão é determinística (valor, número e quantidade de parcelas); a IA só extrai os dados.
+ * Confronta os itens lidos da fatura com as parcelas já lançadas, usando as regras de
+ * {@link MotorConciliacao}. Item que casa com uma parcela atualiza a descrição de fatura da saída;
+ * o resto vira {@link PreSaida}, às vezes com uma saída sugerida para o usuário confirmar.
+ *
+ * <p>Roda em duas passadas: {@link #planejar} (só leitura) descobre o que a IA deve comparar, e
+ * {@link #aplicar} grava o resultado já com as indicações da IA. A chamada à IA fica entre as duas,
+ * fora de transação.
  */
 @Service
 @RequiredArgsConstructor
 public class ConciliacaoFaturaService {
 
-    static final BigDecimal TOLERANCIA = new BigDecimal("0.01");
     private static final int TAMANHO_DESCRICAO = 120;
     private static final int LIMITE_AVISOS_FALTANTES = 20;
     private static final Set<String> TIPOS_QUE_GERAM_SAIDA = Set.of("COMPRA", "TARIFA", "IOF", "JUROS");
@@ -61,176 +70,206 @@ public class ConciliacaoFaturaService {
     private final PreSaidaRepository preSaidaRepository;
     private final CategoriaRepository categoriaRepository;
 
-    @Transactional
-    public ResumoImportacao conciliar(FaturaImportacao importacao, FaturaLidaIa lida) {
-        LocalDate vencimento = converterData(lida.vencimento());
-        if (vencimento == null) {
-            throw new FaturaImportacaoInvalidaException("A IA não identificou a data de vencimento da fatura.");
-        }
-        int competencia = vencimento.getYear() * 100 + vencimento.getMonthValue();
-        List<String> avisos = new ArrayList<>();
-        CartoesIdentificados cartoes = identificarCartoes(lida, avisos);
+    /** Itens sem par e parcelas candidatas, para a IA indicar possíveis correspondências. */
+    @Transactional(readOnly = true)
+    public Desempate planejar(UUID importacaoId, FaturaLidaIa lida) {
+        Contexto contexto = carregar(importacaoId, lida, new ArrayList<>());
+        return MotorConciliacao.conciliar(contexto.itens(), contexto.parcelas(), contexto.preSaidas(), null)
+                .desempate();
+    }
 
-        importacao.setCartaoPrincipal(cartoes.principal());
-        importacao.setCompetencia(competencia);
-        importacao.setVencimento(vencimento);
+    @Transactional
+    public ResumoImportacao aplicar(FaturaImportacao importacao, FaturaLidaIa lida, List<ParIa> paresIa,
+            List<String> avisosAdicionais) {
+        List<String> avisos = new ArrayList<>(avisosAdicionais);
+        Contexto contexto = carregar(importacao.getId(), lida, avisos);
+        importacao.setCartaoPrincipal(contexto.principal());
+        importacao.setCompetencia(contexto.competencia());
+        importacao.setVencimento(contexto.vencimento());
         importacao.setTotalPdf(lida.total());
 
-        Fatura fatura = faturaRepository.buscarPorCartaoECompetencia(cartoes.principal().getId(), competencia)
-                .orElse(null);
-        List<SaidaParcela> parcelasLivres = fatura == null ? new ArrayList<>() : new ArrayList<>(fatura.getParcelas());
-        BigDecimal totalSistema = fatura == null ? BigDecimal.ZERO : fatura.getTotal();
-        List<PreSaida> preSaidasLivres = new ArrayList<>(
-                preSaidaRepository.listarNaoAprovadasDaFatura(cartoes.principal().getId(), competencia));
+        Resultado resultado = MotorConciliacao.conciliar(
+                contexto.itens(), contexto.parcelas(), contexto.preSaidas(), paresIa);
         SugestoesCategoria sugestoes = carregarSugestoes();
-
         List<ItemConciliado> conciliados = new ArrayList<>();
         List<ItemIgnorado> ignorados = new ArrayList<>();
         int criadas = 0;
         BigDecimal totalPreSaidas = BigDecimal.ZERO;
 
-        for (ItemLido item : lida.itens()) {
-            String descricao = descricaoDoItem(item);
-            String tipo = item.tipo() == null ? "COMPRA" : item.tipo().trim().toUpperCase(Locale.ROOT);
-            if (item.valor() == null || item.valor().signum() <= 0 || !TIPOS_QUE_GERAM_SAIDA.contains(tipo)) {
-                ignorados.add(new ItemIgnorado(descricao, item.valor(), tipo, motivoIgnorado(tipo, item.valor())));
+        for (int indice = 0; indice < lida.itens().size(); indice++) {
+            ItemIgnorado ignorado = contexto.ignorados().get(indice);
+            if (ignorado != null) {
+                ignorados.add(ignorado);
                 continue;
             }
-            BigDecimal valor = item.valor().setScale(2, RoundingMode.HALF_UP);
-            int numero = item.parcelaAtual() == null ? 1 : item.parcelaAtual();
-            int quantidade = item.totalParcelas() == null ? 1 : item.totalParcelas();
+            Item item = contexto.itemPorIndice().get(indice);
+            Decisao decisao = resultado.decisoes().get(indice);
+            switch (decisao) {
+                case Exata exata -> conciliados.add(vincular(item, contexto.parcela(exata.parcela()), "EXATO", null));
+                case PorValor porValor -> conciliados.add(vincular(item, contexto.parcela(porValor.parcela()), "VALOR",
+                        porValor.observacao()));
+                case Reaproveitada reaproveitada -> {
+                    PreSaida existente = contexto.preSaidaPorId().get(reaproveitada.preSaida().id());
+                    switch (existente.getStatus()) {
+                        case REJEITADA -> ignorados.add(new ItemIgnorado(item.descricao(), item.valor(),
+                                contexto.tipo(indice), "Pré-saída rejeitada anteriormente"));
+                        case VINCULADA -> conciliados.add(new ItemConciliado(item.descricao(), item.digitos(),
+                                item.valor(), item.numero(), item.quantidade(), existente.getSaida().getId(),
+                                existente.getSaida().getDescricao(), existente.getSaida().getDescricaoFatura(),
+                                "VINCULO", "Vinculada por você em uma importação anterior."));
+                        default -> {
+                            existente.setImportacao(importacao);
+                            totalPreSaidas = totalPreSaidas.add(item.valor());
+                        }
+                    }
+                }
+                case Nova nova -> {
+                    ItemLido lido = lida.itens().get(indice);
+                    var categoria = sugestoes.resolver(lido.categoriaId(), lido.subcategoriaId());
+                    var sugestao = nova.sugestao();
+                    preSaidaRepository.save(PreSaida.builder()
+                            .importacao(importacao)
+                            .cartao(contexto.cartaoPorIndice().get(indice))
+                            .descricao(item.descricao())
+                            .descricaoFatura(item.descricao())
+                            .dataCompra(MotorConciliacao.converterData(lido.data()))
+                            .valorPorParcela(item.valor())
+                            .numeroParcela(item.numero())
+                            .quantidadeParcelas(item.quantidade())
+                            .competencia(contexto.competencia())
+                            .primeiroVencimento(MotorConciliacao.primeiroVencimento(contexto.vencimento(), item.numero()))
+                            .categoria(categoria.categoria())
+                            .subcategoria(categoria.subcategoria())
+                            .saidaSugerida(sugestao == null ? null : contexto.parcela(sugestao.parcela()).getSaida())
+                            .motivoSugestao(sugestao == null ? null : sugestao.motivo())
+                            .status(StatusPreSaida.PENDENTE)
+                            .build());
+                    criadas++;
+                    totalPreSaidas = totalPreSaidas.add(item.valor());
+                }
+            }
+        }
+
+        resultado.faltantes().stream()
+                .sorted(Comparator.comparing(Parcela::descricao))
+                .limit(LIMITE_AVISOS_FALTANTES)
+                .forEach(p -> avisos.add("A parcela " + p.numero() + "/" + p.quantidade() + " de \"" + p.descricao()
+                        + "\" está no sistema mas não foi encontrada no PDF."));
+        if (resultado.faltantes().size() > LIMITE_AVISOS_FALTANTES) {
+            avisos.add("E mais " + (resultado.faltantes().size() - LIMITE_AVISOS_FALTANTES)
+                    + " parcelas do sistema não encontradas no PDF.");
+        }
+        return new ResumoImportacao(conciliados, ignorados, avisos, criadas, contexto.totalSistema(), totalPreSaidas);
+    }
+
+    private static ItemConciliado vincular(Item item, SaidaParcela parcela, String criterio, String observacao) {
+        Saida saida = parcela.getSaida();
+        String anterior = saida.getDescricaoFatura();
+        saida.setDescricaoFatura(item.descricao());
+        return new ItemConciliado(item.descricao(), item.digitos(), item.valor(), item.numero(), item.quantidade(),
+                saida.getId(), saida.getDescricao(), anterior, criterio, observacao);
+    }
+
+    /** Lê o que a conciliação precisa: cartões, itens válidos, parcelas da competência e vizinhas. */
+    private Contexto carregar(UUID importacaoId, FaturaLidaIa lida, List<String> avisos) {
+        LocalDate vencimento = MotorConciliacao.converterData(lida.vencimento());
+        if (vencimento == null) {
+            throw new FaturaImportacaoInvalidaException("A IA não identificou a data de vencimento da fatura.");
+        }
+        YearMonth mes = YearMonth.from(vencimento);
+        int competencia = competencia(mes);
+        CartoesIdentificados cartoes = identificarCartoes(lida, avisos);
+
+        List<Item> itens = new ArrayList<>();
+        Map<Integer, Item> itemPorIndice = new HashMap<>();
+        Map<Integer, ItemIgnorado> ignorados = new HashMap<>();
+        Map<Integer, Cartao> cartaoPorIndice = new HashMap<>();
+        Map<Integer, String> tipos = new HashMap<>();
+        for (int indice = 0; indice < lida.itens().size(); indice++) {
+            ItemLido lido = lida.itens().get(indice);
+            String descricao = descricaoDoItem(lido);
+            String tipo = lido.tipo() == null ? "COMPRA" : lido.tipo().trim().toUpperCase(Locale.ROOT);
+            tipos.put(indice, tipo);
+            if (lido.valor() == null || lido.valor().signum() <= 0 || !TIPOS_QUE_GERAM_SAIDA.contains(tipo)) {
+                ignorados.put(indice, new ItemIgnorado(descricao, lido.valor(), tipo, motivoIgnorado(tipo, lido.valor())));
+                continue;
+            }
+            BigDecimal valor = lido.valor().setScale(2, RoundingMode.HALF_UP);
+            int numero = lido.parcelaAtual() == null ? 1 : lido.parcelaAtual();
+            int quantidade = lido.totalParcelas() == null ? 1 : lido.totalParcelas();
             if (quantidade < 1 || quantidade > 60 || numero < 1 || numero > quantidade) {
-                ignorados.add(new ItemIgnorado(descricao, valor, tipo,
+                ignorados.put(indice, new ItemIgnorado(descricao, valor, tipo,
                         "Parcelamento inválido (" + numero + "/" + quantidade + ")"));
                 continue;
             }
-            String digitos = normalizarDigitos(item.ultimosDigitos());
+            String digitos = MotorConciliacao.normalizarDigitos(lido.ultimosDigitos());
             Cartao cartao = digitos == null ? cartoes.unicoOuPrincipal() : cartoes.porDigitos().get(digitos);
             if (digitos != null && cartao == null) {
                 avisos.add("Cartão final " + digitos + " não cadastrado: \"" + descricao
                         + "\" ficou sem cartão na pré-saída.");
             }
+            cartaoPorIndice.put(indice, cartao);
+            Item item = new Item(indice, descricao, digitos, cartao == null ? null : cartao.getId(), valor, numero,
+                    quantidade);
+            itens.add(item);
+            itemPorIndice.put(indice, item);
+        }
 
-            SaidaParcela parcela = melhor(parcelasLivres,
-                    p -> mesmoValor(p.getValor(), valor)
-                            && p.getNumero() == numero
-                            && p.getSaida().getQuantidadeParcelas() == quantidade,
-                    p -> (cartao != null && p.getSaida().getCartao() != null
-                            && cartao.getId().equals(p.getSaida().getCartao().getId()) ? 10 : 0)
-                            + similaridade(descricao, p.getSaida().getDescricao(), p.getSaida().getDescricaoFatura()));
-            if (parcela != null) {
-                parcelasLivres.remove(parcela);
-                Saida saida = parcela.getSaida();
-                String anterior = saida.getDescricaoFatura();
-                saida.setDescricaoFatura(descricao);
-                conciliados.add(new ItemConciliado(descricao, digitos, valor, numero, quantidade,
-                        saida.getId(), saida.getDescricao(), anterior));
+        UUID principalId = cartoes.principal().getId();
+        Map<UUID, SaidaParcela> parcelaPorId = new LinkedHashMap<>();
+        List<Parcela> parcelas = new ArrayList<>();
+        Fatura fatura = faturaRepository.buscarPorCartaoECompetencia(principalId, competencia).orElse(null);
+        BigDecimal totalSistema = fatura == null ? BigDecimal.ZERO : fatura.getTotal();
+        adicionarParcelas(fatura, false, Set.of(), parcelas, parcelaPorId);
+        // No mês vizinho só interessam saídas sem parcela nesta fatura (lançadas com o mês deslocado).
+        Set<UUID> saidasDaCompetencia = new HashSet<>();
+        parcelas.forEach(parcela -> saidasDaCompetencia.add(parcela.saidaId()));
+        for (YearMonth vizinho : List.of(mes.minusMonths(1), mes.plusMonths(1))) {
+            adicionarParcelas(faturaRepository.buscarPorCartaoECompetencia(principalId, competencia(vizinho))
+                    .orElse(null), true, saidasDaCompetencia, parcelas, parcelaPorId);
+        }
+
+        Map<UUID, PreSaida> preSaidaPorId = new LinkedHashMap<>();
+        List<PreSaidaExistente> preSaidas = new ArrayList<>();
+        for (PreSaida preSaida : preSaidaRepository.listarReaproveitaveis(principalId, competencia, importacaoId)) {
+            preSaidaPorId.put(preSaida.getId(), preSaida);
+            preSaidas.add(new PreSaidaExistente(preSaida.getId(), preSaida.getStatus(),
+                    preSaida.getSaida() == null ? null : preSaida.getSaida().getId(), preSaida.getDescricao(),
+                    preSaida.getDescricaoFatura(), preSaida.getValorPorParcela(), preSaida.getNumeroParcela(),
+                    preSaida.getQuantidadeParcelas(), preSaida.decididaPeloUsuario()));
+        }
+
+        return new Contexto(cartoes.principal(), vencimento, competencia, totalSistema, itens, itemPorIndice,
+                ignorados, cartaoPorIndice, tipos, parcelas, parcelaPorId, preSaidas, preSaidaPorId);
+    }
+
+    private static void adicionarParcelas(Fatura fatura, boolean vizinha, Set<UUID> saidasIgnoradas,
+            List<Parcela> parcelas, Map<UUID, SaidaParcela> parcelaPorId) {
+        if (fatura == null) {
+            return;
+        }
+        for (SaidaParcela parcela : fatura.getParcelas()) {
+            Saida saida = parcela.getSaida();
+            if (saidasIgnoradas.contains(saida.getId())) {
                 continue;
             }
-
-            PreSaida existente = melhor(preSaidasLivres,
-                    p -> mesmoValor(p.getValorPorParcela(), valor)
-                            && p.getNumeroParcela() == numero
-                            && p.getQuantidadeParcelas() == quantidade,
-                    p -> similaridade(descricao, p.getDescricaoFatura(), p.getDescricao()));
-            if (existente != null) {
-                preSaidasLivres.remove(existente);
-                if (existente.getStatus() == StatusPreSaida.REJEITADA) {
-                    ignorados.add(new ItemIgnorado(descricao, valor, tipo, "Pré-saída rejeitada anteriormente"));
-                } else {
-                    existente.setImportacao(importacao);
-                    totalPreSaidas = totalPreSaidas.add(valor);
-                }
-                continue;
-            }
-
-            parcelasLivres.stream()
-                    .filter(p -> mesmoValor(p.getValor(), valor) && p.getSaida().getQuantidadeParcelas() == quantidade)
-                    .findFirst()
-                    .ifPresent(p -> avisos.add("\"" + descricao + "\" (" + numero + "/" + quantidade
-                            + ") parece com a saída \"" + p.getSaida().getDescricao() + "\", lançada como parcela "
-                            + p.getNumero() + "/" + quantidade + " nesta fatura. Confira antes de aprovar."));
-
-            Sugestao sugestao = sugestoes.resolver(item.categoriaId(), item.subcategoriaId());
-            preSaidaRepository.save(PreSaida.builder()
-                    .importacao(importacao)
-                    .cartao(cartao)
-                    .descricao(descricao)
-                    .descricaoFatura(descricao)
-                    .dataCompra(converterData(item.data()))
-                    .valorPorParcela(valor)
-                    .numeroParcela(numero)
-                    .quantidadeParcelas(quantidade)
-                    .competencia(competencia)
-                    .primeiroVencimento(primeiroVencimento(vencimento, numero))
-                    .categoria(sugestao.categoria())
-                    .subcategoria(sugestao.subcategoria())
-                    .status(StatusPreSaida.PENDENTE)
-                    .build());
-            criadas++;
-            totalPreSaidas = totalPreSaidas.add(valor);
+            Cartao cartao = saida.getCartao();
+            parcelaPorId.put(parcela.getId(), parcela);
+            parcelas.add(new Parcela(parcela.getId(), saida.getId(), saida.getDescricao(), saida.getDescricaoFatura(),
+                    cartao == null ? null : cartao.getId(), cartao == null ? null : cartao.getUltimosDigitos(),
+                    parcela.getValor(), parcela.getNumero(), saida.getQuantidadeParcelas(), fatura.getCompetencia(),
+                    vizinha));
         }
-
-        parcelasLivres.stream()
-                .sorted(Comparator.comparing(p -> p.getSaida().getDescricao()))
-                .limit(LIMITE_AVISOS_FALTANTES)
-                .forEach(p -> avisos.add("A parcela " + p.getNumero() + "/" + p.getSaida().getQuantidadeParcelas()
-                        + " de \"" + p.getSaida().getDescricao() + "\" está no sistema mas não foi encontrada no PDF."));
-        if (parcelasLivres.size() > LIMITE_AVISOS_FALTANTES) {
-            avisos.add("E mais " + (parcelasLivres.size() - LIMITE_AVISOS_FALTANTES)
-                    + " parcelas do sistema não encontradas no PDF.");
-        }
-        return new ResumoImportacao(conciliados, ignorados, avisos, criadas, totalSistema, totalPreSaidas);
     }
 
-    /** Recua do vencimento da fatura até a parcela 1, para a saída nascer com as parcelas anteriores. */
-    static LocalDate primeiroVencimento(LocalDate vencimentoFatura, int numeroParcela) {
-        return vencimentoFatura.minusMonths(numeroParcela - 1L);
-    }
-
-    /** Fração dos termos da descrição do PDF que aparecem nas descrições da saída (0 a 1). */
-    static double similaridade(String descricaoPdf, String... candidatas) {
-        Set<String> termos = termos(descricaoPdf);
-        if (termos.isEmpty()) {
-            return 0;
-        }
-        Set<String> alvo = Arrays.stream(candidatas)
-                .filter(Objects::nonNull)
-                .flatMap(texto -> termos(texto).stream())
-                .collect(Collectors.toSet());
-        long comuns = termos.stream().filter(alvo::contains).count();
-        return (double) comuns / termos.size();
-    }
-
-    private static Set<String> termos(String texto) {
-        if (texto == null) {
-            return Set.of();
-        }
-        String normalizado = Normalizer.normalize(texto, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toUpperCase(Locale.ROOT)
-                .replaceAll("[^A-Z0-9]+", " ")
-                .trim();
-        return Arrays.stream(normalizado.split(" "))
-                .filter(termo -> termo.length() >= 3 && !termo.chars().allMatch(Character::isDigit))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    private static <T> T melhor(List<T> candidatos, Predicate<T> filtro, ToDoubleFunction<T> pontuacao) {
-        return candidatos.stream()
-                .filter(filtro)
-                .max(Comparator.comparingDouble(pontuacao))
-                .orElse(null);
-    }
-
-    private static boolean mesmoValor(BigDecimal a, BigDecimal b) {
-        return a.subtract(b).abs().compareTo(TOLERANCIA) <= 0;
+    private static int competencia(YearMonth mes) {
+        return mes.getYear() * 100 + mes.getMonthValue();
     }
 
     private CartoesIdentificados identificarCartoes(FaturaLidaIa lida, List<String> avisos) {
         Set<String> digitos = new LinkedHashSet<>();
-        lida.cartoes().forEach(c -> adicionarSeValido(digitos, normalizarDigitos(c.ultimosDigitos())));
-        lida.itens().forEach(i -> adicionarSeValido(digitos, normalizarDigitos(i.ultimosDigitos())));
+        lida.cartoes().forEach(c -> adicionarSeValido(digitos, MotorConciliacao.normalizarDigitos(c.ultimosDigitos())));
+        lida.itens().forEach(i -> adicionarSeValido(digitos, MotorConciliacao.normalizarDigitos(i.ultimosDigitos())));
         if (digitos.isEmpty()) {
             throw new FaturaImportacaoInvalidaException(
                     "A IA não identificou os 4 últimos dígitos de nenhum cartão na fatura.");
@@ -297,25 +336,6 @@ public class ConciliacaoFaturaService {
         }
     }
 
-    static String normalizarDigitos(String valor) {
-        if (valor == null) {
-            return null;
-        }
-        String digitos = valor.replaceAll("\\D", "");
-        return digitos.length() < 4 ? null : digitos.substring(digitos.length() - 4);
-    }
-
-    static LocalDate converterData(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(valor.trim().length() > 10 ? valor.trim().substring(0, 10) : valor.trim());
-        } catch (DateTimeParseException e) {
-            return null;
-        }
-    }
-
     private static String descricaoDoItem(ItemLido item) {
         String descricao = item.descricao() == null ? "" : item.descricao().strip().replaceAll("\\s+", " ");
         if (descricao.isEmpty()) {
@@ -337,6 +357,30 @@ public class ConciliacaoFaturaService {
         return "Tipo de lançamento não reconhecido";
     }
 
+    private record Contexto(
+            Cartao principal,
+            LocalDate vencimento,
+            int competencia,
+            BigDecimal totalSistema,
+            List<Item> itens,
+            Map<Integer, Item> itemPorIndice,
+            Map<Integer, ItemIgnorado> ignorados,
+            Map<Integer, Cartao> cartaoPorIndice,
+            Map<Integer, String> tipos,
+            List<Parcela> parcelas,
+            Map<UUID, SaidaParcela> parcelaPorId,
+            List<PreSaidaExistente> preSaidas,
+            Map<UUID, PreSaida> preSaidaPorId) {
+
+        SaidaParcela parcela(Parcela retrato) {
+            return parcelaPorId.get(retrato.parcelaId());
+        }
+
+        String tipo(int indice) {
+            return tipos.get(indice);
+        }
+    }
+
     private record CartoesIdentificados(Cartao principal, Map<String, Cartao> porDigitos) {
 
         /** Item sem dígitos: se a fatura só tem um cartão, é dele; senão fica com o principal. */
@@ -345,18 +389,18 @@ public class ConciliacaoFaturaService {
         }
     }
 
-    private record Sugestao(Categoria categoria, Subcategoria subcategoria) {
+    private record SugestaoCategoria(Categoria categoria, Subcategoria subcategoria) {
     }
 
     private record SugestoesCategoria(Map<UUID, Categoria> categorias, Map<UUID, Subcategoria> subcategorias) {
 
         /** Aceita só ids de categorias e subcategorias de despesa ativas; a subcategoria define a categoria. */
-        Sugestao resolver(String categoriaId, String subcategoriaId) {
+        SugestaoCategoria resolver(String categoriaId, String subcategoriaId) {
             Subcategoria subcategoria = buscar(subcategorias, subcategoriaId);
             if (subcategoria != null && categorias.containsKey(subcategoria.getCategoria().getId())) {
-                return new Sugestao(categorias.get(subcategoria.getCategoria().getId()), subcategoria);
+                return new SugestaoCategoria(categorias.get(subcategoria.getCategoria().getId()), subcategoria);
             }
-            return new Sugestao(buscar(categorias, categoriaId), null);
+            return new SugestaoCategoria(buscar(categorias, categoriaId), null);
         }
 
         private static <T> T buscar(Map<UUID, T> mapa, String id) {

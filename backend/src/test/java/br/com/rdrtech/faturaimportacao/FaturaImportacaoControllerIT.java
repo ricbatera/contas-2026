@@ -31,6 +31,8 @@ import br.com.rdrtech.subcategoria.dto.SubcategoriaCreateRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -43,6 +45,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -331,6 +336,109 @@ class FaturaImportacaoControllerIT {
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF));
     }
 
+    @Test
+    void devePreencherDescricaoDaFaturaDeAssinaturaLancadaAMaoComOutraNumeracao() throws Exception {
+        String token = registrar("importa-prime");
+        Referencias ref = criarReferencias(token);
+        // "Amazon Prime" em 12x, com a 8ª parcela nesta fatura e sem descrição de fatura.
+        String primeId = criar(token, "/api/saidas",
+                compraParcelada(ref, "Amazon Prime", "19.90", 12, vencimento.minusMonths(7)));
+        responderIa(jsonFatura(ref, item("1111", "AMAZONPRIME*BR", "19.90", 1, 1, "COMPRA", false)));
+
+        JsonNode importacao = importar(token, pdf(null), null);
+
+        assertThat(importacao.at("/resumo/conciliados/0/saidaId").asText()).isEqualTo(primeId);
+        assertThat(importacao.at("/resumo/conciliados/0/criterio").asText()).isEqualTo("VALOR");
+        assertThat(importacao.at("/resumo/conciliados/0/observacao").asText()).contains("8/12");
+        assertThat(importacao.at("/resumo/avisos").toString()).doesNotContain("não foi encontrada");
+        assertThat(importacao.at("/preSaidas")).isEmpty();
+        String descricaoFatura = jdbcTemplate.queryForObject(
+                "select descricao_fatura from saida where id = ?", String.class, UUID.fromString(primeId));
+        assertThat(descricaoFatura).isEqualTo("AMAZONPRIME*BR");
+    }
+
+    @Test
+    void deveSugerirPelaIaNoCasoAmbiguoEVincularSemDuplicarNaReimportacao() throws Exception {
+        String token = registrar("importa-ambiguo");
+        Referencias ref = criarReferencias(token);
+        String netflixId = criar(token, "/api/saidas", compraAVista(ref, "Netflix", "50.00"));
+        String academiaId = criar(token, "/api/saidas", compraAVista(ref, "Academia", "50.00"));
+        responderIa(
+                jsonFatura(ref,
+                        item("1111", "NFLX", "50.00", 1, 1, "COMPRA", false),
+                        item("1111", "PG *SMARTFIT", "50.00", 1, 1, "COMPRA", false)),
+                texto -> """
+                        {"pares": [
+                          {"item": "I1", "parcela": "%s", "confianca": "ALTA", "motivo": "NFLX é a Netflix"},
+                          {"item": "I2", "parcela": "%s", "confianca": "MEDIA", "motivo": "Smart Fit é academia"}
+                        ]}""".formatted(codigoParcela(texto, "Netflix"), codigoParcela(texto, "Academia")));
+
+        JsonNode importacao = importar(token, pdf(null), null);
+
+        // A IA só sugere: nada é vinculado sozinho no caso ambíguo.
+        assertThat(importacao.at("/resumo/conciliados")).isEmpty();
+        JsonNode nflx = preSaida(importacao, "NFLX");
+        assertThat(nflx.at("/saidaSugeridaId").asText()).isEqualTo(netflixId);
+        assertThat(nflx.at("/saidaSugeridaDescricao").asText()).isEqualTo("Netflix");
+        assertThat(nflx.at("/motivoSugestao").asText()).contains("NFLX é a Netflix");
+        JsonNode smartfit = preSaida(importacao, "PG *SMARTFIT");
+        assertThat(smartfit.at("/saidaSugeridaId").asText()).isEqualTo(academiaId);
+
+        mockMvc.perform(post("/api/pre-saidas/" + nflx.at("/id").asText() + "/vincular")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("VINCULADA"))
+                .andExpect(jsonPath("$.data.saidaId").value(netflixId));
+        assertThat(jdbcTemplate.queryForObject("select descricao_fatura from saida where id = ?", String.class,
+                UUID.fromString(netflixId))).isEqualTo("NFLX");
+
+        mockMvc.perform(post("/api/pre-saidas/" + smartfit.at("/id").asText() + "/descartar-sugestao")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("PENDENTE"))
+                .andExpect(jsonPath("$.data.saidaSugeridaId").doesNotExist());
+        mockMvc.perform(post("/api/pre-saidas/" + smartfit.at("/id").asText() + "/vincular")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnprocessableEntity());
+
+        // Reprocessar respeita as duas decisões: a Netflix fica vinculada (sem nova pré-saída) e o
+        // SMARTFIT continua compra nova, sem ser casado com a Academia, que passa a faltante.
+        JsonNode reimportada = reprocessar(token, importacao.at("/id").asText());
+        assertThat(reimportada.at("/resumo/conciliados")).hasSize(1);
+        assertThat(reimportada.at("/resumo/conciliados/0/saidaId").asText()).isEqualTo(netflixId);
+        assertThat(reimportada.at("/resumo/conciliados/0/criterio").asText()).isEqualTo("VINCULO");
+        assertThat(reimportada.at("/resumo/avisos").toString()).contains("de \\\"Academia\\\" está no sistema");
+        assertThat(reimportada.at("/preSaidas")).hasSize(2);
+        assertThat(preSaida(reimportada, "NFLX").at("/status").asText()).isEqualTo("VINCULADA");
+        JsonNode smartfitDepois = preSaida(reimportada, "PG *SMARTFIT");
+        assertThat(smartfitDepois.at("/id").asText()).isEqualTo(smartfit.at("/id").asText());
+        assertThat(smartfitDepois.at("/status").asText()).isEqualTo("PENDENTE");
+        assertThat(smartfitDepois.at("/saidaSugeridaId").isNull()).isTrue();
+    }
+
+    @Test
+    void deveConcluirComAvisoQuandoODesempatePorIaFalha() throws Exception {
+        String token = registrar("importa-desempate-falha");
+        Referencias ref = criarReferencias(token);
+        criar(token, "/api/saidas", compraAVista(ref, "Netflix", "50.00"));
+        criar(token, "/api/saidas", compraAVista(ref, "Academia", "50.00"));
+        responderIa(
+                jsonFatura(ref,
+                        item("1111", "NFLX", "50.00", 1, 1, "COMPRA", false),
+                        item("1111", "PG *SMARTFIT", "50.00", 1, 1, "COMPRA", false)),
+                texto -> {
+                    throw new RuntimeException("timeout do provedor");
+                });
+
+        JsonNode importacao = importar(token, pdf(null), null);
+
+        assertThat(importacao.at("/status").asText()).isEqualTo("CONCLUIDA");
+        assertThat(importacao.at("/resumo/avisos").toString()).contains("Não foi possível consultar a IA");
+        // Sem a IA, as duas ainda recebem sugestão pelo valor, sem vínculo automático.
+        assertThat(importacao.at("/preSaidas")).hasSize(2);
+        assertThat(preSaida(importacao, "NFLX").at("/saidaSugeridaId").isTextual()).isTrue();
+    }
+
     // --- apoio ---
 
     private record Referencias(String categoriaId, String subcategoriaId, String principalId, String adicionalId) {
@@ -385,6 +493,41 @@ class FaturaImportacaoControllerIT {
                 .aiMessage(AiMessage.from(resposta))
                 .modelName("gpt-teste")
                 .build());
+    }
+
+    /**
+     * Simula as duas consultas: a leitura da fatura devolve {@code leitura}; o desempate (mensagem de
+     * sistema de {@link LeitorFaturaIa#INSTRUCOES_DESEMPATE}) recebe o texto enviado e devolve o JSON
+     * calculado por {@code desempate}.
+     */
+    private void responderIa(String leitura, Function<String, String> desempate) {
+        ChatModel chatModel = mock(ChatModel.class);
+        when(chatModelFactory.obter(any(ProvedorIa.class))).thenReturn(chatModel);
+        when(chatModel.chat(any(ChatRequest.class))).thenAnswer(invocacao -> {
+            ChatRequest request = invocacao.getArgument(0);
+            boolean ehDesempate = request.messages().getFirst() instanceof SystemMessage sistema
+                    && sistema.text().equals(LeitorFaturaIa.INSTRUCOES_DESEMPATE);
+            String texto = ehDesempate
+                    ? desempate.apply(((UserMessage) request.messages().get(1)).singleText())
+                    : leitura;
+            return ChatResponse.builder().aiMessage(AiMessage.from(texto)).modelName("gpt-teste").build();
+        });
+    }
+
+    /** Código (P1, P2...) que o desempate deu à parcela com este apelido. */
+    private static String codigoParcela(String textoDesempate, String apelido) {
+        Matcher matcher = Pattern.compile("(P\\d+) \\| apelido: " + Pattern.quote(apelido) + " ").matcher(textoDesempate);
+        if (!matcher.find()) {
+            throw new AssertionError("Parcela " + apelido + " não enviada ao desempate:\n" + textoDesempate);
+        }
+        return matcher.group(1);
+    }
+
+    private SaidaRequest compraParcelada(Referencias ref, String descricao, String valor, int parcelas,
+            LocalDate primeiroVencimento) {
+        return new SaidaRequest(descricao, null, new BigDecimal(valor), parcelas, FormaPagamento.CARTAO_CREDITO, null,
+                primeiroVencimento, UUID.fromString(ref.principalId()), UUID.fromString(ref.categoriaId()),
+                UUID.fromString(ref.subcategoriaId()), ModoResponsabilidade.USUARIO, null, List.of());
     }
 
     private String jsonFatura(Referencias ref, String... itens) {

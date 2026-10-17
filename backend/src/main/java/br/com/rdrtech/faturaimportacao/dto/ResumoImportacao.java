@@ -19,7 +19,11 @@ public record ResumoImportacao(
         avisos = avisos == null ? List.of() : List.copyOf(avisos);
     }
 
-    /** Item do PDF que já existia como parcela de uma saída. */
+    /**
+     * Item do PDF que já existia como parcela de uma saída. {@code criterio}: EXATO (valor e
+     * parcela iguais), VALOR (único par com aquele valor) ou VINCULO (confirmado pelo usuário).
+     * Importações anteriores a esses campos os têm nulos.
+     */
     public record ItemConciliado(
             String descricaoPdf,
             String ultimosDigitos,
@@ -28,7 +32,9 @@ public record ResumoImportacao(
             int quantidadeParcelas,
             UUID saidaId,
             String descricaoSaida,
-            String descricaoFaturaAnterior) {
+            String descricaoFaturaAnterior,
+            String criterio,
+            String observacao) {
     }
 
     /** Item do PDF que não gera saída (pagamento, estorno, crédito ou dado inválido). */

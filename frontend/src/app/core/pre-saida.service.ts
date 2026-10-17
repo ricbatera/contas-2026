@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { ApiResponse } from './auth.service';
 
-export type StatusPreSaida = 'PENDENTE' | 'APROVADA' | 'REJEITADA';
+export type StatusPreSaida = 'PENDENTE' | 'APROVADA' | 'REJEITADA' | 'VINCULADA';
 
 export interface PreSaida {
   id: string;
@@ -25,6 +25,11 @@ export interface PreSaida {
   subcategoriaNome: string | null;
   status: StatusPreSaida;
   saidaId: string | null;
+  /** Saída já lançada que parece ser esta compra; o usuário vincula ou descarta. */
+  saidaSugeridaId: string | null;
+  saidaSugeridaDescricao: string | null;
+  saidaSugeridaDescricaoFatura: string | null;
+  motivoSugestao: string | null;
 }
 
 export interface PreSaidaRequest {
@@ -76,6 +81,16 @@ export class PreSaidaService {
 
   reabrir(id: string): Observable<PreSaida> {
     return this.acao(id, 'reabrir');
+  }
+
+  /** Confirma que é a mesma compra da saída sugerida: grava nela a descrição da fatura. */
+  vincular(id: string): Observable<PreSaida> {
+    return this.acao(id, 'vincular');
+  }
+
+  /** "É uma compra nova": remove a sugestão. */
+  descartarSugestao(id: string): Observable<PreSaida> {
+    return this.acao(id, 'descartar-sugestao');
   }
 
   aprovarLote(ids: string[]): Observable<AprovacaoLote> {

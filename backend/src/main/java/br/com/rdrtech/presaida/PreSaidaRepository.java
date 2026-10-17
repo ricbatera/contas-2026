@@ -23,20 +23,29 @@ public interface PreSaidaRepository extends JpaRepository<PreSaida, UUID> {
     List<PreSaida> listarPorImportacao(@Param("importacaoId") UUID importacaoId);
 
     /**
-     * Pré-saídas já geradas para a mesma fatura (por qualquer importação) que ainda não viraram
-     * saída: pendentes ou rejeitadas. Uma reimportação as reaproveita em vez de duplicar.
+     * Pré-saídas já geradas para a mesma fatura que uma reimportação reaproveita em vez de
+     * duplicar: pendentes, rejeitadas e vinculadas (aprovadas viraram saída e casam pela parcela).
+     * As pendentes da própria importação ficam de fora porque são recriadas a cada processamento,
+     * exceto as que têm sugestão recusada pelo usuário, que são preservadas.
      */
     @Query("""
             select p from PreSaida p
             where p.importacao.cartaoPrincipal.id = :cartaoPrincipalId
               and p.competencia = :competencia
               and p.status in (br.com.rdrtech.presaida.StatusPreSaida.PENDENTE,
-                               br.com.rdrtech.presaida.StatusPreSaida.REJEITADA)
+                               br.com.rdrtech.presaida.StatusPreSaida.REJEITADA,
+                               br.com.rdrtech.presaida.StatusPreSaida.VINCULADA)
+              and not (p.importacao.id = :importacaoAtualId
+                       and p.status = br.com.rdrtech.presaida.StatusPreSaida.PENDENTE
+                       and p.saidaDescartada is null)
             """)
-    List<PreSaida> listarNaoAprovadasDaFatura(
-            @Param("cartaoPrincipalId") UUID cartaoPrincipalId, @Param("competencia") int competencia);
+    List<PreSaida> listarReaproveitaveis(
+            @Param("cartaoPrincipalId") UUID cartaoPrincipalId,
+            @Param("competencia") int competencia,
+            @Param("importacaoAtualId") UUID importacaoAtualId);
 
+    /** Pendentes recriadas no reprocessamento; as com sugestão recusada pelo usuário são mantidas. */
     @Modifying
-    @Query("delete from PreSaida p where p.importacao.id = :importacaoId and p.status = br.com.rdrtech.presaida.StatusPreSaida.PENDENTE")
+    @Query("delete from PreSaida p where p.importacao.id = :importacaoId and p.status = br.com.rdrtech.presaida.StatusPreSaida.PENDENTE and p.saidaDescartada is null")
     void excluirPendentesDaImportacao(@Param("importacaoId") UUID importacaoId);
 }

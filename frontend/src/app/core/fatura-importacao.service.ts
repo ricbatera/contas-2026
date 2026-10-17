@@ -45,6 +45,9 @@ export interface ItemConciliado {
   saidaId: string;
   descricaoSaida: string;
   descricaoFaturaAnterior: string | null;
+  /** EXATO, VALOR (único par com aquele valor) ou VINCULO (confirmado pelo usuário). */
+  criterio: 'EXATO' | 'VALOR' | 'VINCULO' | null;
+  observacao: string | null;
 }
 
 export interface ItemIgnorado {

@@ -24,5 +24,9 @@ public record PreSaidaResponse(
         UUID subcategoriaId,
         String subcategoriaNome,
         StatusPreSaida status,
-        UUID saidaId) {
+        UUID saidaId,
+        UUID saidaSugeridaId,
+        String saidaSugeridaDescricao,
+        String saidaSugeridaDescricaoFatura,
+        String motivoSugestao) {
 }

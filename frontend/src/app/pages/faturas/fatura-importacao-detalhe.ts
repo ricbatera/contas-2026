@@ -50,8 +50,12 @@ export class FaturaImportacaoDetalhe implements OnInit {
     (this.importacao()?.preSaidas ?? []).filter((item) => item.status === 'APROVADA'));
   protected readonly rejeitadas = computed(() =>
     (this.importacao()?.preSaidas ?? []).filter((item) => item.status === 'REJEITADA'));
+  protected readonly vinculadas = computed(() =>
+    (this.importacao()?.preSaidas ?? []).filter((item) => item.status === 'VINCULADA'));
+  /** Completas e sem sugestão em aberto: aprovar uma com sugestão poderia duplicar uma saída. */
   protected readonly prontas = computed(() =>
-    this.pendentes().filter((item) => this.completa(this.rascunhos()[item.id])));
+    this.pendentes().filter((item) => !item.saidaSugeridaId && this.completa(this.rascunhos()[item.id])));
+  protected readonly comSugestao = computed(() => this.pendentes().filter((item) => item.saidaSugeridaId).length);
   /** Cartão principal da fatura e seus adicionais. */
   protected readonly cartoesDaFatura = computed(() => {
     const principalId = this.importacao()?.cartaoPrincipalId;
@@ -162,6 +166,22 @@ export class FaturaImportacaoDetalhe implements OnInit {
 
   protected rejeitar(preSaida: PreSaida): void {
     this.executar(preSaida.id, this.preSaidaService.rejeitar(preSaida.id), 'Pré-saída rejeitada.');
+  }
+
+  protected vincular(preSaida: PreSaida): void {
+    this.executar(
+      preSaida.id,
+      this.preSaidaService.vincular(preSaida.id),
+      `Vinculada a "${preSaida.saidaSugeridaDescricao}". A descrição da fatura foi gravada na saída.`,
+    );
+  }
+
+  protected descartarSugestao(preSaida: PreSaida): void {
+    this.executar(
+      preSaida.id,
+      this.preSaidaService.descartarSugestao(preSaida.id),
+      'Sugestão descartada. Revise e aprove como compra nova.',
+    );
   }
 
   protected reabrir(preSaida: PreSaida): void {

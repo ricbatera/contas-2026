@@ -55,6 +55,16 @@ public class PreSaidaController {
         return SuccessResponse.of(preSaidaService.aprovarLote(request.ids()));
     }
 
+    @PostMapping("/{id}/vincular")
+    public SuccessResponse<PreSaidaResponse> vincular(@PathVariable UUID id) {
+        return SuccessResponse.of(preSaidaService.vincular(id), "Pré-saída vinculada à saída existente");
+    }
+
+    @PostMapping("/{id}/descartar-sugestao")
+    public SuccessResponse<PreSaidaResponse> descartarSugestao(@PathVariable UUID id) {
+        return SuccessResponse.of(preSaidaService.descartarSugestao(id), "Sugestão descartada");
+    }
+
     @PostMapping("/{id}/rejeitar")
     public SuccessResponse<PreSaidaResponse> rejeitar(@PathVariable UUID id) {
         return SuccessResponse.of(preSaidaService.rejeitar(id), "Pré-saída rejeitada");

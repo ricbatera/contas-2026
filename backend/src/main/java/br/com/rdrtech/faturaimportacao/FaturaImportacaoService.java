@@ -167,13 +167,15 @@ public class FaturaImportacaoService {
         }
 
         try {
+            FaturaLidaIa lida = leitorIa.interpretar(resposta.texto());
+            List<String> avisosDesempate = new ArrayList<>();
+            List<MotorConciliacao.ParIa> pares = desempatar(id, chatModel, lida, avisosDesempate);
             emTransacao(() -> {
                 FaturaImportacao importacao = buscarEntidade(id);
                 importacao.setRespostaIa(resposta.texto());
                 importacao.setProvedorModelo(limitar(resposta.modelo(), 100));
-                FaturaLidaIa lida = leitorIa.interpretar(resposta.texto());
                 preSaidaRepository.excluirPendentesDaImportacao(id);
-                ResumoImportacao resumo = conciliacaoService.conciliar(importacao, lida);
+                ResumoImportacao resumo = conciliacaoService.aplicar(importacao, lida, pares, avisosDesempate);
                 if (importacaoRepository.existeOutraComHash(importacao.getHashSha256(), id)) {
                     List<String> avisos = new ArrayList<>();
                     avisos.add("Este mesmo arquivo já foi importado antes; itens repetidos não foram duplicados.");
@@ -191,6 +193,26 @@ public class FaturaImportacaoService {
         } catch (RuntimeException e) {
             log.error("Erro ao conciliar a importação de fatura {}", id, e);
             registrarErro(id, "Erro inesperado ao conciliar a fatura.", resposta.texto(), resposta.modelo());
+        }
+    }
+
+    /**
+     * Segunda consulta à IA, só quando sobram itens sem par e parcelas que podem ser deles. Uma
+     * falha aqui não impede a importação: as sugestões passam a usar só valor e descrição.
+     */
+    private List<MotorConciliacao.ParIa> desempatar(UUID id, ChatModel chatModel, FaturaLidaIa lida,
+            List<String> avisos) {
+        MotorConciliacao.Desempate desempate = emTransacao(() -> conciliacaoService.planejar(id, lida));
+        if (!desempate.necessario()) {
+            return List.of();
+        }
+        try {
+            return leitorIa.desempatar(chatModel, desempate);
+        } catch (RuntimeException e) {
+            log.warn("Falha no desempate por IA da importação de fatura {}: {}", id, e.toString());
+            avisos.add("Não foi possível consultar a IA para comparar com as saídas já lançadas; "
+                    + "as sugestões usam só valor e descrição.");
+            return List.of();
         }
     }
 

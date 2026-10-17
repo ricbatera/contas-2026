@@ -9,12 +9,14 @@ import br.com.rdrtech.exception.CategoriaNaoEncontradaException;
 import br.com.rdrtech.exception.PreSaidaInvalidaException;
 import br.com.rdrtech.exception.PreSaidaNaoEncontradaException;
 import br.com.rdrtech.exception.PreSaidaStatusInvalidoException;
+import br.com.rdrtech.exception.SaidaNaoEncontradaException;
 import br.com.rdrtech.exception.SubcategoriaNaoEncontradaException;
 import br.com.rdrtech.presaida.dto.AprovacaoLoteResponse;
 import br.com.rdrtech.presaida.dto.PreSaidaRequest;
 import br.com.rdrtech.presaida.dto.PreSaidaResponse;
 import br.com.rdrtech.saida.FormaPagamento;
 import br.com.rdrtech.saida.ModoResponsabilidade;
+import br.com.rdrtech.saida.Saida;
 import br.com.rdrtech.saida.SaidaRepository;
 import br.com.rdrtech.saida.SaidaService;
 import br.com.rdrtech.saida.dto.SaidaRequest;
@@ -144,6 +146,39 @@ public class PreSaidaService {
         return new AprovacaoLoteResponse(aprovadas, falhas);
     }
 
+    /**
+     * Confirma que a pré-saída é a mesma compra da saída sugerida: grava na saída a descrição que
+     * veio na fatura e não cria saída nova. Uma reimportação reconhece o vínculo e não sugere de novo.
+     */
+    @Transactional
+    public PreSaidaResponse vincular(UUID id) {
+        PreSaida preSaida = buscarPendente(id);
+        if (preSaida.getSaidaSugerida() == null) {
+            throw new PreSaidaInvalidaException("Esta pré-saída não tem uma saída sugerida para vincular.");
+        }
+        Saida saida = saidaRepository.buscarPorId(preSaida.getSaidaSugerida().getId())
+                .orElseThrow(SaidaNaoEncontradaException::new);
+        if (saida.getFormaPagamento() != FormaPagamento.CARTAO_CREDITO) {
+            throw new PreSaidaInvalidaException("Só saídas no cartão de crédito podem receber a descrição da fatura.");
+        }
+        saida.setDescricaoFatura(preSaida.getDescricaoFatura());
+        preSaida.setSaida(saida);
+        preSaida.setStatus(StatusPreSaida.VINCULADA);
+        return PreSaidaMapper.toResponse(preSaida);
+    }
+
+    /** "É uma compra nova": remove a sugestão e a pré-saída segue para aprovação normal. */
+    @Transactional
+    public PreSaidaResponse descartarSugestao(UUID id) {
+        PreSaida preSaida = buscarPendente(id);
+        if (preSaida.getSaidaSugerida() != null) {
+            preSaida.setSaidaDescartada(preSaida.getSaidaSugerida());
+        }
+        preSaida.setSaidaSugerida(null);
+        preSaida.setMotivoSugestao(null);
+        return PreSaidaMapper.toResponse(preSaida);
+    }
+
     @Transactional
     public PreSaidaResponse rejeitar(UUID id) {
         PreSaida preSaida = buscarPendente(id);
@@ -171,8 +206,11 @@ public class PreSaidaService {
     private PreSaida buscarPendente(UUID id) {
         PreSaida preSaida = buscarEntidade(id);
         if (preSaida.getStatus() != StatusPreSaida.PENDENTE) {
-            throw new PreSaidaStatusInvalidoException("A pré-saída já foi " + (preSaida.getStatus() == StatusPreSaida.APROVADA
-                    ? "aprovada" : "rejeitada") + ".");
+            throw new PreSaidaStatusInvalidoException("A pré-saída já foi " + switch (preSaida.getStatus()) {
+                case APROVADA -> "aprovada";
+                case VINCULADA -> "vinculada a uma saída";
+                default -> "rejeitada";
+            } + ".");
         }
         return preSaida;
     }

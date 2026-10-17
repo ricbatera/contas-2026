@@ -11,6 +11,7 @@ public final class PreSaidaMapper {
         var cartao = preSaida.getCartao();
         var categoria = preSaida.getCategoria();
         var subcategoria = preSaida.getSubcategoria();
+        var sugerida = preSaida.getSaidaSugerida();
         return new PreSaidaResponse(
                 preSaida.getId(),
                 preSaida.getImportacao().getId(),
@@ -30,6 +31,10 @@ public final class PreSaidaMapper {
                 subcategoria != null ? subcategoria.getId() : null,
                 subcategoria != null ? subcategoria.getNome() : null,
                 preSaida.getStatus(),
-                preSaida.getSaida() != null ? preSaida.getSaida().getId() : null);
+                preSaida.getSaida() != null ? preSaida.getSaida().getId() : null,
+                sugerida != null ? sugerida.getId() : null,
+                sugerida != null ? sugerida.getDescricao() : null,
+                sugerida != null ? sugerida.getDescricaoFatura() : null,
+                preSaida.getMotivoSugestao());
     }
 }

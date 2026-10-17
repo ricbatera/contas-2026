@@ -295,3 +295,50 @@
     transform: rotate(360deg);
   }
 }
+
+/* Pré-saída que parece ser uma saída já lançada: o usuário vincula ou descarta. */
+.sugestao-vinculo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid #f3dfae;
+  border-left: 4px solid #d99a00;
+  border-radius: 8px;
+  background: #fffaf0;
+  font-size: 12px;
+}
+
+.sugestao-vinculo > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.sugestao-vinculo strong {
+  color: #26364d;
+}
+
+.sugestao-vinculo span {
+  color: #5d6b80;
+  overflow-wrap: anywhere;
+}
+
+.sugestao-vinculo .sugestao-motivo {
+  color: #8a5a00;
+}
+
+.sugestao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.conciliado-observacao {
+  margin: 6px 0 0;
+  color: #8a5a00;
+  font-size: 11px;
+}

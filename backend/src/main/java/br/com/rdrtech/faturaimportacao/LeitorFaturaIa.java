@@ -8,7 +8,10 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -56,7 +59,85 @@ public class LeitorFaturaIa {
             e use os ids exatamente como estão. Se nenhuma servir, use null.
             """;
 
+    static final String INSTRUCOES_DESEMPATE = """
+            Você concilia lançamentos de uma fatura de cartão de crédito com despesas já cadastradas \
+            pelo usuário. Responda APENAS com um objeto JSON válido, sem markdown, neste formato:
+            {"pares": [{"item": "I1", "parcela": "P3", "confianca": "ALTA", "motivo": "explicação curta"}]}
+            Regras:
+            - Cada lançamento (I...) é uma linha do PDF da fatura. Cada parcela (P...) é uma despesa \
+            cadastrada, com o apelido dado pelo usuário (ex.: "Amazon Prime") e a descrição que veio \
+            na fatura, que pode estar vazia quando a despesa foi lançada à mão antes da fatura.
+            - Associe um lançamento a uma parcela somente quando forem a mesma compra ou assinatura. \
+            Compare o apelido e a descrição com o texto do lançamento (ex.: "NETFLIX.COM" e "Netflix").
+            - Assinaturas podem aparecer como 1/1 na fatura e parceladas no cadastro, ou em outro mês.
+            - O valor normalmente é igual. Só associe valores diferentes quando for claramente a mesma \
+            assinatura com reajuste, e diga isso no motivo.
+            - Use cada lançamento e cada parcela no máximo uma vez. Na dúvida, não associe.
+            - "confianca": ALTA, MEDIA ou BAIXA. "motivo" em português, até 150 caracteres.
+            - Se não houver nenhuma associação, responda {"pares": []}.
+            """;
+    private static final int LIMITE_ITENS_DESEMPATE = 80;
+    private static final int LIMITE_PARCELAS_DESEMPATE = 150;
+
     private final ObjectMapper objectMapper;
+
+    record ParesLidos(List<ParLido> pares) {
+
+        ParesLidos {
+            pares = pares == null ? List.of() : pares;
+        }
+
+        record ParLido(String item, String parcela, String confianca, String motivo) {
+        }
+    }
+
+    /**
+     * Pede à IA para indicar quais lançamentos sem par correspondem a parcelas já cadastradas.
+     * O resultado vira apenas sugestão para o usuário confirmar; pares de baixa confiança são descartados.
+     */
+    List<MotorConciliacao.ParIa> desempatar(ChatModel chatModel, MotorConciliacao.Desempate desempate) {
+        Map<String, MotorConciliacao.Item> itens = new LinkedHashMap<>();
+        Map<String, MotorConciliacao.Parcela> parcelas = new LinkedHashMap<>();
+        StringBuilder texto = new StringBuilder("Lançamentos da fatura:\n");
+        desempate.itens().stream().limit(LIMITE_ITENS_DESEMPATE).forEach(item -> {
+            String codigo = "I" + (itens.size() + 1);
+            itens.put(codigo, item);
+            texto.append(codigo).append(" | ").append(item.descricao())
+                    .append(" | R$ ").append(item.valor().toPlainString())
+                    .append(" | parcela ").append(item.numero()).append('/').append(item.quantidade())
+                    .append(item.digitos() == null ? "" : " | final " + item.digitos()).append('\n');
+        });
+        texto.append("\nParcelas cadastradas:\n");
+        desempate.parcelas().stream().limit(LIMITE_PARCELAS_DESEMPATE).forEach(parcela -> {
+            String codigo = "P" + (parcelas.size() + 1);
+            parcelas.put(codigo, parcela);
+            texto.append(codigo).append(" | apelido: ").append(parcela.descricao())
+                    .append(" | descrição na fatura: ")
+                    .append(parcela.descricaoFatura() == null || parcela.descricaoFatura().isBlank()
+                            ? "(vazia)" : parcela.descricaoFatura())
+                    .append(" | R$ ").append(parcela.valor().toPlainString())
+                    .append(" | parcela ").append(parcela.numero()).append('/').append(parcela.quantidade())
+                    .append(parcela.cartaoDigitos() == null ? "" : " | final " + parcela.cartaoDigitos())
+                    .append(parcela.vizinha() ? " | outro mês" : "").append('\n');
+        });
+
+        ChatResponse resposta = chatModel.chat(ChatRequest.builder()
+                .messages(SystemMessage.from(INSTRUCOES_DESEMPATE), UserMessage.from(texto.toString()))
+                .build());
+        String bruta = resposta.aiMessage() == null ? null : resposta.aiMessage().text();
+        ParesLidos lidos = lerJson(bruta, ParesLidos.class, "A IA não indicou correspondências válidas.");
+
+        List<MotorConciliacao.ParIa> pares = new ArrayList<>();
+        for (ParesLidos.ParLido par : lidos.pares()) {
+            MotorConciliacao.Item item = par.item() == null ? null : itens.get(par.item().trim());
+            MotorConciliacao.Parcela parcela = par.parcela() == null ? null : parcelas.get(par.parcela().trim());
+            if (item == null || parcela == null || "BAIXA".equalsIgnoreCase(String.valueOf(par.confianca()).trim())) {
+                continue;
+            }
+            pares.add(new MotorConciliacao.ParIa(item.indice(), parcela.parcelaId(), par.motivo()));
+        }
+        return pares;
+    }
 
     /** Resposta da IA antes da interpretação, para ser guardada mesmo quando o JSON vier inválido. */
     public record Resposta(String texto, String modelo) {
@@ -86,13 +167,18 @@ public class LeitorFaturaIa {
         if (resposta == null || resposta.isBlank()) {
             throw new FaturaImportacaoInvalidaException("A IA não devolveu resposta para a fatura.");
         }
-        int inicio = resposta.indexOf('{');
-        int fim = resposta.lastIndexOf('}');
+        return lerJson(resposta, FaturaLidaIa.class, "A resposta da IA não contém um JSON com os dados da fatura.");
+    }
+
+    /** Lê o primeiro objeto JSON da resposta, ignorando cercas de markdown e texto ao redor. */
+    private <T> T lerJson(String resposta, Class<T> tipo, String mensagemSemJson) {
+        int inicio = resposta == null ? -1 : resposta.indexOf('{');
+        int fim = resposta == null ? -1 : resposta.lastIndexOf('}');
         if (inicio < 0 || fim <= inicio) {
-            throw new FaturaImportacaoInvalidaException("A resposta da IA não contém um JSON com os dados da fatura.");
+            throw new FaturaImportacaoInvalidaException(mensagemSemJson);
         }
         try {
-            return objectMapper.readValue(resposta.substring(inicio, fim + 1), FaturaLidaIa.class);
+            return objectMapper.readValue(resposta.substring(inicio, fim + 1), tipo);
         } catch (JsonProcessingException e) {
             throw new FaturaImportacaoInvalidaException(
                     "A resposta da IA não está no formato esperado: " + e.getOriginalMessage());

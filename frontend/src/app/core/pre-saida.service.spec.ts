@@ -51,6 +51,18 @@ describe('PreSaidaService', () => {
     }
   });
 
+  it('links a pre-expense to the suggested expense or discards the suggestion', () => {
+    service.vincular('pre-1').subscribe((result) => expect(result.status).toBe('VINCULADA'));
+    const vincular = http.expectOne('/api/pre-saidas/pre-1/vincular');
+    expect(vincular.request.method).toBe('POST');
+    vincular.flush({ data: { id: 'pre-1', status: 'VINCULADA' } });
+
+    service.descartarSugestao('pre-1').subscribe((result) => expect(result.saidaSugeridaId).toBeNull());
+    const descartar = http.expectOne('/api/pre-saidas/pre-1/descartar-sugestao');
+    expect(descartar.request.method).toBe('POST');
+    descartar.flush({ data: { id: 'pre-1', saidaSugeridaId: null } });
+  });
+
   it('approves a batch of pre-expenses', () => {
     service.aprovarLote(['a', 'b']).subscribe((result) => expect(result.falhas).toEqual([]));
 
