@@ -121,5 +121,6 @@ Ao aprovar (`/api/pre-saidas/{id}/aprovar`), a pré-saída vira `Saida` via `Sai
 
 - `src/app/core/`: um serviço HTTP por recurso do backend (`*.service.ts`, chamando `/api/...`), mais `auth.service`, `auth.guard` (`authGuard`/`guestGuard`) e `auth.interceptor`. O interceptor anexa o Bearer token e, em caso de 401, tenta `refresh()` uma vez antes de redirecionar para `/login`.
 - `src/app/pages/`: telas por feature, normalmente um par `*-list` / `*-form`, onde o form serve para criar e editar via rota `:id/editar`.
+- `src/app/shared/cadastro-rapido/`: diálogos para cadastrar cartão, categoria (já com a primeira subcategoria), subcategoria e pessoa sem sair do formulário, usados em `saida-form` e `bucket-form`. Emitem `(salvo)` com a entidade criada, e o formulário a inclui na lista e a seleciona. Quem usa o botão "+ Novo" inclui `cadastro-rapido.css` nos `styleUrls`.
 - `app.routes.ts`: as páginas autenticadas são filhas lazy-loaded de `/home` (shell em `pages/home`).
 - Locale `pt-BR` registrado em `app.config.ts`.

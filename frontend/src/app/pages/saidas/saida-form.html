@@ -14,13 +14,14 @@
       @if (error()) { <div class="form-error saida-wide" role="alert">{{ error() }}</div> }
       @if (cartoes().length === 0 && !dataError()) {
         <div class="saida-summary saida-wide">
-          Nenhum cartão ativo cadastrado. Você ainda pode registrar saídas por boleto, débito ou Pix.
+          Nenhum cartão ativo cadastrado. Você ainda pode registrar saídas por boleto, débito ou Pix,
+          ou <button class="link-button" type="button" (click)="cadastroRapido.set({ tipo: 'cartao' })">cadastrar um cartão agora</button>.
         </div>
       }
       @if (categorias().length === 0 && !dataError()) {
         <div class="form-error saida-wide" role="alert">
           Cadastre uma categoria e uma subcategoria ativa de despesa antes de registrar uma saída.
-          <a routerLink="/home/categorias">Abrir categorias</a>
+          <button class="link-button" type="button" (click)="cadastroRapido.set({ tipo: 'categoria' })">Cadastrar categoria agora</button>
         </div>
       }
 
@@ -70,16 +71,20 @@
       @if (form.controls.formaPagamento.value === 'CARTAO_CREDITO') {
         <label class="form-field">
           <span>Cartão ativo *</span>
-          <select formControlName="cartaoId">
-            <option value="">Selecione o cartão</option>
-            @for (cartao of cartoes(); track cartao.id) {
-              <option [value]="cartao.id">
-                {{ cartao.nome }} · {{ cartao.banco }} · final {{ cartao.ultimosDigitos }}
-                @if (cartao.tipo === 'ADICIONAL') { · Adicional }
-                @if (!cartao.ativo) { · Inativo (referência histórica) }
-              </option>
-            }
-          </select>
+          <div class="select-with-action">
+            <select formControlName="cartaoId">
+              <option value="">Selecione o cartão</option>
+              @for (cartao of cartoes(); track cartao.id) {
+                <option [value]="cartao.id">
+                  {{ cartao.nome }} · {{ cartao.banco }} · final {{ cartao.ultimosDigitos }}
+                  @if (cartao.tipo === 'ADICIONAL') { · Adicional }
+                  @if (!cartao.ativo) { · Inativo (referência histórica) }
+                </option>
+              }
+            </select>
+            <button class="quick-add-button" type="button" aria-label="Cadastrar novo cartão" title="Cadastrar novo cartão"
+              (click)="cadastroRapido.set({ tipo: 'cartao' })">+ Novo</button>
+          </div>
           @if (form.controls.cartaoId.invalid && form.controls.cartaoId.touched) {
             <small>Selecione um cartão de crédito ativo.</small>
           }
@@ -120,26 +125,35 @@
 
       <label class="form-field">
         <span>Categoria *</span>
-        <select formControlName="categoriaId">
-          <option value="">Selecione uma categoria</option>
-          @for (categoria of categorias(); track categoria.id) {
-            <option [value]="categoria.id">
-              {{ categoria.nome }}{{ categoria.padrao ? ' · Padrão' : '' }}{{ !categoria.ativo ? ' · Inativa (histórico)' : '' }}
-            </option>
-          }
-        </select>
+        <div class="select-with-action">
+          <select formControlName="categoriaId">
+            <option value="">Selecione uma categoria</option>
+            @for (categoria of categorias(); track categoria.id) {
+              <option [value]="categoria.id">
+                {{ categoria.nome }}{{ categoria.padrao ? ' · Padrão' : '' }}{{ !categoria.ativo ? ' · Inativa (histórico)' : '' }}
+              </option>
+            }
+          </select>
+          <button class="quick-add-button" type="button" aria-label="Cadastrar nova categoria" title="Cadastrar nova categoria"
+            (click)="cadastroRapido.set({ tipo: 'categoria' })">+ Nova</button>
+        </div>
       </label>
 
       <label class="form-field">
         <span>Subcategoria *</span>
-        <select formControlName="subcategoriaId">
-          <option value="">Selecione uma subcategoria</option>
-          @for (subcategoria of subcategoriasDisponiveis; track subcategoria.id) {
-            <option [value]="subcategoria.id">
-              {{ subcategoria.nome }}{{ subcategoria.padrao ? ' · Padrão' : '' }}{{ !subcategoria.ativo ? ' · Inativa (histórico)' : '' }}
-            </option>
-          }
-        </select>
+        <div class="select-with-action">
+          <select formControlName="subcategoriaId">
+            <option value="">Selecione uma subcategoria</option>
+            @for (subcategoria of subcategoriasDisponiveis; track subcategoria.id) {
+              <option [value]="subcategoria.id">
+                {{ subcategoria.nome }}{{ subcategoria.padrao ? ' · Padrão' : '' }}{{ !subcategoria.ativo ? ' · Inativa (histórico)' : '' }}
+              </option>
+            }
+          </select>
+          <button class="quick-add-button" type="button" aria-label="Cadastrar nova subcategoria"
+            [title]="form.controls.categoriaId.value ? 'Cadastrar nova subcategoria' : 'Selecione uma categoria primeiro'"
+            [disabled]="!form.controls.categoriaId.value" (click)="abrirCadastroSubcategoria()">+ Nova</button>
+        </div>
       </label>
 
       <label class="form-field">
@@ -155,18 +169,22 @@
       @if (form.controls.modoResponsabilidade.value === 'PESSOA') {
         <label class="form-field saida-wide">
           <span>Pessoa responsável *</span>
-          <select formControlName="responsavelPessoaId">
-            <option value="">Selecione uma pessoa</option>
-            @for (pessoa of pessoas(); track pessoa.id) {
-              <option [value]="pessoa.id" [disabled]="pessoaJaSelecionada(pessoa.id, $index)">
-                {{ pessoa.nome }}{{ !pessoa.ativo ? ' · Inativa (histórico)' : '' }}
-              </option>
-            }
-          </select>
+          <div class="select-with-action">
+            <select formControlName="responsavelPessoaId">
+              <option value="">Selecione uma pessoa</option>
+              @for (pessoa of pessoas(); track pessoa.id) {
+                <option [value]="pessoa.id" [disabled]="pessoaJaSelecionada(pessoa.id, $index)">
+                  {{ pessoa.nome }}{{ !pessoa.ativo ? ' · Inativa (histórico)' : '' }}
+                </option>
+              }
+            </select>
+            <button class="quick-add-button" type="button" aria-label="Cadastrar nova pessoa" title="Cadastrar nova pessoa"
+              (click)="cadastroRapido.set({ tipo: 'pessoa', destino: 'responsavel' })">+ Nova</button>
+          </div>
           @if (form.controls.responsavelPessoaId.invalid && form.controls.responsavelPessoaId.touched) {
             <small>Selecione uma pessoa ativa.</small>
           }
-          @if (pessoas().length === 0) { <small>Cadastre uma pessoa antes de atribuir uma saída a ela.</small> }
+          @if (pessoas().length === 0) { <small>Nenhuma pessoa cadastrada. Use "+ Nova" para cadastrar.</small> }
         </label>
       }
 
@@ -178,12 +196,16 @@
               <div class="split-row" [formGroupName]="$index">
                 <label class="form-field">
                   <span>Pessoa *</span>
-                  <select formControlName="pessoaId">
-                    <option value="">Selecione</option>
-                    @for (pessoa of pessoas(); track pessoa.id) {
-                      <option [value]="pessoa.id">{{ pessoa.nome }}{{ !pessoa.ativo ? ' · Inativa (histórico)' : '' }}</option>
-                    }
-                  </select>
+                  <div class="select-with-action">
+                    <select formControlName="pessoaId">
+                      <option value="">Selecione</option>
+                      @for (pessoa of pessoas(); track pessoa.id) {
+                        <option [value]="pessoa.id">{{ pessoa.nome }}{{ !pessoa.ativo ? ' · Inativa (histórico)' : '' }}</option>
+                      }
+                    </select>
+                    <button class="quick-add-button" type="button" aria-label="Cadastrar nova pessoa" title="Cadastrar nova pessoa"
+                      (click)="cadastroRapido.set({ tipo: 'pessoa', destino: $index })">+</button>
+                  </div>
                 </label>
                 <label class="form-field">
                   <span>Valor por parcela *</span>
@@ -196,7 +218,7 @@
             }
           </div>
           <button class="add-part" type="button" (click)="adicionarParte()">+ Adicionar pessoa</button>
-          @if (pessoas().length === 0) { <small>Cadastre pessoas para dividir os valores.</small> }
+          @if (pessoas().length === 0) { <small>Nenhuma pessoa cadastrada. Use "+" ao lado do campo para cadastrar.</small> }
           @if (somaPartesExcedeValor) {
             <div class="form-error" role="alert">A soma das partes não pode exceder o valor de cada parcela.</div>
           }
@@ -222,5 +244,26 @@
         </button>
       </div>
     </form>
+  }
+
+  @if (cadastroRapido(); as cadastro) {
+    @switch (cadastro.tipo) {
+      @case ('cartao') {
+        <app-cartao-rapido (salvo)="aoCriarCartao($event)" (cancelado)="cadastroRapido.set(null)" />
+      }
+      @case ('categoria') {
+        <app-categoria-rapida (salvo)="aoCriarCategoria($event)" (cancelado)="cadastroRapido.set(null)" />
+      }
+      @case ('subcategoria') {
+        <app-subcategoria-rapida
+          [categoria]="cadastro.categoria"
+          (salvo)="aoCriarSubcategoria($event)"
+          (cancelado)="cadastroRapido.set(null)"
+        />
+      }
+      @case ('pessoa') {
+        <app-pessoa-rapida (salvo)="aoCriarPessoa($event, cadastro.destino)" (cancelado)="cadastroRapido.set(null)" />
+      }
+    }
   }
 </section>

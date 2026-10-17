@@ -136,4 +136,100 @@ describe('BucketForm', () => {
     await fixture.whenStable();
     expect(navigate).toHaveBeenCalledWith(['/home/buckets']);
   });
+
+  describe('cadastro rápido', () => {
+    function abrirFormulario() {
+      const fixture = TestBed.createComponent(BucketForm);
+      fixture.detectChanges();
+      http.expectOne('/api/categorias').flush({ data: [{
+        id: 'health',
+        nome: 'Saúde',
+        tipo: 'DESPESA',
+        ativo: true,
+        padrao: false,
+        criadoEm: null,
+        subcategorias: [{
+          id: 'medicine',
+          nome: 'Medicamentos',
+          ativo: true,
+          padrao: false,
+          categoriaId: 'health',
+          categoriaNome: 'Saúde',
+          criadoEm: null,
+        }],
+      }] });
+      http.expectOne('/api/pessoas').flush({ data: [] });
+      fixture.detectChanges();
+      return { fixture, element: fixture.nativeElement as HTMLElement };
+    }
+
+    function preencherDialogo(element: HTMLElement, valores: Record<string, string>): void {
+      for (const [controle, valor] of Object.entries(valores)) {
+        const campo = element.querySelector<HTMLInputElement>(`[role="dialog"] [formControlName="${controle}"]`)!;
+        campo.value = valor;
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      element.querySelector<HTMLFormElement>('[role="dialog"] form')!.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      );
+    }
+
+    function selects(element: HTMLElement): HTMLSelectElement[] {
+      return Array.from(element.querySelectorAll<HTMLSelectElement>('.bucket-form select'));
+    }
+
+    it('creates a category with its subcategory and submits the bucket with them', () => {
+      vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const { fixture, element } = abrirFormulario();
+      element.querySelector<HTMLButtonElement>('button[aria-label="Cadastrar nova categoria"]')!.click();
+      fixture.detectChanges();
+      preencherDialogo(element, { nome: 'Pets', subcategoria: 'Ração' });
+      http.expectOne('/api/categorias').flush({
+        data: { id: 'pets', nome: 'Pets', tipo: 'DESPESA', ativo: true, padrao: false, criadoEm: null, subcategorias: [] },
+      });
+      http.expectOne('/api/categorias/pets/subcategorias').flush({
+        data: { id: 'food', nome: 'Ração', ativo: true, padrao: true, categoriaId: 'pets', categoriaNome: 'Pets', criadoEm: null },
+      });
+      fixture.detectChanges();
+
+      expect(element.querySelector('[role="dialog"]')).toBeNull();
+      expect(selects(element)[0].value).toBe('pets');
+      expect(selects(element)[1].value).toBe('food');
+
+      const amount = element.querySelector<HTMLInputElement>('[formControlName="valorMensal"]')!;
+      amount.value = '80';
+      amount.dispatchEvent(new Event('input', { bubbles: true }));
+      element.querySelector<HTMLFormElement>('.bucket-form')!.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      );
+      const creation = http.expectOne('/api/buckets');
+      expect(creation.request.body).toEqual({ subcategoriaId: 'food', responsavelPessoaId: null, valorMensal: 80 });
+      creation.flush({ data: {} });
+    });
+
+    it('creates a subcategory in the selected category and selects it', () => {
+      const { fixture, element } = abrirFormulario();
+      element.querySelector<HTMLButtonElement>('button[aria-label="Cadastrar nova subcategoria"]')!.click();
+      fixture.detectChanges();
+      expect(element.querySelector('[role="dialog"]')?.textContent).toContain('Saúde');
+      preencherDialogo(element, { nome: 'Consultas' });
+      http.expectOne('/api/categorias/health/subcategorias').flush({
+        data: { id: 'visits', nome: 'Consultas', ativo: true, padrao: false, categoriaId: 'health', categoriaNome: 'Saúde', criadoEm: null },
+      });
+      fixture.detectChanges();
+
+      expect(selects(element)[1].value).toBe('visits');
+    });
+
+    it('creates a person and makes them responsible for the bucket', () => {
+      const { fixture, element } = abrirFormulario();
+      element.querySelector<HTMLButtonElement>('button[aria-label="Cadastrar nova pessoa"]')!.click();
+      fixture.detectChanges();
+      preencherDialogo(element, { nome: 'João' });
+      http.expectOne('/api/pessoas').flush({ data: { id: 'person-2', nome: 'João', ativo: true, criadoEm: null } });
+      fixture.detectChanges();
+
+      expect(selects(element)[2].value).toBe('person-2');
+    });
+  });
 });

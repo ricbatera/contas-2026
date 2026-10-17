@@ -204,4 +204,135 @@ describe('SaidaForm', () => {
     expect(element.textContent).toMatch(/Minha parte:\s*R\$\s*65[,.]00/);
     expect(element.textContent).toContain('As próximas parcelas serão programadas mensalmente');
   });
+
+  describe('cadastro rápido', () => {
+    function abrirFormulario() {
+      const fixture = TestBed.createComponent(SaidaForm);
+      fixture.detectChanges();
+      flushDependencies();
+      fixture.detectChanges();
+      const element = fixture.nativeElement as HTMLElement;
+      const description = element.querySelector<HTMLInputElement>('[formControlName="descricao"]')!;
+      description.value = 'Mercado';
+      description.dispatchEvent(new Event('input', { bubbles: true }));
+      return { fixture, element };
+    }
+
+    function clicar(element: HTMLElement, rotulo: string): void {
+      element.querySelector<HTMLButtonElement>(`button[aria-label="${rotulo}"]`)!.click();
+    }
+
+    function preencherDialogo(element: HTMLElement, controle: string, valor: string): void {
+      const campo = element.querySelector<HTMLInputElement>(`[role="dialog"] [formControlName="${controle}"]`)!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function enviarDialogo(element: HTMLElement): void {
+      element.querySelector<HTMLFormElement>('[role="dialog"] form')!.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      );
+    }
+
+    function valor(element: HTMLElement, controle: string): string {
+      return element.querySelector<HTMLInputElement | HTMLSelectElement>(`[formControlName="${controle}"]`)!.value;
+    }
+
+    it('creates a card without leaving the form and selects it', () => {
+      const { fixture, element } = abrirFormulario();
+      clicar(element, 'Cadastrar novo cartão');
+      fixture.detectChanges();
+      http.expectOne('/api/cartoes/principais').flush({ data: [] });
+      preencherDialogo(element, 'nome', 'Viagem');
+      preencherDialogo(element, 'banco', 'Banco 2');
+      preencherDialogo(element, 'ultimosDigitos', '5555');
+      enviarDialogo(element);
+      http.expectOne('/api/cartoes').flush({
+        data: {
+          id: 'card-2',
+          nome: 'Viagem',
+          banco: 'Banco 2',
+          bandeira: 'VISA',
+          ultimosDigitos: '5555',
+          cor: '#1e6fd0',
+          criadoEm: null,
+          tipo: 'PRINCIPAL',
+          virtual: false,
+          cartaoPrincipalId: null,
+          ativo: true,
+        },
+      });
+      fixture.detectChanges();
+
+      expect(element.querySelector('[role="dialog"]')).toBeNull();
+      expect(valor(element, 'cartaoId')).toBe('card-2');
+      expect(valor(element, 'descricao')).toBe('Mercado');
+    });
+
+    it('creates a category with its subcategory and selects both', () => {
+      const { fixture, element } = abrirFormulario();
+      clicar(element, 'Cadastrar nova categoria');
+      fixture.detectChanges();
+      preencherDialogo(element, 'nome', 'Pets');
+      preencherDialogo(element, 'subcategoria', 'Ração');
+      enviarDialogo(element);
+      http.expectOne('/api/categorias').flush({
+        data: { id: 'category-2', nome: 'Pets', tipo: 'DESPESA', ativo: true, padrao: false, criadoEm: null, subcategorias: [] },
+      });
+      http.expectOne('/api/categorias/category-2/subcategorias').flush({
+        data: { id: 'sub-2', nome: 'Ração', ativo: true, padrao: true, categoriaId: 'category-2', categoriaNome: 'Pets', criadoEm: null },
+      });
+      fixture.detectChanges();
+
+      expect(valor(element, 'categoriaId')).toBe('category-2');
+      expect(valor(element, 'subcategoriaId')).toBe('sub-2');
+      expect(valor(element, 'descricao')).toBe('Mercado');
+    });
+
+    it('creates a subcategory in the selected category and selects it', () => {
+      const { fixture, element } = abrirFormulario();
+      clicar(element, 'Cadastrar nova subcategoria');
+      fixture.detectChanges();
+      expect(element.querySelector('[role="dialog"]')?.textContent).toContain('Moradia');
+      preencherDialogo(element, 'nome', 'Condomínio');
+      enviarDialogo(element);
+      http.expectOne('/api/categorias/category-1/subcategorias').flush({
+        data: { id: 'sub-2', nome: 'Condomínio', ativo: true, padrao: false, categoriaId: 'category-1', categoriaNome: 'Moradia', criadoEm: null },
+      });
+      fixture.detectChanges();
+
+      expect(valor(element, 'categoriaId')).toBe('category-1');
+      expect(valor(element, 'subcategoriaId')).toBe('sub-2');
+      expect(element.textContent).toContain('Aluguel · Padrão');
+    });
+
+    it('creates a person for a split row and selects it in that row', () => {
+      const { fixture, element } = abrirFormulario();
+      const mode = element.querySelector<HTMLSelectElement>('[formControlName="modoResponsabilidade"]')!;
+      mode.value = 'DIVIDIR';
+      mode.dispatchEvent(new Event('change', { bubbles: true }));
+      fixture.detectChanges();
+      clicar(element, 'Cadastrar nova pessoa');
+      fixture.detectChanges();
+      preencherDialogo(element, 'nome', 'João');
+      enviarDialogo(element);
+      http.expectOne('/api/pessoas').flush({ data: { id: 'person-2', nome: 'João', ativo: true, criadoEm: null } });
+      fixture.detectChanges();
+
+      expect(element.querySelector<HTMLSelectElement>('[formArrayName="partes"] select')!.value).toBe('person-2');
+    });
+
+    it('closes the dialog on cancel keeping the form untouched', () => {
+      const { fixture, element } = abrirFormulario();
+      clicar(element, 'Cadastrar nova categoria');
+      fixture.detectChanges();
+      Array.from(element.querySelectorAll<HTMLButtonElement>('[role="dialog"] button'))
+        .find((button) => button.textContent?.trim() === 'Cancelar')!.click();
+      fixture.detectChanges();
+
+      expect(element.querySelector('[role="dialog"]')).toBeNull();
+      expect(valor(element, 'categoriaId')).toBe('category-1');
+      expect(valor(element, 'descricao')).toBe('Mercado');
+    });
+  });
 });

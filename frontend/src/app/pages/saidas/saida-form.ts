@@ -6,7 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApiResponse } from '../../core/auth.service';
 import { Cartao, CartaoService } from '../../core/cartao.service';
-import { Categoria, CategoriaService } from '../../core/categoria.service';
+import { Categoria, CategoriaService, Subcategoria } from '../../core/categoria.service';
 import {
   FORMAS_PAGAMENTO,
   FormaPagamento,
@@ -16,6 +16,10 @@ import {
   SaidaService,
 } from '../../core/saida.service';
 import { Pessoa, PessoaService } from '../../core/pessoa.service';
+import { CartaoRapido } from '../../shared/cadastro-rapido/cartao-rapido';
+import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
+import { PessoaRapida } from '../../shared/cadastro-rapido/pessoa-rapida';
+import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
 
 interface UserProfile {
   id: string;
@@ -23,11 +27,25 @@ interface UserProfile {
   sobrenome: string;
 }
 
+type CadastroRapido =
+  | { tipo: 'cartao' }
+  | { tipo: 'categoria' }
+  | { tipo: 'subcategoria'; categoria: Categoria }
+  | { tipo: 'pessoa'; destino: 'responsavel' | number };
+
 @Component({
   selector: 'app-saida-form',
-  imports: [CurrencyPipe, ReactiveFormsModule, RouterLink],
+  imports: [
+    CartaoRapido,
+    CategoriaRapida,
+    CurrencyPipe,
+    PessoaRapida,
+    ReactiveFormsModule,
+    RouterLink,
+    SubcategoriaRapida,
+  ],
   templateUrl: './saida-form.html',
-  styleUrls: ['../cartoes/cartoes.css', './saidas.css'],
+  styleUrls: ['../cartoes/cartoes.css', './saidas.css', '../../shared/cadastro-rapido/cadastro-rapido.css'],
 })
 export class SaidaForm {
   private readonly fb = inject(FormBuilder).nonNullable;
@@ -53,6 +71,7 @@ export class SaidaForm {
   protected readonly pessoas = signal<Pessoa[]>([]);
   protected readonly categorias = signal<Categoria[]>([]);
   protected readonly profile = signal<UserProfile | null>(null);
+  protected readonly cadastroRapido = signal<CadastroRapido | null>(null);
 
   protected readonly form = this.fb.group({
     descricao: ['', [Validators.required, Validators.maxLength(120)]],
@@ -165,6 +184,48 @@ export class SaidaForm {
       return 'Os valores informados são por parcela; o restante fica sob sua responsabilidade.';
     }
     return `O valor integral ficará sob responsabilidade de ${this.profile()?.nome ?? 'você'}.`;
+  }
+
+  protected abrirCadastroSubcategoria(): void {
+    const categoria = this.categorias().find((item) => item.id === this.form.controls.categoriaId.value);
+    if (categoria) {
+      this.cadastroRapido.set({ tipo: 'subcategoria', categoria });
+    }
+  }
+
+  protected aoCriarCartao(cartao: Cartao): void {
+    this.cadastroRapido.set(null);
+    this.cartoes.update((cartoes) => [...cartoes, cartao]);
+    this.form.controls.cartaoId.setValue(cartao.id);
+  }
+
+  protected aoCriarCategoria(categoria: Categoria): void {
+    this.cadastroRapido.set(null);
+    this.categorias.update((categorias) => [...categorias, categoria]);
+    // aoAlterarCategoria seleciona a subcategoria padrão recém-criada.
+    this.form.controls.categoriaId.setValue(categoria.id);
+  }
+
+  protected aoCriarSubcategoria(subcategoria: Subcategoria): void {
+    this.cadastroRapido.set(null);
+    this.categorias.update((categorias) =>
+      categorias.map((categoria) =>
+        categoria.id === subcategoria.categoriaId
+          ? { ...categoria, subcategorias: [...categoria.subcategorias, subcategoria] }
+          : categoria,
+      ),
+    );
+    this.form.controls.subcategoriaId.setValue(subcategoria.id);
+  }
+
+  protected aoCriarPessoa(pessoa: Pessoa, destino: 'responsavel' | number): void {
+    this.cadastroRapido.set(null);
+    this.pessoas.update((pessoas) => [...pessoas, pessoa]);
+    if (destino === 'responsavel') {
+      this.form.controls.responsavelPessoaId.setValue(pessoa.id);
+    } else {
+      this.partes.at(destino)?.get('pessoaId')?.setValue(pessoa.id);
+    }
   }
 
   protected adicionarParte(): void {

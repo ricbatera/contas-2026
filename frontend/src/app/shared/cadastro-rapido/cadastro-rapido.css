@@ -1,0 +1,72 @@
+.select-with-action {
+  display: flex;
+  gap: 8px;
+}
+
+.select-with-action select {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.quick-add-button {
+  flex: 0 0 auto;
+  min-width: 40px;
+  padding: 0 10px;
+  border: 1px solid #dce9f8;
+  border-radius: 7px;
+  color: #1e6fd0;
+  background: #f4f9ff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.quick-add-button:hover:not(:disabled) {
+  border-color: #1e6fd0;
+}
+
+.quick-add-button:disabled {
+  color: #9aa7b8;
+  background: #f5f7fa;
+  cursor: not-allowed;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  color: #1e6fd0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cadastro-rapido-dialog {
+  width: min(100%, 560px);
+}
+
+.cadastro-rapido-actions {
+  justify-content: flex-end;
+}
+
+.cadastro-rapido-contexto {
+  margin: 0;
+  color: #42536b;
+  font-size: 13px;
+}
+
+.filter-dialog-content .cadastro-rapido-check {
+  flex-direction: row;
+  align-items: center;
+  align-self: end;
+  min-height: 40px;
+}
+
+.filter-dialog-content .cadastro-rapido-check input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+}

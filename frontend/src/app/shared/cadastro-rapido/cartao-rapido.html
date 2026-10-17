@@ -1,0 +1,82 @@
+<app-dialogo-rapido titulo="Novo cartão" (fechar)="cancelado.emit()">
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="filter-dialog-content">
+      @if (error()) { <div class="form-error filter-full" role="alert">{{ error() }}</div> }
+
+      <label class="form-field">
+        <span>Nome do cartão *</span>
+        <input type="text" formControlName="nome" maxlength="50" autocomplete="off" placeholder="Ex.: Cartão principal" />
+        @if (form.controls.nome.invalid && form.controls.nome.touched) {
+          <small>Informe um nome com até 50 caracteres.</small>
+        }
+      </label>
+
+      <label class="form-field">
+        <span>Banco *</span>
+        <input type="text" formControlName="banco" maxlength="100" autocomplete="organization" placeholder="Ex.: Banco do Brasil" />
+        @if (form.controls.banco.invalid && form.controls.banco.touched) {
+          <small>Informe o banco emissor (até 100 caracteres).</small>
+        }
+      </label>
+
+      <label class="form-field">
+        <span>Bandeira *</span>
+        <select formControlName="bandeira">
+          @for (bandeira of bandeiras; track bandeira) {
+            <option [value]="bandeira">{{ bandeira }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="form-field">
+        <span>Últimos 4 dígitos *</span>
+        <input type="text" formControlName="ultimosDigitos" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="1234" />
+        @if (form.controls.ultimosDigitos.invalid && form.controls.ultimosDigitos.touched) {
+          <small>Informe exatamente 4 dígitos numéricos.</small>
+        }
+      </label>
+
+      <label class="form-field">
+        <span>Tipo de cartão *</span>
+        <select formControlName="tipo">
+          <option value="PRINCIPAL">Principal</option>
+          <option value="ADICIONAL">Adicional</option>
+        </select>
+      </label>
+
+      <label class="form-field cadastro-rapido-check">
+        <input type="checkbox" formControlName="virtual" />
+        <span>Este cartão é virtual</span>
+      </label>
+
+      @if (form.controls.tipo.value === 'ADICIONAL') {
+        <label class="form-field filter-full">
+          <span>Cartão principal *</span>
+          @if (principaisError()) {
+            <small role="alert">{{ principaisError() }}</small>
+          } @else if (principais().length === 0) {
+            <small role="status">Cadastre um cartão principal antes de adicionar um cartão adicional.</small>
+          } @else {
+            <select formControlName="cartaoPrincipalId">
+              <option value="">Selecione o cartão principal</option>
+              @for (principal of principais(); track principal.id) {
+                <option [value]="principal.id">
+                  {{ principal.nome }} · {{ principal.banco }} · final {{ principal.ultimosDigitos }}
+                </option>
+              }
+            </select>
+          }
+          @if (form.controls.cartaoPrincipalId.invalid && form.controls.cartaoPrincipalId.touched) {
+            <small>Selecione um cartão principal para este adicional.</small>
+          }
+        </label>
+      }
+    </div>
+    <footer class="filter-dialog-actions cadastro-rapido-actions">
+      <button class="secondary-button" type="button" (click)="cancelado.emit()">Cancelar</button>
+      <button class="primary-button" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Salvando...' : 'Cadastrar cartão' }}
+      </button>
+    </footer>
+  </form>
+</app-dialogo-rapido>

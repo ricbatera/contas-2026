@@ -4,14 +4,22 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { BucketRequest, BucketService } from '../../core/bucket.service';
-import { Categoria, CategoriaService } from '../../core/categoria.service';
+import { Categoria, CategoriaService, Subcategoria } from '../../core/categoria.service';
 import { Pessoa, PessoaService } from '../../core/pessoa.service';
+import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
+import { PessoaRapida } from '../../shared/cadastro-rapido/pessoa-rapida';
+import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
+
+type CadastroRapido =
+  | { tipo: 'categoria' }
+  | { tipo: 'subcategoria'; categoria: Categoria }
+  | { tipo: 'pessoa' };
 
 @Component({
   selector: 'app-bucket-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [CategoriaRapida, PessoaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
   templateUrl: './bucket-form.html',
-  styleUrls: ['../cartoes/cartoes.css', './buckets.css'],
+  styleUrls: ['../cartoes/cartoes.css', './buckets.css', '../../shared/cadastro-rapido/cadastro-rapido.css'],
 })
 export class BucketForm {
   private readonly fb = inject(FormBuilder);
@@ -28,6 +36,7 @@ export class BucketForm {
   protected readonly error = signal<string | null>(null);
   protected readonly categorias = signal<Categoria[]>([]);
   protected readonly pessoas = signal<Pessoa[]>([]);
+  protected readonly cadastroRapido = signal<CadastroRapido | null>(null);
   private readonly categoriaSelecionada = signal('');
   private readonly subcategoriaOriginal = signal('');
   private readonly pessoaOriginal = signal('');
@@ -102,6 +111,42 @@ export class BucketForm {
     const responsavelPessoaId = (event.target as HTMLSelectElement).value;
     this.form.controls.responsavelPessoaId.setValue(responsavelPessoaId);
     this.pessoaOriginal.set(responsavelPessoaId);
+  }
+
+  protected abrirCadastroSubcategoria(): void {
+    const categoria = this.categorias().find((item) => item.id === this.categoriaSelecionada());
+    if (categoria) {
+      this.cadastroRapido.set({ tipo: 'subcategoria', categoria });
+    }
+  }
+
+  protected aoCriarCategoria(categoria: Categoria): void {
+    this.cadastroRapido.set(null);
+    this.categorias.update((categorias) => [...categorias, categoria]);
+    this.categoriaSelecionada.set(categoria.id);
+    this.form.patchValue({
+      categoriaId: categoria.id,
+      subcategoriaId: categoria.subcategorias[0]?.id ?? '',
+    });
+  }
+
+  protected aoCriarSubcategoria(subcategoria: Subcategoria): void {
+    this.cadastroRapido.set(null);
+    this.categorias.update((categorias) =>
+      categorias.map((categoria) =>
+        categoria.id === subcategoria.categoriaId
+          ? { ...categoria, subcategorias: [...categoria.subcategorias, subcategoria] }
+          : categoria,
+      ),
+    );
+    this.form.controls.subcategoriaId.setValue(subcategoria.id);
+  }
+
+  protected aoCriarPessoa(pessoa: Pessoa): void {
+    this.cadastroRapido.set(null);
+    this.pessoas.update((pessoas) => [...pessoas, pessoa]);
+    this.form.controls.responsavelPessoaId.setValue(pessoa.id);
+    this.pessoaOriginal.set(pessoa.id);
   }
 
   protected submit(): void {
