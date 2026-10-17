@@ -2,6 +2,17 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## backend 1.0.1 — 2026-10-17
+
+- Imagem: `ricardo1782/financas-backend:1.0.1` (também `latest`)
+- Commit: `59ce64b` (tag `backend-v1.0.1`)
+- Próxima versão de desenvolvimento: 1.0.2
+- Mudanças:
+  - 59ce64b fix(fatura): leitura completa de faturas em colunas e parcelas conferidas no texto
+  - 04817e9 feat(fatura): conciliação por valor, desempate por IA e vínculo de pré-saídas
+  - ba0c00a feat(fatura): importação de fatura em PDF com IA e pré-saídas
+  - 0af33aa feat(ia): cadastro de provedores de IA e tela de teste de integração
+
 ## frontend 1.0.0 — 2026-10-17
 
 - Imagem: `ricardo1782/financas-frontend:1.0.0` (também `latest`)
