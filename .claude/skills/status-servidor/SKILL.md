@@ -15,7 +15,7 @@ Leia de `scripts/deploy/deploy.conf` só `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SS
   ```powershell
   ssh -i <SSH_KEY> -p <SSH_PORT> -o StrictHostKeyChecking=accept-new <SSH_USER>@<SSH_HOST> "<comando>"
   ```
-- Só com senha no Windows: `plink -ssh -P <porta> -pw <senha> usuario@host "<comando>"`, se o plink existir. Passe a senha direto do conf, sem ecoá-la. Sem plink, peça ao usuário para rodar o comando com `!` ou para configurar uma chave.
+- Só com senha no Windows: `plink -ssh -P <porta> -pw <senha> usuario@host "<comando>"`, se o plink existir. Nesta máquina ele fica em `C:\Program Files\PuTTY\plink.exe`, que pode não estar no PATH da sessão: use o caminho completo ou prefixe com `$env:Path = "C:\Program Files\PuTTY;$env:Path";`. Com `-batch`, passe `-hostkey` com as impressões SHA256 do `known_hosts` (`ssh-keygen -l -F "[host]:porta"`), como faz `scripts/deploy/deploy.ps1`. Passe a senha direto do conf, sem ecoá-la. Sem plink, peça ao usuário para rodar o comando com `!` ou para configurar uma chave.
 - Só com senha no Linux: `SSHPASS=... sshpass -e ssh ...`.
 
 Todos os comandos rodam em `REMOTE_PATH`. Prefixe com `cd <REMOTE_PATH> &&` e use `docker compose --env-file .env-prod`.

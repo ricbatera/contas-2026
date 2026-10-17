@@ -13,7 +13,7 @@ Argumentos opcionais: versão do backend e do frontend (ex.: `1.0.3 1.0.2`). Sem
 2. O arquivo do `ENV_FILE` (padrão `.env-prod` na raiz) existe. Nunca exiba o conteúdo dele.
 3. Autenticação: o script interativo precisa rodar sem prompt de senha.
    - `SSH_KEY` preenchido: ok.
-   - Só `SSH_PASSWORD` no Windows: precisa de `plink` e `pscp` no PATH (`Get-Command plink`). Sem eles, o ssh pediria a senha no console e a execução travaria: peça ao usuário para usar chave ou instalar o PuTTY (`winget install PuTTY.PuTTY`), ou para ele mesmo rodar o script com `! .\scripts\deploy\deploy.ps1`.
+   - Só `SSH_PASSWORD` no Windows: precisa de `plink` e `pscp` no PATH. O PuTTY está instalado nesta máquina em `C:\Program Files\PuTTY`. Ele está no PATH do sistema, mas a sessão do Claude Code pode ter um PATH antigo. Por isso, **sempre** prefixe o comando com `$env:Path = "C:\Program Files\PuTTY;$env:Path";` e siga adiante, sem parar nesta etapa. A chave do servidor já está no `known_hosts` (exigido pelo `plink -batch`). Isso foi testado em 2026-10-17. Só se `C:\Program Files\PuTTY\plink.exe` não existir: peça ao usuário para usar chave ou instalar o PuTTY (`winget install PuTTY.PuTTY`), ou para ele mesmo rodar o script com `! .\scripts\deploy\deploy.ps1`.
 4. As versões pedidas existem no Docker Hub: `wsl docker manifest inspect <namespace>/<imagem>:<tag>` (código de saída 0 = existe). Se não existir, avise. Talvez falte publicar (skill `publicar-imagem`).
 
 ## 2. Confirmação
@@ -24,7 +24,7 @@ O script pergunta, nesta ordem: imagem do backend, imagem do frontend e confirma
 
 Windows (timeout 600000 ms):
 ```powershell
-"1.0.3`n1.0.2`ns" | powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\deploy.ps1
+$env:Path = "C:\Program Files\PuTTY;$env:Path"; "1.0.3`n1.0.2`ns" | powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\deploy.ps1
 ```
 Linux:
 ```bash
