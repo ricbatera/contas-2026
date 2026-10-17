@@ -60,20 +60,20 @@ pnpm-debug.log*
 *.userosscache
 *.sln.docstates
 
-# VS Code (ignora configs locais e mantém arquivos úteis compartilháveis)
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/mcp.json
+# VS Code: configs da raiz são pessoais; frontend/.gitignore controla as do frontend
+/.vscode/
 
-**/.vscode/*
-!frontend/.vscode/settings.json
-!frontend/.vscode/tasks.json
-!frontend/.vscode/launch.json
-!frontend/.vscode/extensions.json
-!frontend/.vscode/mcp.json
+# Claude Code: configurações locais e locks não são compartilhados
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# =========================
+# Chaves / certificados
+# =========================
+*.pem
+*.key
+*.p12
+*.jks
 
 # =========================
 # OS / misc
@@ -88,5 +88,3 @@ Desktop.ini
 
 /backend/src/main/resources/application-local.properties
 /backend/src/main/resources/application-h2.properties
-
-/front-next
