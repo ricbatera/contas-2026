@@ -1,0 +1,15 @@
+# Copie para docker-publish.conf (não versionado) e preencha as credenciais.
+# Formato CHAVE=valor, uma por linha. Linhas iniciadas por # são ignoradas.
+
+# Usuário do Docker Hub
+DOCKERHUB_USERNAME=
+
+# Access token do Docker Hub (Account Settings > Personal access tokens), com permissão Read & Write
+DOCKERHUB_TOKEN=
+
+# Namespace (usuário ou organização) onde as imagens são publicadas. Vazio = DOCKERHUB_USERNAME
+DOCKERHUB_NAMESPACE=
+
+# Nomes dos repositórios das imagens no Docker Hub
+BACKEND_IMAGE=financas-backend
+FRONTEND_IMAGE=financas-frontend

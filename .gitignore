@@ -90,3 +90,6 @@ Desktop.ini
 
 /backend/src/main/resources/application-local.properties
 /backend/src/main/resources/application-h2.properties
+
+# Credenciais do Docker Hub usadas pelos scripts de publicação
+/scripts/docker/docker-publish.conf

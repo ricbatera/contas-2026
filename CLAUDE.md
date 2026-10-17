@@ -48,6 +48,16 @@ docker compose --env-file .env-prod up -d --build    # sobe db (postgres), backe
 
 O nginx do frontend serve o build do Angular e faz proxy de `/api/` para o backend, que fica na mesma origem, sem CORS. Só o frontend publica porta (`APP_PORT`, padrão 80). O banco usa o volume `pgdata` e o Flyway cria o schema na subida. O Docker roda no WSL: `wsl docker compose ...` a partir de `/mnt/c/projetos/minhasContas/2026-Novo`. Sem `--env-file .env-prod`, o compose falha de propósito.
 
+### Publicação de imagens (Docker Hub)
+
+```bash
+cp scripts/docker/docker-publish.conf.example scripts/docker/docker-publish.conf   # credenciais; não versionado
+./scripts/docker/publicar-backend.sh [major|minor|patch]      # Linux; padrão patch
+.\scripts\docker\publicar-frontend.ps1 [major|minor|patch]    # Windows (usa `wsl docker` se não houver docker no PATH)
+```
+
+Cada script exige working tree limpo e constrói a imagem com a versão atual (`backend/pom.xml` ou `frontend/package.json`), com tags `:<versão>` e `:latest`. Depois faz o push, cria a tag git `<projeto>-v<versão>`, avança a versão, registra a publicação em `CHANGELOG.md` e commita. Não faz `git push`. A versão nos arquivos é sempre a próxima a publicar, então não a altere manualmente para baixo.
+
 ## Arquitetura do backend
 
 **Organização por feature:** cada domínio (`saida`, `fatura`, `cartao`, `bucket`, `dashboard`, `categoria`, `subcategoria`, `pessoa`, `contabancaria`, `usuario`, `auth`) é um pacote com Entidade, `*Controller`, `*Service`, `*Repository`, `*Mapper` e `dto/` (records `*Request`/`*Response`). Os pacotes genéricos `model/`, `repository/`, `service/`, `dto/` e `api/controller` estão vazios. Não coloque código novo neles.
