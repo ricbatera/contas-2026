@@ -1,0 +1,24 @@
+# Copie para deploy.conf (não versionado) e preencha.
+# Formato CHAVE=valor, uma por linha. Linhas iniciadas por # são ignoradas.
+
+# Servidor (Ubuntu Server com Docker e o plugin docker compose; o usuário precisa estar no grupo docker)
+SSH_HOST=
+SSH_PORT=22
+SSH_USER=
+
+# Autenticação: preencha SSH_KEY (caminho da chave privada, aceita ~) OU SSH_PASSWORD.
+# Se ambos estiverem preenchidos, usa a chave.
+# Senha exige sshpass no Linux; no Windows usa plink/pscp (PuTTY) se instalados, senão o ssh pede a senha.
+SSH_KEY=
+SSH_PASSWORD=
+
+# Pasta de deploy no servidor (caminho absoluto, sem espaços)
+REMOTE_PATH=/opt/financas
+
+# Arquivo de variáveis de produção enviado ao servidor (relativo à raiz do repositório)
+ENV_FILE=.env-prod
+
+# Imagens sugeridas no prompt (<namespace>/<imagem>:latest)
+DOCKERHUB_NAMESPACE=
+BACKEND_IMAGE=financas-backend
+FRONTEND_IMAGE=financas-frontend

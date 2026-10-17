@@ -1,0 +1,52 @@
+# Compose de deploy no servidor, gerado pelos scripts scripts/deploy/deploy.*.
+# __BACKEND_IMAGE__ e __FRONTEND_IMAGE__ são trocados pelas imagens escolhidas antes do envio.
+# No servidor: docker compose --env-file .env-prod up -d
+name: financas
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?defina em .env-prod}
+      POSTGRES_USER: ${POSTGRES_USER:?defina em .env-prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina em .env-prod}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: __BACKEND_IMAGE__
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?defina em .env-prod}
+      DB_USERNAME: ${POSTGRES_USER:?defina em .env-prod}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?defina em .env-prod}
+      JWT_SECRET: ${JWT_SECRET:?defina em .env-prod}
+      SPRINGDOC_SWAGGER_UI_ENABLED: ${SWAGGER_ENABLED:-false}
+      SPRINGDOC_API_DOCS_ENABLED: ${SWAGGER_ENABLED:-false}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  frontend:
+    image: __FRONTEND_IMAGE__
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "18050:80"
+
+volumes:
+  pgdata:

@@ -58,6 +58,16 @@ cp scripts/docker/docker-publish.conf.example scripts/docker/docker-publish.conf
 
 Cada script exige working tree limpo e constrói a imagem com a versão atual (`backend/pom.xml` ou `frontend/package.json`), com tags `:<versão>` e `:latest`. Depois faz o push, cria a tag git `<projeto>-v<versão>`, avança a versão, registra a publicação em `CHANGELOG.md` e commita. Não faz `git push`. A versão nos arquivos é sempre a próxima a publicar, então não a altere manualmente para baixo.
 
+### Deploy remoto (SSH)
+
+```bash
+cp scripts/deploy/deploy.conf.example scripts/deploy/deploy.conf   # host, porta, usuário, chave ou senha, pasta; não versionado
+./scripts/deploy/deploy.sh          # Linux (senha exige sshpass)
+.\scripts\deploy\deploy.ps1         # Windows (senha usa plink/pscp se instalados; senão o ssh pede a senha)
+```
+
+O script pergunta as imagens (Enter = `:latest`; só uma tag, como `1.0.3`, completa o repositório), cria `REMOTE_PATH` no servidor se não existir e envia `scripts/deploy/docker-compose.deploy.yml` (imagens já substituídas, front em `18050`) e o `.env-prod`. No servidor, `scripts/deploy/remoto.sh` baixa o ambiente antigo (sem `-v`, o volume `pgdata` é preservado), remove as imagens antigas de backend/frontend, faz `pull` e `up -d --wait`.
+
 ## Arquitetura do backend
 
 **Organização por feature:** cada domínio (`saida`, `fatura`, `cartao`, `bucket`, `dashboard`, `categoria`, `subcategoria`, `pessoa`, `contabancaria`, `usuario`, `auth`) é um pacote com Entidade, `*Controller`, `*Service`, `*Repository`, `*Mapper` e `dto/` (records `*Request`/`*Response`). Os pacotes genéricos `model/`, `repository/`, `service/`, `dto/` e `api/controller` estão vazios. Não coloque código novo neles.
