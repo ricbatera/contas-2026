@@ -88,6 +88,7 @@ class BucketConsumptionTest {
                 .valorPorParcela(new BigDecimal("100.00"))
                 .quantidadeParcelas(2)
                 .formaPagamento(FormaPagamento.PIX)
+                .dataInicial(LocalDate.of(2026, 10, 15))
                 .modoResponsabilidade(ModoResponsabilidade.DIVIDIR)
                 .categoria(categoria)
                 .subcategoria(subcategoria)

@@ -38,6 +38,7 @@ pnpm-debug.log*
 *.local
 **/application-local.properties
 **/application-*.local.properties
+**/application-test-local.properties
 
 # =========================
 # IDEs / editors

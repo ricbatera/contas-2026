@@ -18,12 +18,14 @@ Código, nomes de domínio, mensagens e commits são em português.
 ```bash
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local   # usa application-local.properties (PostgreSQL local)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2      # usa application-h2.properties (H2)
-./mvnw test                                               # todos os testes (H2 em memória, perfil "test")
+./mvnw test                                               # todos os testes (PostgreSQL financas_test, perfil "test")
 ./mvnw test -Dtest=SaidaControllerIT                      # uma classe
 ./mvnw test -Dtest=SaidaControllerIT#deveAceitarSaidaComSessentaParcelas   # um método
 ```
 
-Sem perfil, `application.properties` exige as variáveis `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET`. `application-local.properties` e `application-h2.properties` são ignorados pelo git (contêm credenciais locais).
+Sem perfil, `application.properties` exige as variáveis `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET`. `application-local.properties` e `application-h2.properties` são ignorados pelo git (contêm credenciais locais). O perfil `h2` desliga o Flyway e usa o schema gerado pelo Hibernate.
+
+O PostgreSQL local roda no container Docker `postgres-financas` dentro do WSL (porta 5432, acessível do Windows), com os bancos `financas` (app) e `financas_test` (testes). Acesso via `wsl docker exec postgres-financas psql -U postgres -d financas`. A senha do banco de teste fica em `backend/src/test/resources/application-test-local.properties` (ignorado pelo git), ou nas variáveis `TEST_DB_URL`/`TEST_DB_USERNAME`/`TEST_DB_PASSWORD`. Se um teste falhar com `ClassFormatError`, rode `./mvnw clean test`: a IDE às vezes deixa classes corrompidas em `target/`.
 
 Swagger: `/swagger-ui.html`.
 
@@ -48,7 +50,12 @@ npx ng test --include src/app/core/saida.service.spec.ts   # um arquivo
 
 **Respostas e erros:** controllers retornam `SuccessResponse.of(data)`, e o JSON fica no formato `{ data, message, timestamp }`, por isso os testes leem `$.data...`. Erros de regra de negócio estendem `exception.BusinessException`, e cada subclasse define seu `HttpStatus` via `getStatus()`. O `GlobalExceptionHandler` converte tudo em `ErrorResponse`. Para um erro novo, crie uma subclasse em `exception/`, sem handler extra.
 
-**Esquema do banco:** produção/local usa PostgreSQL com `ddl-auto=validate`, ou seja, o Hibernate **não** cria tabelas. Toda mudança de entidade exige um script SQL aplicado manualmente com `psql`: `backend/scripts/` (criação de tabelas e migrações pontuais) ou `scripts/` (schema de saídas/faturas, seeds). Não há Flyway/Liquibase. Os testes usam H2 com `create-drop`, então passar nos testes não garante que o script SQL esteja correto. Mantenha constraints (ex.: limites de parcelas) iguais entre a validação do DTO e o SQL.
+**Esquema do banco (Flyway):** o schema é versionado em `backend/src/main/resources/db/migration` e aplicado pelo Flyway na inicialização. O Hibernate só valida (`ddl-auto=validate`) em todos os perfis, exceto `h2`.
+- Toda mudança de entidade exige uma nova migration `V{n}__descricao.sql` no mesmo commit. **Nunca edite uma migration já aplicada**, crie outra.
+- V1 é o baseline: o schema do banco local em 2026-10-17. Bancos que já existiam sem `flyway_schema_history` são marcados na V1 sem executá-la (`baseline-on-migrate`).
+- Os testes recriam o schema do zero (`TestFlywayConfig`: clean + migrate) no banco `financas_test`, então as migrations e as constraints são exercitadas em PostgreSQL real. Tabelas usadas só em teste ficam em `src/test/resources/db/testmigration`.
+- Mantenha constraints iguais entre a validação do DTO e o SQL (ex.: parcelas entre 1 e 60).
+- `scripts/legacy/` guarda os scripts anteriores ao Flyway, só como referência.
 
 **Domínio central:** uma `Saida` (despesa) gera `SaidaParcela`s e pode ter vários `SaidaResponsavel` (usuário ou `Pessoa`). Compras no cartão são agrupadas em `Fatura` por competência, e cartões adicionais compartilham a fatura do cartão principal. `Bucket` é o orçamento mensal por subcategoria e responsável. `DashboardService` consolida saídas, buckets, contas fixas e projeção mensal (`/api/dashboard`, `/projecao`, `/saidas`, `/buckets`, `/contas-fixas`).
 
