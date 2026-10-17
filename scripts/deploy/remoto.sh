@@ -21,11 +21,14 @@ compose() {
 
 if [ -f docker-compose.yml ]; then
   info "Ambiente existente encontrado; baixando."
+  # Baixa com o .env-prod NOVO: o compose em uso pode exigir variáveis que o .env-prod antigo
+  # ainda não tem (ex.: um deploy anterior que falhou depois de trocar o compose), e o compose
+  # recusa até o "down" quando falta uma variável obrigatória.
   # Imagens da aplicação no compose antigo, por nome:tag (por ID, o rm apagaria também
   # outras tags da mesma imagem). A do postgres fica, pois o banco continua igual.
-  imagens_antigas="$(compose config --images | grep -v '^postgres:' | sort -u || true)"
+  imagens_antigas="$(docker compose --env-file .env-prod.novo config --images | grep -v '^postgres:' | sort -u || true)"
   # Sem -v: o volume pgdata (dados do banco) é preservado.
-  compose down --remove-orphans
+  docker compose --env-file .env-prod.novo down --remove-orphans
   if [ -n "$imagens_antigas" ]; then
     info "Removendo imagens antigas da aplicação."
     for imagem in $imagens_antigas; do
