@@ -29,6 +29,12 @@ pnpm-debug.log*
 *.temp
 
 # =========================
+# Backups do banco (dumps com dados pessoais)
+# =========================
+backups/
+*.dump
+
+# =========================
 # Local environment/config
 # =========================
 .env

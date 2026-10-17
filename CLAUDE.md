@@ -68,6 +68,14 @@ cp scripts/deploy/deploy.conf.example scripts/deploy/deploy.conf   # host, porta
 
 O script pergunta as imagens (Enter = `:latest`; só uma tag, como `1.0.3`, completa o repositório), cria `REMOTE_PATH` no servidor se não existir e envia `scripts/deploy/docker-compose.deploy.yml` (imagens já substituídas, front em `18050`) e o `.env-prod`. No servidor, `scripts/deploy/remoto.sh` baixa o ambiente antigo (sem `-v`, o volume `pgdata` é preservado), remove as imagens antigas de backend/frontend, faz `pull` e `up -d --wait`.
 
+### Acesso ao banco
+
+```bash
+./scripts/db/banco.sh <local|teste|remoto> <psql|pg_dump|pg_restore> [args]   # Git Bash ou Linux
+```
+
+`local`/`teste` usam o container `postgres-financas` do WSL (bancos `financas`/`financas_test`). `remoto` usa o serviço `db` do compose no servidor, via SSH com os dados de `scripts/deploy/deploy.conf`, em modo batch, e por isso exige `SSH_KEY` ou senha com `sshpass`/`plink`. O script já passa `-U`/`-d`, e stdin/stdout vão direto para a ferramenta. Dumps ficam em `backups/`, que é ignorado pelo git.
+
 ## Arquitetura do backend
 
 **Organização por feature:** cada domínio (`saida`, `fatura`, `cartao`, `bucket`, `dashboard`, `categoria`, `subcategoria`, `pessoa`, `contabancaria`, `usuario`, `auth`) é um pacote com Entidade, `*Controller`, `*Service`, `*Repository`, `*Mapper` e `dto/` (records `*Request`/`*Response`). Os pacotes genéricos `model/`, `repository/`, `service/`, `dto/` e `api/controller` estão vazios. Não coloque código novo neles.
