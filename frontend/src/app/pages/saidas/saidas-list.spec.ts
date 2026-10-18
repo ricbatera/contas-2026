@@ -1,8 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { Cartao } from '../../core/cartao.service';
 import { Saida } from '../../core/saida.service';
 import { SaidasList } from './saidas-list';
 
@@ -128,7 +129,91 @@ describe('SaidasList', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.match('/api/cartoes').forEach((request) => request.flush({ data: [] }));
+    http.verify();
+  });
+
+  function cartao(id: string, nome: string, cartaoPrincipalId: string | null = null): Cartao {
+    return {
+      id,
+      nome,
+      banco: 'Banco',
+      bandeira: 'VISA',
+      ultimosDigitos: '1234',
+      cor: '#000000',
+      criadoEm: '2026-01-01T00:00:00',
+      tipo: cartaoPrincipalId ? 'ADICIONAL' : 'PRINCIPAL',
+      virtual: false,
+      cartaoPrincipalId,
+      ativo: true,
+    };
+  }
+
+  function saidasDeCartao(): Saida[] {
+    return [
+      saida({ id: 'principal', descricao: 'Compra principal', formaPagamento: 'CARTAO_CREDITO', cartaoId: 'card-1', cartaoNome: 'Nubank' }),
+      saida({ id: 'adicional', descricao: 'Compra adicional', formaPagamento: 'CARTAO_CREDITO', cartaoId: 'card-2', cartaoNome: 'Nubank Maria' }),
+      saida({ id: 'pix', descricao: 'Compra pix' }),
+    ];
+  }
+
+  function filtrarPorCartao(fixture: ComponentFixture<SaidasList>, valor: string): string {
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.filter-open-button')!.click();
+    fixture.detectChanges();
+    selecionar(element, 'Cartão', valor);
+    element.querySelector<HTMLButtonElement>('.filter-dialog-actions .primary-button')!.click();
+    fixture.detectChanges();
+    return element.textContent ?? '';
+  }
+
+  it('filters by the main card with its additional cards, only the main card or only one additional card', () => {
+    const fixture = TestBed.createComponent(SaidasList);
+    fixture.detectChanges();
+    http.expectOne('/api/saidas').flush({ data: saidasDeCartao() });
+    http.expectOne('/api/cartoes').flush({
+      data: [cartao('card-1', 'Nubank'), cartao('card-2', 'Nubank Maria', 'card-1')],
+    });
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.filter-open-button')!.click();
+    fixture.detectChanges();
+    const opcoes = Array.from(element.querySelectorAll('optgroup[label="Nubank"] option'))
+      .map((option) => option.textContent?.trim());
+    expect(opcoes).toEqual(['Nubank + adicionais', 'Nubank (somente principal)', 'Nubank Maria (adicional)']);
+
+    let texto = filtrarPorCartao(fixture, 'grupo:card-1');
+    expect(texto).toContain('Compra principal');
+    expect(texto).toContain('Compra adicional');
+    expect(texto).not.toContain('Compra pix');
+
+    texto = filtrarPorCartao(fixture, 'card-1');
+    expect(texto).toContain('Compra principal');
+    expect(texto).not.toContain('Compra adicional');
+
+    texto = filtrarPorCartao(fixture, 'card-2');
+    expect(texto).not.toContain('Compra principal');
+    expect(texto).toContain('Compra adicional');
+  });
+
+  it('keeps filtering by a single card when the card list cannot be loaded', () => {
+    const fixture = TestBed.createComponent(SaidasList);
+    fixture.detectChanges();
+    http.expectOne('/api/saidas').flush({ data: saidasDeCartao() });
+    http.expectOne('/api/cartoes').flush(null, { status: 500, statusText: 'Erro' });
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.filter-open-button')!.click();
+    fixture.detectChanges();
+    expect(element.querySelector('optgroup')).toBeNull();
+
+    const texto = filtrarPorCartao(fixture, 'card-1');
+    expect(texto).toContain('Compra principal');
+    expect(texto).not.toContain('Compra adicional');
+  });
 
   it('lists expenses, amounts, payment and responsibility', () => {
     const fixture = TestBed.createComponent(SaidasList);

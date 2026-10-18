@@ -2,6 +2,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Cartao, CartaoService } from '../../core/cartao.service';
 import { FormaPagamento, Saida, SaidaParcela, SaidaService } from '../../core/saida.service';
 
 interface FiltrosSaida {
@@ -22,6 +23,13 @@ interface OpcaoFiltro {
   id: string;
   nome: string;
 }
+
+interface GrupoCartao {
+  principal: OpcaoFiltro;
+  adicionais: OpcaoFiltro[];
+}
+
+const PREFIXO_GRUPO_CARTAO = 'grupo:';
 
 interface SaidaCard {
   key: string;
@@ -68,8 +76,11 @@ const MESES = Array.from({ length: 12 }, (_, index) => ({
 })
 export class SaidasList implements OnInit {
   private readonly service = inject(SaidaService);
+  private readonly cartaoService = inject(CartaoService);
 
   protected readonly saidas = signal<Saida[]>([]);
+  private readonly cartoes = signal<Cartao[]>([]);
+  private readonly cartoesPorId = computed(() => new Map(this.cartoes().map((cartao) => [cartao.id, cartao])));
   protected readonly saidasFiltradas = computed(() => {
     const filtros = this.filtrosAplicados();
     const texto = filtros.texto.trim().toLocaleLowerCase('pt-BR');
@@ -89,7 +100,7 @@ export class SaidasList implements OnInit {
       if (filtros.subcategoriaId && saida.subcategoriaId !== filtros.subcategoriaId) {
         return false;
       }
-      if (filtros.cartaoId && saida.cartaoId !== filtros.cartaoId) {
+      if (filtros.cartaoId && !this.cartaoNoFiltro(saida.cartaoId, filtros.cartaoId)) {
         return false;
       }
       const responsabilidadeSelecionada = filtros.responsavelId
@@ -174,13 +185,28 @@ export class SaidasList implements OnInit {
         .map((saida) => ({ id: saida.subcategoriaId, nome: saida.subcategoriaNome })),
     );
   });
-  protected readonly cartoesDisponiveis = computed(() =>
-    this.opcoesUnicas(
+  // Adicionais ficam agrupados sob o principal, que também pode ser filtrado junto com eles.
+  protected readonly gruposCartao = computed<GrupoCartao[]>(() => {
+    const usados = this.opcoesUnicas(
       this.saidas()
         .filter((saida) => saida.cartaoId && saida.cartaoNome)
         .map((saida) => ({ id: saida.cartaoId!, nome: saida.cartaoNome! })),
-    ),
-  );
+    );
+    const cartoes = this.cartoesPorId();
+    const grupos = new Map<string, GrupoCartao>();
+    for (const opcao of usados) {
+      const principalId = cartoes.get(opcao.id)?.cartaoPrincipalId;
+      const principal = principalId ? cartoes.get(principalId) : undefined;
+      if (principal) {
+        const grupo = grupos.get(principal.id) ?? { principal: { id: principal.id, nome: principal.nome }, adicionais: [] };
+        grupo.adicionais.push(opcao);
+        grupos.set(principal.id, grupo);
+      } else {
+        grupos.set(opcao.id, { principal: opcao, adicionais: grupos.get(opcao.id)?.adicionais ?? [] });
+      }
+    }
+    return [...grupos.values()].sort((a, b) => a.principal.nome.localeCompare(b.principal.nome, 'pt-BR'));
+  });
   protected readonly responsaveisDisponiveis = computed(() =>
     this.opcoesUnicas(
       this.saidas().flatMap((saida) =>
@@ -224,6 +250,15 @@ export class SaidasList implements OnInit {
         this.loading.set(false);
       },
     });
+    // Sem a lista de cartões, o filtro só perde o agrupamento por cartão principal.
+    this.cartaoService.listar().subscribe({
+      next: (cartoes) => this.cartoes.set(cartoes),
+      error: () => this.cartoes.set([]),
+    });
+  }
+
+  protected valorGrupoCartao(principalId: string): string {
+    return `${PREFIXO_GRUPO_CARTAO}${principalId}`;
   }
 
   protected nomeForma(forma: FormaPagamento): string {
@@ -327,6 +362,15 @@ export class SaidasList implements OnInit {
 
   private parcelaNaCompetencia(parcela: SaidaParcela, filtros: FiltrosSaida): boolean {
     return parcela.vencimento.startsWith(`${filtros.anoVencimento}-${filtros.mesVencimento}-`);
+  }
+
+  private cartaoNoFiltro(cartaoId: string | null, filtro: string): boolean {
+    if (!filtro.startsWith(PREFIXO_GRUPO_CARTAO)) {
+      return cartaoId === filtro;
+    }
+    const principalId = filtro.slice(PREFIXO_GRUPO_CARTAO.length);
+    return cartaoId === principalId
+      || !!cartaoId && this.cartoesPorId().get(cartaoId)?.cartaoPrincipalId === principalId;
   }
 
   private opcoesUnicas(opcoes: OpcaoFiltro[]): OpcaoFiltro[] {

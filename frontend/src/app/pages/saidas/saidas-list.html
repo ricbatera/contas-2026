@@ -188,8 +188,18 @@
             Cartão
             <select [value]="filtrosRascunho().cartaoId" (change)="atualizarFiltro('cartaoId', $event)">
               <option value="">Todos</option>
-              @for (cartao of cartoesDisponiveis(); track cartao.id) {
-                <option [value]="cartao.id">{{ cartao.nome }}</option>
+              @for (grupo of gruposCartao(); track grupo.principal.id) {
+                @if (grupo.adicionais.length) {
+                  <optgroup [label]="grupo.principal.nome">
+                    <option [value]="valorGrupoCartao(grupo.principal.id)">{{ grupo.principal.nome }} + adicionais</option>
+                    <option [value]="grupo.principal.id">{{ grupo.principal.nome }} (somente principal)</option>
+                    @for (adicional of grupo.adicionais; track adicional.id) {
+                      <option [value]="adicional.id">{{ adicional.nome }} (adicional)</option>
+                    }
+                  </optgroup>
+                } @else {
+                  <option [value]="grupo.principal.id">{{ grupo.principal.nome }}</option>
+                }
               }
             </select>
           </label>

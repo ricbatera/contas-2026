@@ -134,6 +134,7 @@ describe('Application routes', () => {
       data: { nome: 'Ana', sobrenome: 'Silva' },
     });
     http.expectOne('/api/saidas').flush({ data: [] });
+    http.expectOne('/api/cartoes').flush({ data: [] });
     harness.detectChanges();
 
     expect(harness.routeNativeElement?.textContent).toContain('Nenhuma saída cadastrada');
