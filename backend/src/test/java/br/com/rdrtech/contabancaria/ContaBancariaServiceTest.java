@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import br.com.rdrtech.contabancaria.dto.ContaBancariaRequest;
 import br.com.rdrtech.contabancaria.dto.ContaBancariaResponse;
+import br.com.rdrtech.entrada.EntradaRepository;
 import br.com.rdrtech.exception.ContaBancariaDuplicadaException;
 import br.com.rdrtech.exception.ContaBancariaNaoEncontradaException;
 import br.com.rdrtech.exception.LimiteContasExcedidoException;
@@ -28,12 +29,14 @@ class ContaBancariaServiceTest {
 
     @Mock
     private ContaBancariaRepository contaBancariaRepository;
+    @Mock
+    private EntradaRepository entradaRepository;
 
     private ContaBancariaService contaBancariaService;
 
     @BeforeEach
     void setUp() {
-        contaBancariaService = new ContaBancariaService(contaBancariaRepository);
+        contaBancariaService = new ContaBancariaService(contaBancariaRepository, entradaRepository);
     }
 
     private ContaBancariaRequest requestValido() {

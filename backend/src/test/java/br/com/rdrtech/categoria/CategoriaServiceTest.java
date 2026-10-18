@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import br.com.rdrtech.categoria.dto.CategoriaRequest;
 import br.com.rdrtech.categoria.dto.CategoriaResponse;
+import br.com.rdrtech.entrada.EntradaRepository;
 import br.com.rdrtech.exception.CategoriaDuplicadaException;
 import br.com.rdrtech.exception.CategoriaNaoEncontradaException;
 import br.com.rdrtech.saida.SaidaRepository;
@@ -32,12 +33,14 @@ class CategoriaServiceTest {
     private SubcategoriaRepository subcategoriaRepository;
     @Mock
     private SaidaRepository saidaRepository;
+    @Mock
+    private EntradaRepository entradaRepository;
 
     private CategoriaService service;
 
     @BeforeEach
     void setUp() {
-        service = new CategoriaService(categoriaRepository, subcategoriaRepository, saidaRepository);
+        service = new CategoriaService(categoriaRepository, subcategoriaRepository, saidaRepository, entradaRepository);
     }
 
     @Test

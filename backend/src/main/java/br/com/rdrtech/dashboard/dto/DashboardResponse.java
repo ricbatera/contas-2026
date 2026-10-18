@@ -8,5 +8,8 @@ public record DashboardResponse(
         BigDecimal gastosLancados,
         BigDecimal bucketsReservados,
         BigDecimal contasFixasMesAnterior,
-        BigDecimal totalPrevisto) {
+        BigDecimal totalPrevisto,
+        BigDecimal receitasPrevistas,
+        BigDecimal receitasRecebidas,
+        BigDecimal saldoPrevisto) {
 }

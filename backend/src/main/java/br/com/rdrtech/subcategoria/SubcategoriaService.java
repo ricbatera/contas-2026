@@ -3,6 +3,7 @@ package br.com.rdrtech.subcategoria;
 import br.com.rdrtech.categoria.Categoria;
 import br.com.rdrtech.categoria.CategoriaRepository;
 import br.com.rdrtech.categoria.CategoriaMapper;
+import br.com.rdrtech.entrada.EntradaRepository;
 import br.com.rdrtech.exception.CategoriaNaoEncontradaException;
 import br.com.rdrtech.exception.PadraoCategoriaInativoException;
 import br.com.rdrtech.exception.RegistroVinculadoException;
@@ -26,6 +27,7 @@ public class SubcategoriaService {
     private final CategoriaRepository categoriaRepository;
     private final SubcategoriaRepository subcategoriaRepository;
     private final SaidaRepository saidaRepository;
+    private final EntradaRepository entradaRepository;
 
     public List<SubcategoriaResponse> listar(UUID categoriaId) {
         buscarCategoria(categoriaId);
@@ -65,7 +67,7 @@ public class SubcategoriaService {
                 .orElseThrow(SubcategoriaNaoEncontradaException::new);
         Categoria categoria = buscarCategoria(request.categoriaId());
         if (!subcategoria.getCategoria().getId().equals(categoria.getId())
-                && saidaRepository.existsBySubcategoria_Id(id)) {
+                && possuiLancamentos(id)) {
             throw new RegistroVinculadoException("a subcategoria");
         }
         validarDuplicidade(categoria.getId(), request.nome(), id);
@@ -91,7 +93,7 @@ public class SubcategoriaService {
     public void excluir(UUID id) {
         Subcategoria subcategoria = subcategoriaRepository.buscarPorId(id)
                 .orElseThrow(SubcategoriaNaoEncontradaException::new);
-        if (saidaRepository.existsBySubcategoria_Id(id)) {
+        if (possuiLancamentos(id)) {
             throw new RegistroVinculadoException("a subcategoria");
         }
         subcategoriaRepository.delete(subcategoria);
@@ -100,6 +102,11 @@ public class SubcategoriaService {
     private Categoria buscarCategoria(UUID id) {
         return categoriaRepository.buscarPorId(id)
                 .orElseThrow(CategoriaNaoEncontradaException::new);
+    }
+
+    private boolean possuiLancamentos(UUID subcategoriaId) {
+        return saidaRepository.existsBySubcategoria_Id(subcategoriaId)
+                || entradaRepository.existsBySubcategoria_Id(subcategoriaId);
     }
 
     private void validarDuplicidade(UUID categoriaId, String nome, UUID idAtual) {

@@ -1,13 +1,18 @@
 package br.com.rdrtech.dashboard;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import br.com.rdrtech.bucket.BucketRepository;
+import br.com.rdrtech.entrada.EntradaOcorrenciaRepository;
+import br.com.rdrtech.entrada.EntradaService;
 import br.com.rdrtech.saida.SaidaResponsavelRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -27,18 +32,25 @@ class DashboardServiceTest {
     private SaidaResponsavelRepository saidaResponsavelRepository;
     @Mock
     private BucketRepository bucketRepository;
+    @Mock
+    private EntradaService entradaService;
+    @Mock
+    private EntradaOcorrenciaRepository entradaOcorrenciaRepository;
 
     private DashboardService service;
     private final UUID usuarioId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        service = new DashboardService(saidaResponsavelRepository, bucketRepository);
+        service = new DashboardService(
+                saidaResponsavelRepository, bucketRepository, entradaService, entradaOcorrenciaRepository);
         Jwt jwt = Jwt.withTokenValue("test-token")
                 .header("alg", "none")
                 .subject(usuarioId.toString())
                 .build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
+        lenient().when(entradaOcorrenciaRepository.somarPrevistasNoPeriodo(any(), any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(entradaOcorrenciaRepository.somarRecebidasNoPeriodo(any(), any())).thenReturn(BigDecimal.ZERO);
     }
 
     @AfterEach
@@ -97,5 +109,25 @@ class DashboardServiceTest {
         var response = service.consultar(10, 2026);
 
         assertThat(response.contasFixasMesAnterior()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void consultar_deveSomarReceitasDoMesECalcularSaldoPrevisto() {
+        LocalDate inicio = LocalDate.of(2026, 10, 1);
+        LocalDate fim = LocalDate.of(2026, 11, 1);
+        when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(usuarioId, inicio, fim))
+                .thenReturn(new BigDecimal("300.00"));
+        when(bucketRepository.somarValorMensalDoUsuario(usuarioId)).thenReturn(new BigDecimal("200.00"));
+        when(saidaResponsavelRepository.somarPartesFixasUsuarioNoPeriodo(usuarioId, inicio.minusMonths(1), inicio))
+                .thenReturn(BigDecimal.ZERO);
+        when(entradaOcorrenciaRepository.somarPrevistasNoPeriodo(inicio, fim)).thenReturn(new BigDecimal("5000.00"));
+        when(entradaOcorrenciaRepository.somarRecebidasNoPeriodo(inicio, fim)).thenReturn(new BigDecimal("4800.00"));
+
+        var response = service.consultar(10, 2026);
+
+        assertThat(response.receitasPrevistas()).isEqualByComparingTo("5000.00");
+        assertThat(response.receitasRecebidas()).isEqualByComparingTo("4800.00");
+        assertThat(response.saldoPrevisto()).isEqualByComparingTo("4500.00");
+        verify(entradaService).garantirOcorrenciasAte(YearMonth.of(2026, 10));
     }
 }

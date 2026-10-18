@@ -1,0 +1,265 @@
+<section class="cards-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">MOVIMENTAÇÕES FINANCEIRAS</p>
+      <h2>Entradas</h2>
+      <p class="section-description">Acompanhe salários e outras receitas previstas e recebidas no mês.</p>
+    </div>
+    <div class="saida-toolbar-actions">
+      <button
+        class="secondary-button filter-open-button"
+        type="button"
+        aria-haspopup="dialog"
+        (click)="abrirFiltros()"
+      >
+        <span aria-hidden="true">☷</span>
+        Filtros
+        @if (quantidadeFiltrosAtivos() > 0) {
+          <span class="filter-count">{{ quantidadeFiltrosAtivos() }}</span>
+        }
+      </button>
+      <a class="primary-button" routerLink="/home/entradas/nova"><span aria-hidden="true">+</span> Nova entrada</a>
+    </div>
+  </div>
+
+  <div class="entrada-month-bar">
+    <div class="entrada-month-nav">
+      <button class="secondary-button" type="button" aria-label="Mês anterior" (click)="mudarMes(-1)">‹</button>
+      <strong class="entrada-month-label" aria-live="polite">{{ rotuloCompetencia() }}</strong>
+      <button class="secondary-button" type="button" aria-label="Próximo mês" (click)="mudarMes(1)">›</button>
+    </div>
+    <div class="entrada-totals" aria-live="polite">
+      <span>Previsto: <strong>{{ totalPrevisto() | currency: 'BRL' }}</strong></span>
+      <span>Recebido: <strong class="entrada-received">{{ totalRecebido() | currency: 'BRL' }}</strong></span>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="form-error saida-page-error" role="alert">
+      <span>{{ error() }}</span>
+      @if (!loading()) {
+        <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando entradas...</div>
+  } @else if (ocorrencias().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">+</div>
+      <h3>Nenhuma entrada em {{ rotuloCompetencia() }}</h3>
+      <p>Cadastre seu salário como entrada recorrente para prever o recebimento todo mês.</p>
+      <a class="primary-button" routerLink="/home/entradas/nova">Cadastrar entrada</a>
+    </div>
+  } @else if (ocorrenciasFiltradas().length === 0 && !error()) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">⌕</div>
+      <h3>Nenhuma entrada corresponde aos filtros</h3>
+      <p>Altere os critérios ou limpe os filtros para ver todas as entradas do mês.</p>
+      <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+    </div>
+  } @else {
+    <div class="saida-list">
+      @for (ocorrencia of ocorrenciasFiltradas(); track ocorrencia.id) {
+        <article class="saida-card" [class.entrada-cancelada]="ocorrencia.status === 'CANCELADA'">
+          <div class="saida-card-main">
+            <div class="saida-heading">
+              <div>
+                <h3>{{ ocorrencia.descricao }}</h3>
+                <p>{{ ocorrencia.categoriaNome }} · {{ ocorrencia.subcategoriaNome }}</p>
+                <span class="entrada-status" [attr.data-status]="ocorrencia.status">{{ nomeStatus(ocorrencia.status) }}</span>
+                @if (ocorrencia.recorrente) {
+                  <span class="type-badge">Recorrente</span>
+                }
+              </div>
+              <div class="saida-installment-highlight">
+                <strong>{{ valorEsperado(ocorrencia) | currency: 'BRL' }}</strong>
+              </div>
+            </div>
+            <div class="saida-meta">
+              <span>Previsto: {{ ocorrencia.valorPrevisto | currency: 'BRL' }} em {{ ocorrencia.dataPrevista | date: 'dd/MM/yyyy' }}</span>
+              @if (ocorrencia.status === 'RECEBIDA') {
+                <span>
+                  Recebido: {{ ocorrencia.valorRecebido | currency: 'BRL' }} em {{ ocorrencia.dataRecebimento | date: 'dd/MM/yyyy' }}
+                </span>
+              }
+              @if (ocorrencia.contaBancariaNome) { <span>Conta: {{ ocorrencia.contaBancariaNome }}</span> }
+            </div>
+          </div>
+          <div class="saida-actions">
+            @switch (ocorrencia.status) {
+              @case ('PREVISTA') {
+                <button class="edit-button entrada-receive-action" type="button" [disabled]="workingId() === ocorrencia.id"
+                  (click)="abrirRecebimento(ocorrencia)">Receber</button>
+                <button class="edit-button entrada-neutral-action" type="button" [disabled]="workingId() === ocorrencia.id"
+                  (click)="cancelar(ocorrencia)">Cancelar</button>
+              }
+              @case ('RECEBIDA') {
+                <button class="edit-button entrada-receive-action" type="button" [disabled]="workingId() === ocorrencia.id"
+                  (click)="abrirRecebimento(ocorrencia)">Corrigir</button>
+                <button class="edit-button entrada-neutral-action" type="button" [disabled]="workingId() === ocorrencia.id"
+                  (click)="reabrir(ocorrencia)">Reabrir</button>
+              }
+              @case ('CANCELADA') {
+                <button class="edit-button entrada-neutral-action" type="button" [disabled]="workingId() === ocorrencia.id"
+                  (click)="reabrir(ocorrencia)">Reabrir</button>
+              }
+            }
+            <a class="edit-button" [routerLink]="['/home/entradas', ocorrencia.entradaId, 'editar']">Editar</a>
+            <button
+              class="delete-button"
+              type="button"
+              [disabled]="workingId() === ocorrencia.id"
+              (click)="excluir(ocorrencia)"
+            >Excluir</button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+
+  @if (recebendo(); as ocorrencia) {
+    <div class="filter-backdrop" (click)="fecharRecebimento()">
+      <section
+        class="filter-dialog entrada-receive-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="entrada-receive-title"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="fecharRecebimento()"
+      >
+        <header class="filter-dialog-header">
+          <div>
+            <p class="section-kicker">{{ ocorrencia.descricao }}</p>
+            <h2 id="entrada-receive-title">Registrar recebimento</h2>
+          </div>
+          <button class="filter-close-button" type="button" aria-label="Fechar" (click)="fecharRecebimento()">×</button>
+        </header>
+        <form [formGroup]="formRecebimento" (ngSubmit)="confirmarRecebimento()" novalidate>
+          <div class="filter-dialog-content">
+            @if (erroRecebimento()) {
+              <div class="form-error filter-full" role="alert">{{ erroRecebimento() }}</div>
+            }
+            <label class="form-field">
+              <span>Valor recebido *</span>
+              <input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="valorRecebido" />
+              @if (formRecebimento.controls.valorRecebido.invalid && formRecebimento.controls.valorRecebido.touched) {
+                <small>Informe um valor positivo.</small>
+              }
+            </label>
+            <label class="form-field">
+              <span>Data do recebimento *</span>
+              <input type="date" formControlName="dataRecebimento" />
+              @if (formRecebimento.controls.dataRecebimento.invalid && formRecebimento.controls.dataRecebimento.touched) {
+                <small>Informe a data em que o valor caiu na conta.</small>
+              }
+            </label>
+            <small class="filter-full">Previsto: {{ ocorrencia.valorPrevisto | currency: 'BRL' }} em {{ ocorrencia.dataPrevista | date: 'dd/MM/yyyy' }}</small>
+          </div>
+          <footer class="filter-dialog-actions">
+            <span></span>
+            <div>
+              <button class="secondary-button" type="button" (click)="fecharRecebimento()">Cancelar</button>
+              <button class="primary-button" type="submit" [disabled]="workingId() === ocorrencia.id">
+                {{ workingId() === ocorrencia.id ? 'Salvando...' : 'Confirmar recebimento' }}
+              </button>
+            </div>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (filtrosAbertos()) {
+    <div class="filter-backdrop" (click)="cancelarFiltros()">
+      <section
+        class="filter-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="entrada-filter-title"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="cancelarFiltros()"
+      >
+        <header class="filter-dialog-header">
+          <div>
+            <p class="section-kicker">PERSONALIZE A LISTA</p>
+            <h2 id="entrada-filter-title">Filtrar entradas</h2>
+          </div>
+          <button class="filter-close-button" type="button" aria-label="Fechar filtros" (click)="cancelarFiltros()">
+            ×
+          </button>
+        </header>
+
+        <div class="filter-dialog-content">
+          <label class="form-field filter-full">
+            Descrição
+            <input
+              type="search"
+              [value]="filtrosRascunho().texto"
+              (input)="atualizarFiltro('texto', $event)"
+              placeholder="Descrição da entrada"
+            />
+          </label>
+
+          <label class="form-field">
+            Status
+            <select [value]="filtrosRascunho().status" (change)="atualizarFiltro('status', $event)">
+              <option value="">Todos</option>
+              <option value="PREVISTA">Prevista</option>
+              <option value="RECEBIDA">Recebida</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            Recorrência
+            <select [value]="filtrosRascunho().recorrente" (change)="atualizarFiltro('recorrente', $event)">
+              <option value="">Todas</option>
+              <option value="SIM">Somente recorrentes</option>
+              <option value="NAO">Somente avulsas</option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            Categoria
+            <select [value]="filtrosRascunho().categoriaId" (change)="atualizarFiltro('categoriaId', $event)">
+              <option value="">Todas</option>
+              @for (categoria of categoriasDisponiveis(); track categoria.id) {
+                <option [value]="categoria.id">{{ categoria.nome }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="form-field">
+            Subcategoria
+            <select [value]="filtrosRascunho().subcategoriaId" (change)="atualizarFiltro('subcategoriaId', $event)">
+              <option value="">Todas</option>
+              @for (subcategoria of subcategoriasDisponiveis(); track subcategoria.id) {
+                <option [value]="subcategoria.id">{{ subcategoria.nome }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="form-field filter-full">
+            Conta bancária
+            <select [value]="filtrosRascunho().contaBancariaId" (change)="atualizarFiltro('contaBancariaId', $event)">
+              <option value="">Todas</option>
+              @for (conta of contasDisponiveis(); track conta.id) {
+                <option [value]="conta.id">{{ conta.nome }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <footer class="filter-dialog-actions">
+          <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+          <div>
+            <button class="secondary-button" type="button" (click)="cancelarFiltros()">Cancelar</button>
+            <button class="primary-button" type="button" (click)="aplicarFiltros()">Aplicar filtros</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  }
+</section>

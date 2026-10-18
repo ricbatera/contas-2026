@@ -2,6 +2,7 @@ package br.com.rdrtech.categoria;
 
 import br.com.rdrtech.categoria.dto.CategoriaRequest;
 import br.com.rdrtech.categoria.dto.CategoriaResponse;
+import br.com.rdrtech.entrada.EntradaRepository;
 import br.com.rdrtech.exception.CategoriaDuplicadaException;
 import br.com.rdrtech.exception.CategoriaNaoEncontradaException;
 import br.com.rdrtech.exception.RegistroVinculadoException;
@@ -23,6 +24,7 @@ public class CategoriaService {
     private final CategoriaRepository categoriaRepository;
     private final SubcategoriaRepository subcategoriaRepository;
     private final SaidaRepository saidaRepository;
+    private final EntradaRepository entradaRepository;
 
     public List<CategoriaResponse> listar() {
         return categoriaRepository.listarComSubcategorias().stream()
@@ -53,7 +55,7 @@ public class CategoriaService {
     public CategoriaResponse atualizar(UUID id, CategoriaRequest request) {
         Categoria categoria = categoriaRepository.buscarPorId(id)
                 .orElseThrow(CategoriaNaoEncontradaException::new);
-        if (categoria.getTipo() != request.tipo() && saidaRepository.existsByCategoria_Id(id)) {
+        if (categoria.getTipo() != request.tipo() && possuiLancamentos(id)) {
             throw new RegistroVinculadoException("a categoria");
         }
         validarDuplicidade(request.tipo(), request.nome(), id);
@@ -83,12 +85,16 @@ public class CategoriaService {
     public void excluir(UUID id) {
         Categoria categoria = categoriaRepository.buscarPorId(id)
                 .orElseThrow(CategoriaNaoEncontradaException::new);
-        if (saidaRepository.existsByCategoria_Id(id)) {
+        if (possuiLancamentos(id)) {
             throw new RegistroVinculadoException("a categoria");
         }
         List<Subcategoria> subcategorias = categoria.getSubcategorias();
         subcategorias.clear();
         categoriaRepository.delete(categoria);
+    }
+
+    private boolean possuiLancamentos(UUID categoriaId) {
+        return saidaRepository.existsByCategoria_Id(categoriaId) || entradaRepository.existsByCategoria_Id(categoriaId);
     }
 
     private void validarDuplicidade(TipoCategoria tipo, String nome, UUID idAtual) {

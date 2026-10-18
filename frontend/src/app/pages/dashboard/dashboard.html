@@ -67,6 +67,20 @@
       @if (dados.totalPrevisto === 0) {
         <p class="forecast-empty">Ainda não há gastos, buckets ou histórico de contas fixas para esta previsão.</p>
       }
+      <div class="forecast-balance">
+        <button class="forecast-breakdown-item" type="button" (click)="abrirDetalhes('entradas')">
+          <span>Receitas previstas no mês</span>
+          <strong class="forecast-income">{{ dados.receitasPrevistas | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <small>Recebido até agora: {{ dados.receitasRecebidas | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</small>
+        </button>
+        <div class="forecast-breakdown-item forecast-balance-result">
+          <span>Saldo previsto</span>
+          <strong [class.forecast-negative]="dados.saldoPrevisto < 0">
+            {{ dados.saldoPrevisto | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+          </strong>
+          <small>Receitas previstas menos a previsão de gastos</small>
+        </div>
+      </div>
     </article>
 
     <article class="projection-card" aria-labelledby="projection-title">
@@ -92,6 +106,7 @@
         <span><i class="legend-expenses"></i>Saídas lançadas</span>
         <span><i class="legend-buckets"></i>Buckets</span>
         <span><i class="legend-fixed"></i>Contas Fixas do mês anterior</span>
+        <span><i class="legend-income"></i>Receitas previstas</span>
       </div>
 
       @if (projecaoLoading()) {
@@ -127,11 +142,21 @@
                 <text class="chart-month" [attr.x]="barra.centro" y="282" text-anchor="middle">{{ barra.rotuloMes }}</text>
               </g>
             }
+            @if (possuiReceitasNaProjecao()) {
+              <g class="chart-income" aria-hidden="true">
+                <polyline [attr.points]="pontosReceitas()"></polyline>
+                @for (barra of barrasGrafico(); track barra.ano + '-' + barra.mes) {
+                  <circle [attr.cx]="barra.centro" [attr.cy]="barra.receitaY" r="3.5">
+                    <title>{{ barra.rotuloReceita }}</title>
+                  </circle>
+                }
+              </g>
+            }
           </svg>
         </div>
         <p class="projection-note">
           Saídas consideram parcelas atribuídas a você; os buckets se repetem mensalmente; Contas Fixas usam
-          as parcelas do mês anterior. Passe o cursor ou foque em uma barra para ver os valores.
+          as parcelas do mês anterior. A linha verde mostra as receitas previstas. Passe o cursor ou foque em uma barra para ver os valores.
         </p>
       }
     </article>
@@ -167,7 +192,7 @@
                       <span>{{ item.categoriaNome }} · {{ item.subcategoriaNome }}</span>
                       @if (item.vencimento) {
                         <small>
-                          Vencimento: {{ item.vencimento | date: 'dd/MM/yyyy' : '' : 'pt-BR' }}
+                          {{ detalhesRotuloData() }}: {{ item.vencimento | date: 'dd/MM/yyyy' : '' : 'pt-BR' }}
                           @if (item.numeroParcela && item.quantidadeParcelas) {
                             · Parcela {{ item.numeroParcela }}/{{ item.quantidadeParcelas }}
                           }

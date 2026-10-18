@@ -26,6 +26,8 @@ interface GraficoBarra {
   rotuloMes: string;
   rotuloTotal: string;
   topoValor: number;
+  receitaY: number;
+  rotuloReceita: string;
   descricao: string;
   segmentos: {
     chave: string;
@@ -69,6 +71,7 @@ export class Dashboard implements OnInit {
   protected readonly competenciaError = signal<string | null>(null);
   protected readonly detalhesAbertos = signal(false);
   protected readonly detalhesTitulo = signal('');
+  protected readonly detalhesRotuloData = signal('Vencimento');
   protected readonly detalhes = signal<DashboardItem[]>([]);
   protected readonly detalhesLoading = signal(false);
   protected readonly detalhesError = signal<string | null>(null);
@@ -122,15 +125,17 @@ export class Dashboard implements OnInit {
     this.ano.set(valor === '' ? Number.NaN : Number(valor));
   }
 
-  protected abrirDetalhes(tipo: 'saidas' | 'buckets' | 'contas-fixas'): void {
-    const titulo = tipo === 'saidas'
-      ? 'Saídas lançadas no mês'
-      : tipo === 'buckets'
-        ? 'Reservas dos buckets'
-        : 'Contas fixas do mês anterior';
+  protected abrirDetalhes(tipo: 'saidas' | 'buckets' | 'contas-fixas' | 'entradas'): void {
+    const titulo = {
+      saidas: 'Saídas lançadas no mês',
+      buckets: 'Reservas dos buckets',
+      'contas-fixas': 'Contas fixas do mês anterior',
+      entradas: 'Receitas previstas no mês',
+    }[tipo];
     this.detalheRequest += 1;
     const requestId = this.detalheRequest;
     this.detalhesTitulo.set(titulo);
+    this.detalhesRotuloData.set(tipo === 'entradas' ? 'Data' : 'Vencimento');
     this.detalhes.set([]);
     this.detalhesError.set(null);
     this.detalhesLoading.set(true);
@@ -140,7 +145,9 @@ export class Dashboard implements OnInit {
       ? this.service.listarSaidas(this.mes(), this.ano())
       : tipo === 'buckets'
         ? this.service.listarBuckets()
-        : this.service.listarContasFixas(this.mes(), this.ano());
+        : tipo === 'contas-fixas'
+          ? this.service.listarContasFixas(this.mes(), this.ano())
+          : this.service.listarEntradas(this.mes(), this.ano());
     request.subscribe({
       next: (itens) => {
         if (this.detalheRequest !== requestId) {
@@ -189,7 +196,7 @@ export class Dashboard implements OnInit {
   }
 
   protected maximoGrafico(): number {
-    const maximo = Math.max(0, ...this.projecao().map((item) => item.totalPrevisto));
+    const maximo = Math.max(0, ...this.projecao().map((item) => Math.max(item.totalPrevisto, item.receitasPrevistas)));
     if (maximo === 0) {
       return 1;
     }
@@ -242,7 +249,8 @@ export class Dashboard implements OnInit {
       const rotuloMes = `${this.nomeMes(item.mes).slice(0, 3)}/${String(item.ano).slice(-2)}`;
       const descricao = `${this.nomeMes(item.mes)} de ${item.ano}: Saídas lançadas ${this.formatarMoeda(item.gastosLancados)}, `
         + `Buckets ${this.formatarMoeda(item.bucketsReservados)}, Contas Fixas ${this.formatarMoeda(item.contasFixasMesAnterior)}, `
-        + `total ${this.formatarMoeda(item.totalPrevisto)}.`;
+        + `total ${this.formatarMoeda(item.totalPrevisto)}; receitas previstas ${this.formatarMoeda(item.receitasPrevistas)}, `
+        + `saldo ${this.formatarMoeda(item.saldoPrevisto)}.`;
       return {
         mes: item.mes,
         ano: item.ano,
@@ -252,10 +260,21 @@ export class Dashboard implements OnInit {
         rotuloMes,
         rotuloTotal: this.formatarMoedaCompacta(item.totalPrevisto),
         topoValor: this.baseGrafico() - alturaAcumulada - 8,
+        receitaY: this.baseGrafico() - this.alturaPlotagem() * item.receitasPrevistas / maximo,
+        rotuloReceita: `Receitas previstas: ${this.formatarMoeda(item.receitasPrevistas)}`,
         descricao,
         segmentos,
       };
     });
+  }
+
+  /** Pontos da linha de receitas previstas, sobreposta às barras de gastos. */
+  protected pontosReceitas(): string {
+    return this.barrasGrafico().map((barra) => `${barra.centro},${barra.receitaY}`).join(' ');
+  }
+
+  protected possuiReceitasNaProjecao(): boolean {
+    return this.projecao().some((item) => item.receitasPrevistas > 0);
   }
 
   protected formatarMoeda(valor: number): string {

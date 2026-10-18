@@ -1,0 +1,141 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/entradas"><span aria-hidden="true">←</span> Voltar para entradas</a>
+    <p class="section-kicker">MOVIMENTAÇÕES FINANCEIRAS</p>
+    <h2>{{ editing ? 'Editar entrada' : 'Nova entrada' }}</h2>
+    <p class="section-description">Informe a receita e, se ela se repete todo mês, marque-a como recorrente.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando dados da entrada...</div>
+  } @else {
+    <form class="card-form saida-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (dataError()) { <div class="form-error saida-wide" role="alert">{{ dataError() }}</div> }
+      @if (error()) { <div class="form-error saida-wide" role="alert">{{ error() }}</div> }
+      @if (categorias().length === 0 && !dataError()) {
+        <div class="form-error saida-wide" role="alert">
+          Cadastre uma categoria e uma subcategoria ativa de receita antes de registrar uma entrada.
+          <button class="link-button" type="button" (click)="cadastroRapido.set({ tipo: 'categoria' })">Cadastrar categoria agora</button>
+        </div>
+      }
+
+      <label class="form-field saida-wide">
+        <span>Descrição *</span>
+        <input type="text" formControlName="descricao" maxlength="120" autocomplete="off" placeholder="Ex.: Salário" />
+        @if (form.controls.descricao.invalid && form.controls.descricao.touched) {
+          <small>Informe uma descrição com até 120 caracteres.</small>
+        }
+      </label>
+
+      <label class="form-field fixed-expense-option saida-wide">
+        <input type="checkbox" formControlName="recorrente" />
+        <span>Entrada recorrente</span>
+        <small>Gera uma previsão todo mês, como um salário. Você confirma cada recebimento na lista de entradas.</small>
+      </label>
+
+      <label class="form-field">
+        <span>{{ form.controls.recorrente.value ? 'Valor mensal previsto *' : 'Valor previsto *' }}</span>
+        <input type="number" min="0.01" step="0.01" formControlName="valor" inputmode="decimal" />
+        @if (form.controls.valor.invalid && form.controls.valor.touched) {
+          <small>Informe um valor positivo.</small>
+        }
+      </label>
+
+      <label class="form-field">
+        <span>{{ form.controls.recorrente.value ? 'Primeiro recebimento *' : 'Data prevista *' }}</span>
+        <input type="date" formControlName="dataInicial" />
+        @if (form.controls.dataInicial.invalid && form.controls.dataInicial.touched) {
+          <small>Informe a data.</small>
+        }
+      </label>
+
+      @if (form.controls.recorrente.value) {
+        <label class="form-field">
+          <span>Último recebimento (opcional)</span>
+          <input type="date" formControlName="dataFinal" />
+          @if (dataFinalAnterior) {
+            <small>A data final não pode ser anterior ao primeiro recebimento.</small>
+          }
+        </label>
+        <div class="saida-summary">
+          A previsão se repete no mesmo dia de cada mês. Sem data final, a entrada continua até ser encerrada.
+        </div>
+      }
+
+      <label class="form-field">
+        <span>Categoria *</span>
+        <div class="select-with-action">
+          <select formControlName="categoriaId">
+            <option value="">Selecione uma categoria</option>
+            @for (categoria of categorias(); track categoria.id) {
+              <option [value]="categoria.id">
+                {{ categoria.nome }}{{ categoria.padrao ? ' · Padrão' : '' }}{{ !categoria.ativo ? ' · Inativa (histórico)' : '' }}
+              </option>
+            }
+          </select>
+          <button class="quick-add-button" type="button" aria-label="Cadastrar nova categoria" title="Cadastrar nova categoria"
+            (click)="cadastroRapido.set({ tipo: 'categoria' })">+ Nova</button>
+        </div>
+        @if (form.controls.categoriaId.invalid && form.controls.categoriaId.touched) {
+          <small>Selecione uma categoria de receita.</small>
+        }
+      </label>
+
+      <label class="form-field">
+        <span>Subcategoria *</span>
+        <div class="select-with-action">
+          <select formControlName="subcategoriaId">
+            <option value="">Selecione uma subcategoria</option>
+            @for (subcategoria of subcategoriasDisponiveis; track subcategoria.id) {
+              <option [value]="subcategoria.id">{{ subcategoria.nome }}{{ subcategoria.padrao ? ' · Padrão' : '' }}</option>
+            }
+          </select>
+          <button class="quick-add-button" type="button" aria-label="Cadastrar nova subcategoria"
+            [title]="form.controls.categoriaId.value ? 'Cadastrar nova subcategoria' : 'Selecione uma categoria primeiro'"
+            [disabled]="!form.controls.categoriaId.value" (click)="abrirCadastroSubcategoria()">+ Nova</button>
+        </div>
+        @if (form.controls.subcategoriaId.invalid && form.controls.subcategoriaId.touched) {
+          <small>Selecione uma subcategoria.</small>
+        }
+      </label>
+
+      <label class="form-field saida-wide">
+        <span>Conta de destino (opcional)</span>
+        <select formControlName="contaBancariaId">
+          <option value="">Não informar</option>
+          @for (conta of contas(); track conta.id) {
+            <option [value]="conta.id">
+              {{ conta.nome }}{{ conta.banco ? ' · ' + conta.banco : '' }}{{ !conta.ativo ? ' · Inativa (histórico)' : '' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <div class="form-actions saida-wide">
+        <a class="secondary-button" routerLink="/home/entradas">Cancelar</a>
+        <button
+          class="primary-button"
+          type="submit"
+          [disabled]="saving() || !!dataError() || categorias().length === 0"
+        >
+          {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar entrada' }}
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (cadastroRapido(); as cadastro) {
+    @switch (cadastro.tipo) {
+      @case ('categoria') {
+        <app-categoria-rapida tipo="RECEITA" (salvo)="aoCriarCategoria($event)" (cancelado)="cadastroRapido.set(null)" />
+      }
+      @case ('subcategoria') {
+        <app-subcategoria-rapida
+          [categoria]="cadastro.categoria"
+          (salvo)="aoCriarSubcategoria($event)"
+          (cancelado)="cadastroRapido.set(null)"
+        />
+      }
+    }
+  }
+</section>

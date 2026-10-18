@@ -57,4 +57,11 @@ public class DashboardController {
             @RequestParam @Min(1900) @Max(9999) int ano) {
         return SuccessResponse.of(dashboardService.listarContasFixasMesAnterior(mes, ano));
     }
+
+    @GetMapping("/entradas")
+    public SuccessResponse<List<DashboardItemResponse>> listarEntradas(
+            @RequestParam @Min(1) @Max(12) int mes,
+            @RequestParam @Min(1900) @Max(9999) int ano) {
+        return SuccessResponse.of(dashboardService.listarEntradas(mes, ano));
+    }
 }

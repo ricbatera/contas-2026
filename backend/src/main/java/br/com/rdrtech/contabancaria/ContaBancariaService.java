@@ -4,7 +4,9 @@ import br.com.rdrtech.contabancaria.dto.ContaBancariaRequest;
 import br.com.rdrtech.contabancaria.dto.ContaBancariaResponse;
 import br.com.rdrtech.exception.ContaBancariaDuplicadaException;
 import br.com.rdrtech.exception.ContaBancariaNaoEncontradaException;
+import br.com.rdrtech.entrada.EntradaRepository;
 import br.com.rdrtech.exception.LimiteContasExcedidoException;
+import br.com.rdrtech.exception.RegistroVinculadoException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ public class ContaBancariaService {
     private static final int LIMITE_CONTAS = 20;
 
     private final ContaBancariaRepository contaBancariaRepository;
+    private final EntradaRepository entradaRepository;
 
     public List<ContaBancariaResponse> listar() {
         return contaBancariaRepository.findAll().stream().map(ContaBancariaMapper::toResponse).toList();
@@ -71,6 +74,9 @@ public class ContaBancariaService {
     public void excluir(UUID id) {
         ContaBancaria contaBancaria = contaBancariaRepository.buscarPorId(id)
                 .orElseThrow(ContaBancariaNaoEncontradaException::new);
+        if (entradaRepository.existsByContaBancaria_Id(id)) {
+            throw new RegistroVinculadoException("a conta bancária");
+        }
         contaBancariaRepository.delete(contaBancaria);
     }
 

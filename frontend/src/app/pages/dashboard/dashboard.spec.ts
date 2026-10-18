@@ -23,6 +23,9 @@ describe('Dashboard', () => {
         bucketsReservados: 200,
         contasFixasMesAnterior: 25,
         totalPrevisto: 350.5,
+        receitasPrevistas: 0,
+        receitasRecebidas: 0,
+        saldoPrevisto: -350.5,
       };
     });
     request.flush({ data });
@@ -59,6 +62,9 @@ describe('Dashboard', () => {
       bucketsReservados: 200,
       contasFixasMesAnterior: 25,
       totalPrevisto: 350.5,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -350.5,
     } });
     responderProjecao(current.getMonth() + 1, current.getFullYear());
     fixture.detectChanges();
@@ -88,6 +94,9 @@ describe('Dashboard', () => {
         bucketsReservados: 0,
         contasFixasMesAnterior: 0,
         totalPrevisto: 0,
+        receitasPrevistas: 0,
+        receitasRecebidas: 0,
+        saldoPrevisto: -0,
       } });
     responderProjecao(new Date().getMonth() + 1, new Date().getFullYear());
     const element = fixture.nativeElement as HTMLElement;
@@ -118,6 +127,9 @@ describe('Dashboard', () => {
       bucketsReservados: 0,
       contasFixasMesAnterior: 0,
       totalPrevisto: 0,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -0,
     })) });
     request.flush({ message: 'Unavailable' }, { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
@@ -135,6 +147,9 @@ describe('Dashboard', () => {
       bucketsReservados: 0,
       contasFixasMesAnterior: 0,
       totalPrevisto: 0,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -0,
     } });
     responderProjecao(now.getMonth() + 1, now.getFullYear());
     fixture.detectChanges();
@@ -161,6 +176,9 @@ describe('Dashboard', () => {
       bucketsReservados: 0,
       contasFixasMesAnterior: 0,
       totalPrevisto: 0,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -0,
     } });
     http.expectOne((item) => item.url === '/api/dashboard/projecao')
       .flush({ message: 'Falha na projeção' }, { status: 500, statusText: 'Server Error' });
@@ -185,12 +203,15 @@ describe('Dashboard', () => {
       bucketsReservados: 200,
       contasFixasMesAnterior: 25,
       totalPrevisto: 350.5,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -350.5,
     } });
     responderProjecao(now.getMonth() + 1, now.getFullYear());
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    const items = element.querySelectorAll<HTMLButtonElement>('.forecast-breakdown-item');
+    const items = element.querySelectorAll<HTMLButtonElement>('.forecast-breakdown .forecast-breakdown-item');
     expect(items.length).toBe(3);
     items[0]!.click();
     fixture.detectChanges();
@@ -221,6 +242,44 @@ describe('Dashboard', () => {
     expect(element.querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('shows forecast income, balance and income details', () => {
+    const fixture = TestBed.createComponent(Dashboard);
+    fixture.detectChanges();
+    const now = new Date();
+    http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
+      mes: now.getMonth() + 1,
+      ano: now.getFullYear(),
+      gastosLancados: 1000,
+      bucketsReservados: 0,
+      contasFixasMesAnterior: 0,
+      totalPrevisto: 1000,
+      receitasPrevistas: 5000,
+      receitasRecebidas: 4800,
+      saldoPrevisto: 4000,
+    } });
+    responderProjecao(now.getMonth() + 1, now.getFullYear());
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('Receitas previstas no mês');
+    expect(element.textContent).toMatch(/R\$\s5\.000,00/);
+    expect(element.textContent).toMatch(/Recebido até agora: R\$\s4\.800,00/);
+    expect(element.textContent).toMatch(/Saldo previsto\s*R\$\s4\.000,00/);
+    element.querySelector<HTMLButtonElement>('.forecast-balance .forecast-breakdown-item')!.click();
+    http.expectOne((item) => item.url === '/api/dashboard/entradas').flush({ data: [{
+      descricao: 'Salário',
+      categoriaNome: 'Salário',
+      subcategoriaNome: 'Salário mensal',
+      vencimento: '2026-10-05',
+      numeroParcela: null,
+      quantidadeParcelas: null,
+      valor: 5000,
+    }] });
+    fixture.detectChanges();
+    expect(element.textContent).toContain('Receitas previstas no mês');
+    expect(element.textContent).toContain('Salário · Salário mensal');
+  });
+
   it('loads bucket and previous-month fixed expense details on demand', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
@@ -231,11 +290,14 @@ describe('Dashboard', () => {
       bucketsReservados: 200,
       contasFixasMesAnterior: 50,
       totalPrevisto: 250,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -250,
     } });
     responderProjecao(10, 2026);
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
-    const buttons = element.querySelectorAll<HTMLButtonElement>('.forecast-breakdown-item');
+    const buttons = element.querySelectorAll<HTMLButtonElement>('.forecast-breakdown .forecast-breakdown-item');
 
     buttons[1]!.click();
     fixture.detectChanges();
@@ -287,6 +349,9 @@ describe('Dashboard', () => {
       bucketsReservados: 0,
       contasFixasMesAnterior: 0,
       totalPrevisto: 1,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -1,
     } });
     responderProjecao(now.getMonth() + 1, now.getFullYear());
     fixture.detectChanges();

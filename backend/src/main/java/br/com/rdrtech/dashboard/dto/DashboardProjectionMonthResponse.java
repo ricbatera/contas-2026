@@ -8,5 +8,7 @@ public record DashboardProjectionMonthResponse(
         BigDecimal gastosLancados,
         BigDecimal bucketsReservados,
         BigDecimal contasFixasMesAnterior,
-        BigDecimal totalPrevisto) {
+        BigDecimal totalPrevisto,
+        BigDecimal receitasPrevistas,
+        BigDecimal saldoPrevisto) {
 }

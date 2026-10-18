@@ -1,18 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Categoria, CategoriaService } from '../../core/categoria.service';
+import { Categoria, CategoriaService, TipoCategoria } from '../../core/categoria.service';
 import { DialogoRapido, mensagemErro } from './dialogo-rapido';
 
 /**
- * Cria uma categoria de despesa já com a primeira subcategoria, porque o formulário de saída
- * só oferece categorias que tenham subcategoria ativa.
+ * Cria uma categoria (de despesa, por padrão) já com a primeira subcategoria, porque os formulários
+ * de saída e de entrada só oferecem categorias que tenham subcategoria ativa.
  */
 @Component({
   selector: 'app-categoria-rapida',
   imports: [DialogoRapido, ReactiveFormsModule],
   template: `
-    <app-dialogo-rapido titulo="Nova categoria de despesa" (fechar)="cancelado.emit()">
+    <app-dialogo-rapido [titulo]="tipo() === 'RECEITA' ? 'Nova categoria de receita' : 'Nova categoria de despesa'" (fechar)="cancelado.emit()">
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <div class="filter-dialog-content">
           @if (error()) { <div class="form-error filter-full" role="alert">{{ error() }}</div> }
@@ -45,6 +45,7 @@ import { DialogoRapido, mensagemErro } from './dialogo-rapido';
 export class CategoriaRapida {
   private readonly service = inject(CategoriaService);
 
+  readonly tipo = input<TipoCategoria>('DESPESA');
   readonly salvo = output<Categoria>();
   readonly cancelado = output<void>();
   protected readonly saving = signal(false);
@@ -68,7 +69,7 @@ export class CategoriaRapida {
       return;
     }
     this.service
-      .criar({ nome: this.form.controls.nome.value.trim(), tipo: 'DESPESA', ativo: true })
+      .criar({ nome: this.form.controls.nome.value.trim(), tipo: this.tipo(), ativo: true })
       .subscribe({
         next: (categoria) => {
           this.categoriaCriada = categoria;

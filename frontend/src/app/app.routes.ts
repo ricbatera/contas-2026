@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth.guard';
 import { Home } from './pages/home/home';
-import { SectionPlaceholder } from './pages/home/section-placeholder';
 import { Login } from './pages/login/login';
 import { Register } from './pages/register/register';
 
@@ -64,7 +63,18 @@ export const routes: Routes = [
         path: 'saidas/:id/editar',
         loadComponent: () => import('./pages/saidas/saida-form').then((module) => module.SaidaForm),
       },
-      { path: 'entradas', component: SectionPlaceholder, data: { section: 'Entradas' } },
+      {
+        path: 'entradas',
+        loadComponent: () => import('./pages/entradas/entradas-list').then((module) => module.EntradasList),
+      },
+      {
+        path: 'entradas/nova',
+        loadComponent: () => import('./pages/entradas/entrada-form').then((module) => module.EntradaForm),
+      },
+      {
+        path: 'entradas/:id/editar',
+        loadComponent: () => import('./pages/entradas/entrada-form').then((module) => module.EntradaForm),
+      },
       {
         path: 'contas',
         loadComponent: () => import('./pages/contas/contas-list').then((module) => module.ContasList),

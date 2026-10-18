@@ -5,6 +5,8 @@ import br.com.rdrtech.dashboard.dto.DashboardItemResponse;
 import br.com.rdrtech.dashboard.dto.DashboardMonthlyAmountResponse;
 import br.com.rdrtech.dashboard.dto.DashboardProjectionMonthResponse;
 import br.com.rdrtech.dashboard.dto.DashboardResponse;
+import br.com.rdrtech.entrada.EntradaOcorrenciaRepository;
+import br.com.rdrtech.entrada.EntradaService;
 import br.com.rdrtech.saida.SaidaResponsavelRepository;
 import br.com.rdrtech.security.SecurityUtils;
 import java.math.BigDecimal;
@@ -27,7 +29,11 @@ public class DashboardService {
 
     private final SaidaResponsavelRepository saidaResponsavelRepository;
     private final BucketRepository bucketRepository;
+    private final EntradaService entradaService;
+    private final EntradaOcorrenciaRepository entradaOcorrenciaRepository;
 
+    /** Transação de escrita: as ocorrências das entradas recorrentes do mês podem ser geradas aqui. */
+    @Transactional
     public DashboardResponse consultar(int mes, int ano) {
         LocalDate inicio = inicioMes(mes, ano);
         LocalDate fim = inicio.plusMonths(1);
@@ -41,11 +47,23 @@ public class DashboardService {
         BigDecimal contasFixasMesAnterior = saidaResponsavelRepository
                 .somarPartesFixasUsuarioNoPeriodo(usuarioId, inicioMesAnterior, inicio);
         BigDecimal totalPrevisto = gastosLancados.add(bucketsReservados).add(contasFixasMesAnterior);
+        entradaService.garantirOcorrenciasAte(YearMonth.from(inicio));
+        BigDecimal receitasPrevistas = entradaOcorrenciaRepository.somarPrevistasNoPeriodo(inicio, fim);
+        BigDecimal receitasRecebidas = entradaOcorrenciaRepository.somarRecebidasNoPeriodo(inicio, fim);
 
         return new DashboardResponse(
-                mes, ano, gastosLancados, bucketsReservados, contasFixasMesAnterior, totalPrevisto);
+                mes,
+                ano,
+                gastosLancados,
+                bucketsReservados,
+                contasFixasMesAnterior,
+                totalPrevisto,
+                receitasPrevistas,
+                receitasRecebidas,
+                receitasPrevistas.subtract(totalPrevisto));
     }
 
+    @Transactional
     public List<DashboardProjectionMonthResponse> consultarProjecao(int mes, int ano, int quantidade) {
         if (quantidade < 3 || quantidade > 24) {
             throw new IllegalArgumentException("A projeção deve conter entre 3 e 24 meses.");
@@ -60,6 +78,9 @@ public class DashboardService {
                 saidaResponsavelRepository.somarPartesFixasUsuarioAgrupadasPorMes(
                         usuarioId, inicio.minusMonths(1), fim.minusMonths(1)));
         BigDecimal bucketsReservados = bucketRepository.somarValorMensalDoUsuario(usuarioId);
+        entradaService.garantirOcorrenciasAte(YearMonth.from(fim.minusMonths(1)));
+        Map<YearMonth, BigDecimal> receitasPorMes = indexarPorMes(
+                entradaOcorrenciaRepository.somarPrevistasAgrupadasPorMes(inicio, fim));
 
         return IntStream.range(0, quantidade)
                 .mapToObj(indice -> {
@@ -69,13 +90,16 @@ public class DashboardService {
                     BigDecimal contasFixasMesAnterior = contasFixasPorMes.getOrDefault(
                             competencia.minusMonths(1), BigDecimal.ZERO);
                     BigDecimal totalPrevisto = gastosLancados.add(bucketsReservados).add(contasFixasMesAnterior);
+                    BigDecimal receitasPrevistas = receitasPorMes.getOrDefault(competencia, BigDecimal.ZERO);
                     return new DashboardProjectionMonthResponse(
                             competencia.getMonthValue(),
                             competencia.getYear(),
                             gastosLancados,
                             bucketsReservados,
                             contasFixasMesAnterior,
-                            totalPrevisto);
+                            totalPrevisto,
+                            receitasPrevistas,
+                            receitasPrevistas.subtract(totalPrevisto));
                 })
                 .toList();
     }
@@ -94,6 +118,13 @@ public class DashboardService {
         LocalDate inicioMesAnterior = inicioMes(mes, ano).minusMonths(1);
         return saidaResponsavelRepository.listarPartesFixasUsuarioDetalhadasNoPeriodo(
                 usuarioAutenticado(), inicioMesAnterior, inicioMesAnterior.plusMonths(1));
+    }
+
+    @Transactional
+    public List<DashboardItemResponse> listarEntradas(int mes, int ano) {
+        LocalDate inicio = inicioMes(mes, ano);
+        entradaService.garantirOcorrenciasAte(YearMonth.from(inicio));
+        return entradaOcorrenciaRepository.listarPrevistasDetalhadasNoPeriodo(inicio, inicio.plusMonths(1));
     }
 
     private LocalDate inicioMes(int mes, int ano) {

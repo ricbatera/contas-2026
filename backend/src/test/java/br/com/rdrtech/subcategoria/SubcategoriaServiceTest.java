@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import br.com.rdrtech.categoria.Categoria;
 import br.com.rdrtech.categoria.CategoriaRepository;
 import br.com.rdrtech.categoria.TipoCategoria;
+import br.com.rdrtech.entrada.EntradaRepository;
 import br.com.rdrtech.exception.SubcategoriaDuplicadaException;
 import br.com.rdrtech.exception.SubcategoriaNaoEncontradaException;
 import br.com.rdrtech.saida.SaidaRepository;
@@ -33,12 +34,14 @@ class SubcategoriaServiceTest {
     private SubcategoriaRepository subcategoriaRepository;
     @Mock
     private SaidaRepository saidaRepository;
+    @Mock
+    private EntradaRepository entradaRepository;
 
     private SubcategoriaService service;
 
     @BeforeEach
     void setUp() {
-        service = new SubcategoriaService(categoriaRepository, subcategoriaRepository, saidaRepository);
+        service = new SubcategoriaService(categoriaRepository, subcategoriaRepository, saidaRepository, entradaRepository);
     }
 
     @Test

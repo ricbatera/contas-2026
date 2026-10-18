@@ -10,6 +10,9 @@ export interface DashboardResumo {
   bucketsReservados: number;
   contasFixasMesAnterior: number;
   totalPrevisto: number;
+  receitasPrevistas: number;
+  receitasRecebidas: number;
+  saldoPrevisto: number;
 }
 
 export interface DashboardProjecaoMes {
@@ -19,6 +22,8 @@ export interface DashboardProjecaoMes {
   bucketsReservados: number;
   contasFixasMesAnterior: number;
   totalPrevisto: number;
+  receitasPrevistas: number;
+  saldoPrevisto: number;
 }
 
 export interface DashboardItem {
@@ -64,6 +69,12 @@ export class DashboardService {
   listarContasFixas(mes: number, ano: number): Observable<DashboardItem[]> {
     const params = new HttpParams().set('mes', mes).set('ano', ano);
     return this.http.get<ApiResponse<DashboardItem[]>>('/api/dashboard/contas-fixas', { params })
+      .pipe(map(({ data }) => data));
+  }
+
+  listarEntradas(mes: number, ano: number): Observable<DashboardItem[]> {
+    const params = new HttpParams().set('mes', mes).set('ano', ano);
+    return this.http.get<ApiResponse<DashboardItem[]>>('/api/dashboard/entradas', { params })
       .pipe(map(({ data }) => data));
   }
 }
