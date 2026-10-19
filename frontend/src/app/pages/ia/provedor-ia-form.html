@@ -39,21 +39,74 @@
 
         <label class="form-field">
           <span>Modelo</span>
-          <input
-            type="text"
-            formControlName="modelo"
-            maxlength="100"
-            autocomplete="off"
-            list="modelos-sugeridos"
-            [placeholder]="'Ex.: ' + info().modelos[0]"
-          />
-          <datalist id="modelos-sugeridos">
-            @for (modelo of info().modelos; track modelo) {
-              <option [value]="modelo"></option>
-            }
-          </datalist>
+          <div class="modelo-campo">
+            <div class="modelo-combobox">
+              <input
+                #modeloInput
+                type="text"
+                formControlName="modelo"
+                maxlength="100"
+                autocomplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="modelos-sugeridos"
+                [attr.aria-expanded]="listaModelosAberta()"
+                [attr.aria-activedescendant]="indiceModeloAtivo() >= 0 ? 'modelo-opcao-' + indiceModeloAtivo() : null"
+                [placeholder]="'Ex.: ' + info().modelos[0]"
+                (input)="digitouModelo()"
+                (keydown)="teclaModelo($event)"
+                (blur)="fecharListaModelos()"
+              />
+              <button
+                class="modelo-toggle"
+                type="button"
+                tabindex="-1"
+                aria-label="Mostrar modelos"
+                (mousedown)="$event.preventDefault()"
+                (click)="alternarListaModelos(); modeloInput.focus()"
+              >
+                <span aria-hidden="true">▾</span>
+              </button>
+              @if (listaModelosAberta()) {
+                <ul class="modelo-lista" id="modelos-sugeridos" role="listbox">
+                  @for (modelo of modelosFiltrados(); track modelo.nome; let i = $index) {
+                    <li
+                      [id]="'modelo-opcao-' + i"
+                      role="option"
+                      [class.ativo]="i === indiceModeloAtivo()"
+                      [attr.aria-selected]="modelo.nome === form.controls.modelo.value"
+                      (mousedown)="$event.preventDefault()"
+                      (click)="selecionarModelo(modelo)"
+                    >
+                      <span>{{ modelo.nome }}</span>
+                      @if (modelo.nomeExibicao !== modelo.nome) {
+                        <small>{{ modelo.nomeExibicao }}</small>
+                      }
+                    </li>
+                  } @empty {
+                    <li class="modelo-vazio">Nenhum modelo encontrado. O texto digitado será usado.</li>
+                  }
+                </ul>
+              }
+            </div>
+            <button
+              class="secondary-button"
+              type="button"
+              [disabled]="carregandoModelos()"
+              (click)="buscarModelos()"
+            >
+              {{ carregandoModelos() ? 'Buscando...' : 'Buscar modelos' }}
+            </button>
+          </div>
           @if (form.controls.modelo.invalid && form.controls.modelo.touched) {
             <small class="field-error">Informe o modelo (até 100 caracteres).</small>
+          }
+          @if (erroModelos()) {
+            <small class="field-error modelos-status">{{ erroModelos() }}</small>
+          } @else if (modelosDisponiveis(); as modelos) {
+            <small class="modelos-status">
+              {{ modelos.length }} {{ modelos.length === 1 ? 'modelo disponível' : 'modelos disponíveis' }} no provedor.
+            </small>
           }
         </label>
 

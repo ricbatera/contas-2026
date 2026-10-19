@@ -4,6 +4,8 @@ import br.com.rdrtech.exception.LimiteProvedoresIaExcedidoException;
 import br.com.rdrtech.exception.ProvedorIaDuplicadoException;
 import br.com.rdrtech.exception.ProvedorIaInvalidoException;
 import br.com.rdrtech.exception.ProvedorIaNaoEncontradoException;
+import br.com.rdrtech.ia.dto.ModelosIaRequest;
+import br.com.rdrtech.ia.dto.ModelosIaResponse;
 import br.com.rdrtech.ia.dto.ProvedorIaRequest;
 import br.com.rdrtech.ia.dto.ProvedorIaResponse;
 import br.com.rdrtech.ia.dto.TesteIaResponse;
@@ -12,6 +14,7 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -30,6 +33,7 @@ public class ProvedorIaService {
 
     private static final int LIMITE_PROVEDORES = 20;
     private static final int TAMANHO_MAXIMO_ERRO = 1000;
+    private static final Duration TIMEOUT_LISTAGEM_MODELOS = Duration.ofSeconds(20);
     private static final Pattern MENSAGEM_JSON = Pattern.compile("\"message\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
     private static final Pattern CODIGO_JSON = Pattern.compile("\"code\"\\s*:\\s*(\\d{3})");
     static final String PROMPT_PADRAO = "Responda apenas com \"OK\" para confirmar que a integração está funcionando.";
@@ -37,6 +41,7 @@ public class ProvedorIaService {
     private final ProvedorIaRepository provedorIaRepository;
     private final CifradorSegredos cifradorSegredos;
     private final ChatModelFactory chatModelFactory;
+    private final CatalogoModelosIa catalogoModelosIa;
 
     public List<ProvedorIaResponse> listar() {
         return provedorIaRepository.findAll().stream().map(this::toResponse).toList();
@@ -142,6 +147,37 @@ public class ProvedorIaService {
             log.warn("Falha ao testar provedor de IA {} ({}): {}", provedor.getId(), provedor.getTipo(), e.toString());
             return new TesteIaResponse(
                     false, promptFinal, null, provedor.getModelo(), latenciaMs, null, null, mensagemErro(e));
+        }
+    }
+
+    /**
+     * Lista os modelos disponíveis no provedor com os dados do formulário, antes ou depois de salvar.
+     * Sem API key informada, usa a chave gravada em {@code provedorId}. Roda fora de transação, e
+     * falhas do provedor voltam em {@code erro}, como no {@link #testar}.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public ModelosIaResponse listarModelos(ModelosIaRequest request) {
+        String baseUrl = textoOuNull(request.baseUrl());
+        String apiKey = textoOuNull(request.apiKey());
+        if (apiKey == null && request.provedorId() != null && request.tipo().exigeApiKey()) {
+            ProvedorIa provedor = buscarEntidade(request.provedorId());
+            apiKey = provedor.getApiKeyCifrada() == null ? null : cifradorSegredos.decifrar(provedor.getApiKeyCifrada());
+        }
+        if (request.tipo().exigeApiKey() && apiKey == null) {
+            throw new ProvedorIaInvalidoException("Informe a API key para provedores do tipo " + request.tipo());
+        }
+        if (request.tipo().exigeBaseUrl() && baseUrl == null) {
+            throw new ProvedorIaInvalidoException("Informe a URL base para provedores do tipo " + request.tipo());
+        }
+
+        try {
+            return new ModelosIaResponse(
+                    catalogoModelosIa.listar(request.tipo(), baseUrl, request.tipo().exigeApiKey() ? apiKey : null,
+                            TIMEOUT_LISTAGEM_MODELOS),
+                    null);
+        } catch (RuntimeException e) {
+            log.warn("Falha ao listar modelos do provedor de IA ({}): {}", request.tipo(), e.toString());
+            return new ModelosIaResponse(List.of(), mensagemErro(e));
         }
     }
 

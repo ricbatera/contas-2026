@@ -47,6 +47,24 @@ export interface TesteIa {
   erro: string | null;
 }
 
+export interface ModeloIa {
+  nome: string;
+  nomeExibicao: string;
+}
+
+export interface ModelosIaRequest {
+  tipo: TipoProvedorIa;
+  baseUrl: string | null;
+  /** Vazio com `provedorId` usa a chave já gravada no provedor. */
+  apiKey: string | null;
+  provedorId: string | null;
+}
+
+export interface ModelosIa {
+  modelos: ModeloIa[];
+  erro: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProvedorIaService {
   private readonly http = inject(HttpClient);
@@ -78,6 +96,12 @@ export class ProvedorIaService {
 
   excluir(id: string): Observable<void> {
     return this.http.delete<void>(`${this.endpoint}/${encodeURIComponent(id)}`);
+  }
+
+  listarModelos(request: ModelosIaRequest): Observable<ModelosIa> {
+    return this.http
+      .post<ApiResponse<ModelosIa>>(`${this.endpoint}/modelos`, request)
+      .pipe(map((response) => response.data));
   }
 
   testar(id: string, prompt: string | null): Observable<TesteIa> {

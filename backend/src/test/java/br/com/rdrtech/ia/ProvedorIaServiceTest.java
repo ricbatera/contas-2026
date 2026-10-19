@@ -37,6 +37,8 @@ class ProvedorIaServiceTest {
     private ProvedorIaRepository provedorIaRepository;
     @Mock
     private ChatModelFactory chatModelFactory;
+    @Mock
+    private CatalogoModelosIa catalogoModelosIa;
 
     private final CifradorSegredos cifrador =
             new CifradorSegredos(new IaProperties("dGVzdC1vbmx5LWNoYXZlLWlhLTMyLWJ5dGVzLTEyMzQ="));
@@ -44,7 +46,7 @@ class ProvedorIaServiceTest {
 
     @BeforeEach
     void setUp() {
-        provedorIaService = new ProvedorIaService(provedorIaRepository, cifrador, chatModelFactory);
+        provedorIaService = new ProvedorIaService(provedorIaRepository, cifrador, chatModelFactory, catalogoModelosIa);
     }
 
     private ProvedorIaRequest request(TipoProvedorIa tipo, String apiKey, String baseUrl, boolean padrao) {

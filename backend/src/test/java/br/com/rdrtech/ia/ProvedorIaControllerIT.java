@@ -2,6 +2,8 @@ package br.com.rdrtech.ia;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -13,6 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import br.com.rdrtech.auth.dto.RegisterRequest;
+import br.com.rdrtech.ia.dto.ModeloIaResponse;
+import br.com.rdrtech.ia.dto.ModelosIaRequest;
 import br.com.rdrtech.ia.dto.ProvedorIaRequest;
 import br.com.rdrtech.ia.dto.TesteIaRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +26,8 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -49,6 +55,8 @@ class ProvedorIaControllerIT {
     /** Evita chamadas reais aos provedores: o teste controla o {@link ChatModel} devolvido. */
     @MockitoBean
     private ChatModelFactory chatModelFactory;
+    @MockitoBean
+    private CatalogoModelosIa catalogoModelosIa;
 
     private String registrarERetornarToken(String prefixoEmail) throws Exception {
         String email = prefixoEmail + "-" + System.currentTimeMillis() + "-" + System.nanoTime() + "@example.com";
@@ -246,5 +254,73 @@ class ProvedorIaControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.sucesso").value(false))
                 .andExpect(jsonPath("$.data.erro").value(Matchers.containsString("Incorrect API key provided")));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions listarModelos(String token, ModelosIaRequest request)
+            throws Exception {
+        return mockMvc.perform(post("/api/ia/provedores/modelos")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
+    }
+
+    @Test
+    void listarModelos_deveRetornarModelosDoProvedor_comChaveInformada() throws Exception {
+        String token = registrarERetornarToken("ia-modelos");
+        when(catalogoModelosIa.listar(eq(TipoProvedorIa.OPENAI), isNull(), eq(API_KEY), any(Duration.class)))
+                .thenReturn(List.of(new ModeloIaResponse("gpt-4o", "gpt-4o"), new ModeloIaResponse("gpt-4o-mini", "gpt-4o-mini")));
+
+        listarModelos(token, new ModelosIaRequest(TipoProvedorIa.OPENAI, null, API_KEY, null))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.modelos.length()").value(2))
+                .andExpect(jsonPath("$.data.modelos[0].nome").value("gpt-4o"))
+                .andExpect(jsonPath("$.data.erro").doesNotExist());
+    }
+
+    @Test
+    void listarModelos_deveUsarChaveGravada_quandoApiKeyVaziaNaEdicao() throws Exception {
+        String token = registrarERetornarToken("ia-modelos-gravada");
+        String id = criarERetornarId(token, requestOpenAi("Com chave", false));
+        when(catalogoModelosIa.listar(eq(TipoProvedorIa.OPENAI), eq("https://api.groq.com/openai/v1"), eq(API_KEY),
+                any(Duration.class)))
+                .thenReturn(List.of(new ModeloIaResponse("llama-3.3-70b", "llama-3.3-70b")));
+
+        listarModelos(token, new ModelosIaRequest(
+                TipoProvedorIa.OPENAI, "https://api.groq.com/openai/v1", null, UUID.fromString(id)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.modelos[0].nome").value("llama-3.3-70b"))
+                .andExpect(content().string(Matchers.not(Matchers.containsString(API_KEY))));
+    }
+
+    @Test
+    void listarModelos_deveRetornar200ComErro_quandoProvedorFalha() throws Exception {
+        String token = registrarERetornarToken("ia-modelos-falha");
+        when(catalogoModelosIa.listar(any(), any(), any(), any()))
+                .thenThrow(new RuntimeException("{\"error\": {\"code\": 401, \"message\": \"Invalid API key\"}}"));
+
+        listarModelos(token, new ModelosIaRequest(TipoProvedorIa.GEMINI, null, "chave-errada", null))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.modelos.length()").value(0))
+                .andExpect(jsonPath("$.data.erro").value(Matchers.containsString("[401] Invalid API key")));
+    }
+
+    @Test
+    void listarModelos_deveRetornar400_quandoSemChaveOuSemUrlDoOllama() throws Exception {
+        String token = registrarERetornarToken("ia-modelos-400");
+
+        listarModelos(token, new ModelosIaRequest(TipoProvedorIa.ANTHROPIC, null, null, null))
+                .andExpect(status().isBadRequest());
+        listarModelos(token, new ModelosIaRequest(TipoProvedorIa.OLLAMA, null, null, null))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listarModelos_deveRetornar404_quandoProvedorDeOutroUsuario() throws Exception {
+        String tokenDono = registrarERetornarToken("ia-modelos-dono");
+        String tokenOutro = registrarERetornarToken("ia-modelos-outro");
+        String id = criarERetornarId(tokenDono, requestOpenAi("Chave alheia", false));
+
+        listarModelos(tokenOutro, new ModelosIaRequest(TipoProvedorIa.OPENAI, null, null, UUID.fromString(id)))
+                .andExpect(status().isNotFound());
     }
 }

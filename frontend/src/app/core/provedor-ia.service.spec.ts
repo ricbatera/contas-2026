@@ -94,4 +94,14 @@ describe('ProvedorIaService', () => {
     expect(req.request.body).toEqual({ prompt: 'Olá' });
     req.flush({ data: teste });
   });
+
+  it('lists the models available in the provider', () => {
+    const modelos = { modelos: [{ nome: 'gpt-4o', nomeExibicao: 'gpt-4o' }], erro: null };
+    const pedido = { tipo: 'OPENAI' as const, baseUrl: null, apiKey: null, provedorId: 'uuid-1' };
+    service.listarModelos(pedido).subscribe((result) => expect(result).toEqual(modelos));
+    const req = http.expectOne('/api/ia/provedores/modelos');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(pedido);
+    req.flush({ data: modelos });
+  });
 });

@@ -1,6 +1,8 @@
 package br.com.rdrtech.ia;
 
 import br.com.rdrtech.api.response.SuccessResponse;
+import br.com.rdrtech.ia.dto.ModelosIaRequest;
+import br.com.rdrtech.ia.dto.ModelosIaResponse;
 import br.com.rdrtech.ia.dto.ProvedorIaRequest;
 import br.com.rdrtech.ia.dto.ProvedorIaResponse;
 import br.com.rdrtech.ia.dto.TesteIaRequest;
@@ -32,6 +34,11 @@ public class ProvedorIaController {
     @GetMapping
     public SuccessResponse<List<ProvedorIaResponse>> listar() {
         return SuccessResponse.of(provedorIaService.listar());
+    }
+
+    @PostMapping("/modelos")
+    public SuccessResponse<ModelosIaResponse> listarModelos(@Valid @RequestBody ModelosIaRequest request) {
+        return SuccessResponse.of(provedorIaService.listarModelos(request));
     }
 
     @GetMapping("/{id}")
