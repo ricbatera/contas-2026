@@ -1,0 +1,134 @@
+.status-badge.status-pendente {
+  color: #8a5a00;
+  background: #fff4dc;
+}
+
+.status-badge.status-aprovado {
+  color: #1d7a46;
+  background: #e5f5ec;
+}
+
+.status-badge.status-rejeitado {
+  color: #5d6b80;
+  background: #edf0f4;
+}
+
+.comprovante-erro {
+  color: #a33027;
+  font-weight: 600;
+}
+
+/* Envio: escolha entre câmera e galeria, depois a prévia da foto. */
+.comprovante-envio {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 640px;
+}
+
+.comprovante-origens {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.comprovante-origem {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 16px;
+  border: 1px dashed #b9c7da;
+  border-radius: 11px;
+  color: #26364d;
+  background: #f8fafd;
+  text-align: center;
+  cursor: pointer;
+}
+
+.comprovante-origem:hover,
+.comprovante-origem:focus-within {
+  border-color: #1e6fd0;
+  background: #f4f8fe;
+}
+
+.comprovante-origem input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.comprovante-origem-icone svg {
+  width: 34px;
+  height: 34px;
+  fill: #1e6fd0;
+}
+
+.comprovante-origem small {
+  color: #8995a7;
+  font-size: 11px;
+}
+
+.comprovante-previa {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.comprovante-previa img {
+  max-width: 100%;
+  max-height: 420px;
+  border-radius: 9px;
+  box-shadow: 0 4px 16px rgb(24 45 80 / 10%);
+}
+
+.comprovante-previa figcaption {
+  color: #8995a7;
+  font-size: 11px;
+}
+
+/* Revisão: a foto ao lado do formulário, para conferir campo a campo. */
+.comprovante-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.comprovante-imagem {
+  position: sticky;
+  top: 16px;
+  margin: 0;
+}
+
+.comprovante-imagem img {
+  display: block;
+  width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  border: 1px solid #e9edf3;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.comprovante-acoes {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .comprovante-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .comprovante-imagem {
+    position: static;
+  }
+
+  .comprovante-imagem img {
+    max-height: 320px;
+  }
+
+  .comprovante-origens {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

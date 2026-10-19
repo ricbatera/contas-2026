@@ -36,6 +36,21 @@ export const routes: Routes = [
           import('./pages/faturas/fatura-importacao-detalhe').then((module) => module.FaturaImportacaoDetalhe),
       },
       {
+        path: 'comprovantes',
+        loadComponent: () =>
+          import('./pages/comprovantes/comprovantes-list').then((module) => module.ComprovantesList),
+      },
+      {
+        path: 'comprovantes/novo',
+        loadComponent: () =>
+          import('./pages/comprovantes/comprovante-enviar').then((module) => module.ComprovanteEnviar),
+      },
+      {
+        path: 'comprovantes/:id',
+        loadComponent: () =>
+          import('./pages/comprovantes/comprovante-revisao').then((module) => module.ComprovanteRevisao),
+      },
+      {
         path: 'buckets',
         loadComponent: () => import('./pages/buckets/buckets-list').then((module) => module.BucketsList),
       },

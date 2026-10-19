@@ -1,0 +1,63 @@
+<section class="cards-page faturas-page">
+  <div class="cards-toolbar">
+    <div>
+      <p class="section-kicker">COMPRAS NO CARTÃO</p>
+      <h2>Comprovantes</h2>
+      <p class="section-description">
+        Fotografe o comprovante da maquininha: a IA identifica o cartão, o valor e as parcelas, e você aprova a saída.
+      </p>
+    </div>
+    <div class="toolbar-actions">
+      <a class="primary-button" routerLink="/home/comprovantes/novo">
+        <span aria-hidden="true">+</span>
+        Novo comprovante
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="form-error fatura-error" role="alert">
+      <span>{{ error() }}</span>
+      <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando comprovantes...</div>
+  } @else if (!error() && !comprovantes().length) {
+    <div class="state-card empty-state">
+      <div class="empty-icon" aria-hidden="true">▤</div>
+      <h3>Nenhum comprovante enviado</h3>
+      <p>Tire uma foto do comprovante logo depois da compra para lançar a saída sem digitar.</p>
+      <a class="primary-button" routerLink="/home/comprovantes/novo">Enviar comprovante</a>
+    </div>
+  } @else {
+    <section class="fatura-items" aria-label="Comprovantes">
+      @for (item of comprovantes(); track item.id) {
+        <a class="fatura-item import-link" [routerLink]="['/home/comprovantes', item.id]">
+          <div class="fatura-item-main">
+            <h4>{{ item.descricao || item.estabelecimento || 'Comprovante sem descrição' }}</h4>
+            <div class="fatura-item-meta">
+              <span class="status-badge" [class]="'status-' + item.status.toLowerCase()">
+                {{ rotuloStatus[item.status] }}
+              </span>
+              <span>{{ rotuloModalidade(item.modalidade, item.quantidadeParcelas) }}</span>
+              @if (item.cartaoNome) {
+                <span>{{ item.cartaoNome }} · final {{ item.cartaoUltimosDigitos }}</span>
+              }
+              @if (item.dataCompra) {
+                <span>Compra em {{ item.dataCompra | date: 'dd/MM/yyyy' }}</span>
+              }
+              @if (item.erroLeitura && item.status === 'PENDENTE') {
+                <span class="comprovante-erro">Leitura incompleta</span>
+              }
+            </div>
+          </div>
+          @if (item.valorTotal !== null) {
+            <strong>{{ item.valorTotal | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          }
+        </a>
+      }
+    </section>
+  }
+</section>

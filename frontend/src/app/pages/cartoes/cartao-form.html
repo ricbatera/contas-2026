@@ -100,6 +100,28 @@
           </label>
         }
 
+        @if (form.controls.tipo.value === 'PRINCIPAL') {
+          <div class="dias-fatura">
+            <label class="form-field">
+              <span>Dia de fechamento</span>
+              <input type="number" formControlName="diaFechamento" min="1" max="31" inputmode="numeric" placeholder="Ex.: 3" />
+            </label>
+            <label class="form-field">
+              <span>Dia de vencimento</span>
+              <input type="number" formControlName="diaVencimento" min="1" max="31" inputmode="numeric" placeholder="Ex.: 10" />
+            </label>
+            <small class="dias-fatura-ajuda">
+              Opcionais. Com eles, o vencimento das compras lidas de comprovantes é calculado automaticamente.
+            </small>
+            @if (
+              (form.controls.diaFechamento.invalid && form.controls.diaFechamento.touched) ||
+              (form.controls.diaVencimento.invalid && form.controls.diaVencimento.touched)
+            ) {
+              <small class="field-error">Informe dias entre 1 e 31.</small>
+            }
+          </div>
+        }
+
         <label class="form-field">
           <span>Últimos 4 dígitos</span>
           <input

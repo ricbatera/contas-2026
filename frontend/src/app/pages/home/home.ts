@@ -13,6 +13,7 @@ interface UserProfile {
 const SECTIONS = [
   { name: 'Dashboard', icon: 'dashboard', path: '/home/dashboard' },
   { name: 'Fatura', icon: 'invoice', path: '/home/faturas' },
+  { name: 'Comprovantes', icon: 'camera', path: '/home/comprovantes' },
   { name: 'Buckets', icon: 'buckets', path: '/home/buckets' },
   { name: 'Simulação', icon: 'simulation', path: '/home/simulacao' },
   { name: 'Saídas', icon: 'arrow-up', path: '/home/saidas' },

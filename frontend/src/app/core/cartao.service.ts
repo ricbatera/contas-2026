@@ -21,6 +21,8 @@ export interface Cartao {
   virtual: boolean;
   cartaoPrincipalId: string | null;
   ativo: boolean;
+  diaFechamento?: number | null;
+  diaVencimento?: number | null;
 }
 
 export interface CartaoRequest {
@@ -33,6 +35,8 @@ export interface CartaoRequest {
   virtual: boolean;
   cartaoPrincipalId: string | null;
   ativo: boolean;
+  diaFechamento?: number | null;
+  diaVencimento?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })

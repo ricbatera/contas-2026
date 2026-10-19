@@ -16,5 +16,7 @@ public record CartaoResponse(
         TipoCartao tipo,
         boolean virtual,
         UUID cartaoPrincipalId,
-        boolean ativo) {
+        boolean ativo,
+        Integer diaFechamento,
+        Integer diaVencimento) {
 }

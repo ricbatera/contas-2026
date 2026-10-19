@@ -150,6 +150,8 @@ describe('CartaoForm', () => {
       virtual: true,
       cartaoPrincipalId: 'principal-1',
       ativo: true,
+      diaFechamento: null,
+      diaVencimento: null,
     });
     request.flush({
       data: {
@@ -163,6 +165,39 @@ describe('CartaoForm', () => {
       },
     });
     expect(navigate).toHaveBeenCalledWith(['/home/cartoes']);
+  });
+
+  it('sends the closing and due days of a principal card', () => {
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(CartaoForm);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    http.expectOne('/api/cartoes/principais').flush({ data: [] });
+
+    for (const [name, value] of [
+      ['nome', 'Principal'],
+      ['banco', 'Banco'],
+      ['ultimosDigitos', '1234'],
+      ['diaFechamento', '3'],
+      ['diaVencimento', '10'],
+    ]) {
+      const input = element.querySelector<HTMLInputElement>(`[formControlName="${name}"]`)!;
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    element.querySelector<HTMLFormElement>('form')!.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+
+    const request = http.expectOne('/api/cartoes');
+    expect(request.request.body).toMatchObject({ tipo: 'PRINCIPAL', diaFechamento: 3, diaVencimento: 10 });
+    request.flush({ data: { id: 'card-1' } });
+
+    const type = element.querySelector<HTMLSelectElement>('[formControlName="tipo"]')!;
+    type.value = 'ADICIONAL';
+    type.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    expect(element.querySelector('[formControlName="diaFechamento"]')).toBeNull();
   });
 
   it('updates the hexadecimal field when a color is picked', () => {

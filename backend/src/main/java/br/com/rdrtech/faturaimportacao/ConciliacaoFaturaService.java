@@ -2,6 +2,7 @@ package br.com.rdrtech.faturaimportacao;
 
 import br.com.rdrtech.cartao.Cartao;
 import br.com.rdrtech.cartao.CartaoRepository;
+import br.com.rdrtech.cartao.IdentificacaoCartao;
 import br.com.rdrtech.categoria.Categoria;
 import br.com.rdrtech.categoria.CategoriaRepository;
 import br.com.rdrtech.categoria.TipoCategoria;
@@ -281,8 +282,8 @@ public class ConciliacaoFaturaService {
         Map<UUID, Cartao> principais = new HashMap<>();
         for (String finalLido : digitos) {
             for (Cartao cartao : cadastrados) {
-                if (terminaEm(cartao, finalLido)) {
-                    Cartao principal = principalDe(cartao);
+                if (IdentificacaoCartao.terminaEm(cartao, finalLido)) {
+                    Cartao principal = IdentificacaoCartao.principalDe(cartao);
                     principais.put(principal.getId(), principal);
                     digitosPorPrincipal.computeIfAbsent(principal.getId(), id -> new LinkedHashSet<>()).add(finalLido);
                 }
@@ -306,8 +307,8 @@ public class ConciliacaoFaturaService {
         Map<String, Cartao> porDigitos = new LinkedHashMap<>();
         for (String finalLido : digitos) {
             cadastrados.stream()
-                    .filter(cartao -> terminaEm(cartao, finalLido))
-                    .filter(cartao -> principalDe(cartao).getId().equals(principal.getId()))
+                    .filter(cartao -> IdentificacaoCartao.terminaEm(cartao, finalLido))
+                    .filter(cartao -> IdentificacaoCartao.principalDe(cartao).getId().equals(principal.getId()))
                     .sorted(Comparator.comparing(Cartao::isAtivo).reversed())
                     .findFirst()
                     .ifPresent(cartao -> porDigitos.put(finalLido, cartao));
@@ -332,14 +333,6 @@ public class ConciliacaoFaturaService {
                     .forEach(sub -> subcategorias.put(sub.getId(), sub));
         }
         return new SugestoesCategoria(categorias, subcategorias);
-    }
-
-    private static boolean terminaEm(Cartao cartao, String finalLido) {
-        return cartao.getUltimosDigitos() != null && cartao.getUltimosDigitos().endsWith(finalLido);
-    }
-
-    private static Cartao principalDe(Cartao cartao) {
-        return cartao.getCartaoPrincipal() == null ? cartao : cartao.getCartaoPrincipal();
     }
 
     private static void adicionarSeValido(Set<String> digitos, String valor) {

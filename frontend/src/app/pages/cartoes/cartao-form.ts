@@ -14,7 +14,7 @@ import {
   selector: 'app-cartao-form',
   imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './cartao-form.html',
-  styleUrl: './cartoes.css',
+  styleUrls: ['./cartoes.css', './cartao-form.css'],
 })
 export class CartaoForm {
   private readonly fb = inject(FormBuilder);
@@ -41,6 +41,8 @@ export class CartaoForm {
     virtual: [false],
     ativo: [true],
     cartaoPrincipalId: [''],
+    diaFechamento: this.fb.control<number | null>(null, [Validators.min(1), Validators.max(31)]),
+    diaVencimento: this.fb.control<number | null>(null, [Validators.min(1), Validators.max(31)]),
   });
 
   constructor() {
@@ -59,6 +61,8 @@ export class CartaoForm {
             virtual: cartao.virtual,
             ativo: cartao.ativo,
             cartaoPrincipalId: cartao.cartaoPrincipalId ?? '',
+            diaFechamento: cartao.diaFechamento ?? null,
+            diaVencimento: cartao.diaVencimento ?? null,
           });
           this.atualizarValidacaoPrincipal();
           this.loading.set(false);
@@ -83,9 +87,13 @@ export class CartaoForm {
     }
 
     const value = this.form.getRawValue();
+    const principal = value.tipo === 'PRINCIPAL';
     const request: CartaoRequest = {
       ...value,
-      cartaoPrincipalId: value.tipo === 'ADICIONAL' ? value.cartaoPrincipalId : null,
+      cartaoPrincipalId: principal ? null : value.cartaoPrincipalId,
+      // O adicional entra na fatura do principal e usa os dias dele.
+      diaFechamento: principal ? value.diaFechamento : null,
+      diaVencimento: principal ? value.diaVencimento : null,
     };
     this.saving.set(true);
     this.error.set(null);

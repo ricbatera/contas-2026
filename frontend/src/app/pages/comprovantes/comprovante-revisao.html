@@ -1,0 +1,182 @@
+<section class="cards-page">
+  <div class="form-toolbar">
+    <a class="back-link" routerLink="/home/comprovantes">
+      <span aria-hidden="true">←</span>
+      Voltar para comprovantes
+    </a>
+    <p class="section-kicker">COMPRAS NO CARTÃO</p>
+    <h2>Revisar comprovante</h2>
+    @if (comprovante(); as c) {
+      <div class="import-meta">
+        <span class="status-badge" [class]="'status-' + c.status.toLowerCase()">{{ rotuloStatus[c.status] }}</span>
+        <span>Enviado em {{ c.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</span>
+        @if (c.provedorModelo) {
+          <span>Lido por {{ c.provedorModelo }}</span>
+        }
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando comprovante...</div>
+  } @else if (comprovante(); as c) {
+    <div class="comprovante-layout">
+      <figure class="comprovante-imagem">
+        @if (imagemUrl(); as url) {
+          <a [href]="url" target="_blank" rel="noopener" title="Abrir a imagem em tamanho real">
+            <img [src]="url" alt="Foto do comprovante" />
+          </a>
+        } @else {
+          <div class="state-card">Imagem indisponível.</div>
+        }
+      </figure>
+
+      <form class="card-form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+        @if (mensagem()) {
+          <div class="import-message full-width" role="status">{{ mensagem() }}</div>
+        }
+        @if (error()) {
+          <div class="form-error" role="alert">{{ error() }}</div>
+        }
+        @if (c.erroLeitura && c.status === 'PENDENTE') {
+          <div class="form-error" role="alert">
+            {{ c.erroLeitura }} Preencha os campos à mão ou use “Ler de novo”.
+          </div>
+        }
+        @if (c.avisos.length && c.status === 'PENDENTE') {
+          <ul class="import-warnings full-width">
+            @for (aviso of c.avisos; track aviso) {
+              <li>{{ aviso }}</li>
+            }
+          </ul>
+        }
+        @if (c.status === 'APROVADO' && c.saidaId) {
+          <div class="import-message full-width">
+            Saída criada a partir deste comprovante.
+            <a [routerLink]="['/home/saidas', c.saidaId, 'editar']">Abrir a saída</a>
+          </div>
+        }
+
+        <label class="form-field">
+          <span>Pagamento</span>
+          <select formControlName="modalidade">
+            <option value="CREDITO">Crédito</option>
+            <option value="DEBITO">Débito</option>
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Cartão @if (debito()) {<span class="optional-label">(opcional)</span>}</span>
+          <select formControlName="cartaoId">
+            <option value="">Selecione</option>
+            @for (cartao of cartoesDisponiveis(); track cartao.id) {
+              <option [value]="cartao.id">{{ rotuloCartao(cartao) }}</option>
+            }
+          </select>
+          @if (c.ultimosDigitosLidos) {
+            <small>
+              No comprovante: final {{ c.ultimosDigitosLidos }}@if (c.bandeiraLida) { · {{ c.bandeiraLida }}}
+            </small>
+          }
+        </label>
+
+        <label class="form-field full-width">
+          <span>Descrição</span>
+          <input type="text" formControlName="descricao" maxlength="120" autocomplete="off" placeholder="Ex.: Padaria do bairro" />
+          @if (c.estabelecimento && c.estabelecimento !== form.controls.descricao.value) {
+            <small>No comprovante: {{ c.estabelecimento }}</small>
+          }
+        </label>
+
+        <label class="form-field">
+          <span>Data da compra</span>
+          <input type="date" formControlName="dataCompra" />
+        </label>
+
+        <label class="form-field">
+          <span>Valor total</span>
+          <app-campo-calculadora>
+            <input type="number" formControlName="valorTotal" min="0.01" step="0.01" inputmode="decimal" />
+          </app-campo-calculadora>
+          @if (form.controls.valorTotal.invalid && form.controls.valorTotal.touched) {
+            <small class="field-error">Informe um valor maior que zero.</small>
+          }
+        </label>
+
+        @if (!debito()) {
+          <label class="form-field">
+            <span>Parcelas</span>
+            <select formControlName="quantidadeParcelas">
+              @for (n of parcelas; track n) {
+                <option [ngValue]="n">{{ n === 1 ? 'À vista' : n + 'x' }}</option>
+              }
+            </select>
+            @if (valorParcela(); as parcela) {
+              <small>{{ rotuloModalidade('CREDITO', form.controls.quantidadeParcelas.value) }} de
+                {{ parcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</small>
+            }
+          </label>
+
+          <label class="form-field">
+            <span>Vencimento da 1ª parcela</span>
+            <input type="date" formControlName="primeiroVencimento" />
+            <small>Calculado pelos dias de fechamento e vencimento do cartão; confira.</small>
+          </label>
+        }
+
+        <label class="form-field">
+          <span>Categoria</span>
+          <select formControlName="categoriaId">
+            <option value="">Selecione</option>
+            @for (categoria of categoriasDespesa(); track categoria.id) {
+              <option [value]="categoria.id">{{ categoria.nome }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Subcategoria</span>
+          <select formControlName="subcategoriaId">
+            <option value="">Selecione</option>
+            @for (sub of subcategorias(); track sub.id) {
+              <option [value]="sub.id">{{ sub.nome }}</option>
+            }
+          </select>
+        </label>
+
+        <div class="form-actions comprovante-acoes">
+          @if (pendente()) {
+            @if (faltando().length) {
+              <small class="import-wait">Para aprovar, informe: {{ faltando().join(', ') }}.</small>
+            }
+            <button class="delete-button" type="button" [disabled]="!!ocupado()" (click)="rejeitar()">Rejeitar</button>
+            <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="reler()">
+              {{ ocupado() === 'reler' ? 'Lendo...' : 'Ler de novo' }}
+            </button>
+            @if (form.dirty) {
+              <button class="secondary-button" type="submit" [disabled]="!!ocupado()">
+                {{ ocupado() === 'salvar' ? 'Salvando...' : 'Salvar' }}
+              </button>
+            }
+            <button class="primary-button" type="button" [disabled]="!!ocupado() || faltando().length" (click)="aprovar()">
+              {{ ocupado() === 'aprovar' ? 'Aprovando...' : 'Aprovar e criar saída' }}
+            </button>
+          } @else if (c.status === 'REJEITADO') {
+            @if (confirmandoExclusao()) {
+              <span class="confirm-text">Excluir o comprovante?</span>
+              <button class="secondary-button" type="button" (click)="confirmandoExclusao.set(false)">Não</button>
+              <button class="delete-button" type="button" [disabled]="!!ocupado()" (click)="excluir()">Excluir</button>
+            } @else {
+              <button class="delete-button" type="button" [disabled]="!!ocupado()" (click)="confirmandoExclusao.set(true)">
+                Excluir
+              </button>
+              <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="reabrir()">Reabrir</button>
+            }
+          }
+        </div>
+      </form>
+    </div>
+  } @else if (error()) {
+    <div class="form-error" role="alert">{{ error() }}</div>
+  }
+</section>

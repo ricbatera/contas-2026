@@ -1,0 +1,17 @@
+.dias-fatura {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 16px;
+}
+
+.dias-fatura small {
+  grid-column: 1 / -1;
+  color: #8995a7;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.dias-fatura .field-error {
+  color: #c0392b;
+}

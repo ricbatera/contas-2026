@@ -2,6 +2,8 @@ package br.com.rdrtech.cartao.dto;
 
 import br.com.rdrtech.cartao.Bandeira;
 import br.com.rdrtech.cartao.TipoCartao;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -20,11 +22,13 @@ public record CartaoRequest(
         TipoCartao tipo,
         Boolean virtual,
         UUID cartaoPrincipalId,
-        Boolean ativo) {
+        Boolean ativo,
+        @Min(1) @Max(31) Integer diaFechamento,
+        @Min(1) @Max(31) Integer diaVencimento) {
 
     public CartaoRequest(
             String nome, String banco, Bandeira bandeira, String ultimosDigitos, String cor) {
-        this(nome, banco, bandeira, ultimosDigitos, cor, null, false, null, true);
+        this(nome, banco, bandeira, ultimosDigitos, cor, null, false, null, true, null, null);
     }
 
     public CartaoRequest(
@@ -36,6 +40,19 @@ public record CartaoRequest(
             TipoCartao tipo,
             Boolean virtual,
             UUID cartaoPrincipalId) {
-        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, true);
+        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, true, null, null);
+    }
+
+    public CartaoRequest(
+            String nome,
+            String banco,
+            Bandeira bandeira,
+            String ultimosDigitos,
+            String cor,
+            TipoCartao tipo,
+            Boolean virtual,
+            UUID cartaoPrincipalId,
+            Boolean ativo) {
+        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, ativo, null, null);
     }
 }

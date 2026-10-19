@@ -58,4 +58,12 @@ public class Cartao extends TenantAwareEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cartao_principal_id")
     private Cartao cartaoPrincipal;
+
+    /** Dia em que a fatura fecha; só no principal. Compras a partir deste dia vão para a fatura seguinte. */
+    @Column(name = "dia_fechamento")
+    private Integer diaFechamento;
+
+    /** Dia de vencimento da fatura; só no principal. */
+    @Column(name = "dia_vencimento")
+    private Integer diaVencimento;
 }

@@ -3,6 +3,7 @@ package br.com.rdrtech.cartao;
 import br.com.rdrtech.cartao.dto.CartaoRequest;
 import br.com.rdrtech.cartao.dto.CartaoResponse;
 import br.com.rdrtech.exception.CartaoDuplicadoException;
+import br.com.rdrtech.exception.CartaoInvalidoException;
 import br.com.rdrtech.exception.CartaoNaoEncontradoException;
 import br.com.rdrtech.exception.CartaoPrincipalEmUsoException;
 import br.com.rdrtech.exception.CartaoPrincipalInvalidoException;
@@ -52,6 +53,7 @@ public class CartaoService {
         validarDuplicidade(request.bandeira(), request.ultimosDigitos(), null);
         TipoCartao tipo = tipoEfetivo(request);
         Cartao principal = resolverPrincipal(tipo, request.cartaoPrincipalId());
+        validarDias(tipo, request);
 
         Cartao cartao = Cartao.builder()
                 .nome(request.nome())
@@ -63,6 +65,8 @@ public class CartaoService {
                 .virtual(Boolean.TRUE.equals(request.virtual()))
                 .ativo(request.ativo() == null || request.ativo())
                 .cartaoPrincipal(principal)
+                .diaFechamento(request.diaFechamento())
+                .diaVencimento(request.diaVencimento())
                 .build();
         return CartaoMapper.toResponse(cartaoRepository.save(cartao));
     }
@@ -78,6 +82,7 @@ public class CartaoService {
             throw new CartaoPrincipalInvalidoException();
         }
         Cartao principal = resolverPrincipal(tipo, request.cartaoPrincipalId());
+        validarDias(tipo, request);
 
         cartao.setNome(request.nome());
         cartao.setBanco(request.banco());
@@ -90,6 +95,8 @@ public class CartaoService {
             cartao.setAtivo(request.ativo());
         }
         cartao.setCartaoPrincipal(principal);
+        cartao.setDiaFechamento(request.diaFechamento());
+        cartao.setDiaVencimento(request.diaVencimento());
         return CartaoMapper.toResponse(cartao);
     }
 
@@ -111,6 +118,14 @@ public class CartaoService {
                 : cartaoRepository.existsByBandeiraAndUltimosDigitosAndIdNot(bandeira, ultimosDigitos, idAtual);
         if (duplicado) {
             throw new CartaoDuplicadoException(bandeira, ultimosDigitos);
+        }
+    }
+
+    /** O adicional entra na fatura do principal, então fechamento e vencimento só existem no principal. */
+    private void validarDias(TipoCartao tipo, CartaoRequest request) {
+        if (tipo == TipoCartao.ADICIONAL && (request.diaFechamento() != null || request.diaVencimento() != null)) {
+            throw new CartaoInvalidoException(
+                    "Dias de fechamento e vencimento são do cartão principal; o adicional usa os do principal.");
         }
     }
 

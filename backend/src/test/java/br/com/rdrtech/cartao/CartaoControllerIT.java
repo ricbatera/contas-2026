@@ -94,6 +94,35 @@ class CartaoControllerIT {
     }
 
     @Test
+    void criar_deveAceitarDiasDeFechamentoEVencimentoSoNoPrincipal() throws Exception {
+        String token = registrarERetornarToken("dias-fatura");
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CartaoRequest(
+                                "Com dias", "Banco", Bandeira.VISA, "3579", null, null, false, null, true, 3, 10))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.diaFechamento").value(3))
+                .andExpect(jsonPath("$.data.diaVencimento").value(10));
+        String principalId = criarCartaoERetornarId(token,
+                new CartaoRequest("Principal", "Banco", Bandeira.ELO, "9753", null));
+
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CartaoRequest(
+                                "Adicional", "Banco", Bandeira.ELO, "9754", null, TipoCartao.ADICIONAL, false,
+                                java.util.UUID.fromString(principalId), true, 3, 10))))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CartaoRequest(
+                                "Dia invalido", "Banco", Bandeira.AMEX, "9755", null, null, false, null, true, 32, 10))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void criar_deveRetornar400_quandoAdicionalNaoInformaPrincipal() throws Exception {
         String token = registrarERetornarToken("adicional-sem-principal");
         CartaoRequest request = new CartaoRequest(

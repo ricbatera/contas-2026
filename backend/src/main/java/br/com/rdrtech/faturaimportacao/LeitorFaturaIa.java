@@ -289,7 +289,7 @@ public class LeitorFaturaIa {
         }
     }
 
-    private static String descreverCategorias(List<OpcaoCategoria> categorias) {
+    public static String descreverCategorias(List<OpcaoCategoria> categorias) {
         if (categorias.isEmpty()) {
             return "(nenhuma)";
         }
