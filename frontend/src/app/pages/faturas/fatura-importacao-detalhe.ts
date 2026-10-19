@@ -9,6 +9,7 @@ import { FaturaImportacao, FaturaImportacaoService } from '../../core/fatura-imp
 import { ImportacaoMonitorService } from '../../core/importacao-monitor.service';
 import { PreSaida, PreSaidaRequest, PreSaidaService } from '../../core/pre-saida.service';
 import { mensagemErro, ROTULO_STATUS, rotuloCompetencia } from './importacao-util';
+import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 
 /** Ajustes do usuário numa pré-saída pendente, ainda não gravados. */
 interface Rascunho extends PreSaidaRequest {
@@ -17,7 +18,7 @@ interface Rascunho extends PreSaidaRequest {
 
 @Component({
   selector: 'app-fatura-importacao-detalhe',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CampoCalculadora, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './fatura-importacao-detalhe.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })

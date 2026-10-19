@@ -59,14 +59,16 @@
 
         <label class="form-field">
           <span>Saldo inicial (R$)</span>
-          <input
-            type="number"
-            formControlName="saldoInicial"
-            min="0"
-            step="0.01"
-            inputmode="decimal"
-            placeholder="0,00"
-          />
+          <app-campo-calculadora>
+            <input
+              type="number"
+              formControlName="saldoInicial"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="0,00"
+            />
+          </app-campo-calculadora>
           @if (form.controls.saldoInicial.invalid && form.controls.saldoInicial.touched) {
             <small>O saldo inicial deve ser maior ou igual a R$ 0,00.</small>
           }

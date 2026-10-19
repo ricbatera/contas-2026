@@ -53,7 +53,9 @@
 
       <label class="form-field">
         <span>Valor por parcela *</span>
-        <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela" inputmode="decimal" />
+        <app-campo-calculadora>
+          <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela" inputmode="decimal" />
+        </app-campo-calculadora>
         @if (form.controls.valorPorParcela.invalid && form.controls.valorPorParcela.touched) {
           <small>Informe um valor positivo por parcela.</small>
         }
@@ -209,7 +211,9 @@
                 </label>
                 <label class="form-field">
                   <span>Valor por parcela *</span>
-                  <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela" inputmode="decimal" />
+                  <app-campo-calculadora>
+                    <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela" inputmode="decimal" />
+                  </app-campo-calculadora>
                 </label>
                 <button class="remove-part" type="button" (click)="removerParte($index)" [disabled]="partes.length <= 1">
                   Remover

@@ -203,13 +203,15 @@
               </label>
               <label class="form-field">
                 <span>Valor da parcela</span>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  [value]="r.valorPorParcela"
-                  (input)="alterar(item.id, 'valorPorParcela', $event)"
-                />
+                <app-campo-calculadora>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    [value]="r.valorPorParcela"
+                    (input)="alterar(item.id, 'valorPorParcela', $event)"
+                  />
+                </app-campo-calculadora>
               </label>
               <label class="form-field">
                 <span>Categoria</span>

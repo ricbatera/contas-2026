@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DashboardProjecaoMes, DashboardService } from '../../core/dashboard.service';
+import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 
 registerLocaleData(localePtBr);
 
@@ -25,7 +26,7 @@ const QUANTIDADES_PARCELAS = Array.from({ length: 60 }, (_, index) => index + 1)
 
 @Component({
   selector: 'app-simulacao',
-  imports: [CurrencyPipe, ReactiveFormsModule],
+  imports: [CampoCalculadora, CurrencyPipe, ReactiveFormsModule],
   templateUrl: './simulacao.html',
   styleUrls: ['../cartoes/cartoes.css', './simulacao.css'],
 })

@@ -20,6 +20,7 @@ import { CartaoRapido } from '../../shared/cadastro-rapido/cartao-rapido';
 import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
 import { PessoaRapida } from '../../shared/cadastro-rapido/pessoa-rapida';
 import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
+import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 
 interface UserProfile {
   id: string;
@@ -36,6 +37,7 @@ type CadastroRapido =
 @Component({
   selector: 'app-saida-form',
   imports: [
+    CampoCalculadora,
     CartaoRapido,
     CategoriaRapida,
     CurrencyPipe,

@@ -8,6 +8,7 @@ import {
   ContaBancariaService,
   TIPOS_CONTA,
 } from '../../core/conta-bancaria.service';
+import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 
 const NOMES_TIPO: Record<(typeof TIPOS_CONTA)[number], string> = {
   CORRENTE: 'Conta corrente',
@@ -19,7 +20,7 @@ const NOMES_TIPO: Record<(typeof TIPOS_CONTA)[number], string> = {
 
 @Component({
   selector: 'app-conta-form',
-  imports: [CurrencyPipe, ReactiveFormsModule, RouterLink],
+  imports: [CampoCalculadora, CurrencyPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './conta-form.html',
   styleUrls: ['../cartoes/cartoes.css', './contas.css'],
 })

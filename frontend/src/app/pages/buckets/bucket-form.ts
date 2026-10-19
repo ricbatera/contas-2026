@@ -9,6 +9,7 @@ import { Pessoa, PessoaService } from '../../core/pessoa.service';
 import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
 import { PessoaRapida } from '../../shared/cadastro-rapido/pessoa-rapida';
 import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
+import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 
 type CadastroRapido =
   | { tipo: 'categoria' }
@@ -17,7 +18,7 @@ type CadastroRapido =
 
 @Component({
   selector: 'app-bucket-form',
-  imports: [CategoriaRapida, PessoaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
+  imports: [CampoCalculadora, CategoriaRapida, PessoaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
   templateUrl: './bucket-form.html',
   styleUrls: ['../cartoes/cartoes.css', './buckets.css', '../../shared/cadastro-rapido/cadastro-rapido.css'],
 })

@@ -4,6 +4,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Cartao, CartaoService } from '../../core/cartao.service';
 import { FormaPagamento, Saida, SaidaParcela, SaidaService } from '../../core/saida.service';
+import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 
 interface FiltrosSaida {
   texto: string;
@@ -70,7 +71,7 @@ const MESES = Array.from({ length: 12 }, (_, index) => ({
 
 @Component({
   selector: 'app-saidas-list',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CampoCalculadora, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './saidas-list.html',
   styleUrls: ['../cartoes/cartoes.css', './saidas.css'],
 })

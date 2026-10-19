@@ -239,23 +239,27 @@
             <legend>Valor por parcela (R$)</legend>
             <label class="form-field">
               Mínimo
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                [value]="filtrosRascunho().valorMinimo"
-                (input)="atualizarFiltro('valorMinimo', $event)"
-              />
+              <app-campo-calculadora>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [value]="filtrosRascunho().valorMinimo"
+                  (input)="atualizarFiltro('valorMinimo', $event)"
+                />
+              </app-campo-calculadora>
             </label>
             <label class="form-field">
               Máximo
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                [value]="filtrosRascunho().valorMaximo"
-                (input)="atualizarFiltro('valorMaximo', $event)"
-              />
+              <app-campo-calculadora>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [value]="filtrosRascunho().valorMaximo"
+                  (input)="atualizarFiltro('valorMaximo', $event)"
+                />
+              </app-campo-calculadora>
             </label>
           </fieldset>
 

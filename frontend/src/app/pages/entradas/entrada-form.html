@@ -35,7 +35,9 @@
 
       <label class="form-field">
         <span>{{ form.controls.recorrente.value ? 'Valor mensal previsto *' : 'Valor previsto *' }}</span>
-        <input type="number" min="0.01" step="0.01" formControlName="valor" inputmode="decimal" />
+        <app-campo-calculadora>
+          <input type="number" min="0.01" step="0.01" formControlName="valor" inputmode="decimal" />
+        </app-campo-calculadora>
         @if (form.controls.valor.invalid && form.controls.valor.touched) {
           <small>Informe um valor positivo.</small>
         }

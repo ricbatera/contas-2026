@@ -16,7 +16,7 @@ import { afterNextRender, Component, ElementRef, inject, input, output } from '@
       >
         <header class="filter-dialog-header">
           <div>
-            <p class="section-kicker">CADASTRO RÁPIDO</p>
+            <p class="section-kicker">{{ secao() }}</p>
             <h2 [id]="tituloId">{{ titulo() }}</h2>
           </div>
           <button class="filter-close-button" type="button" aria-label="Fechar" (click)="fechar.emit()">×</button>
@@ -31,6 +31,7 @@ export class DialogoRapido {
   private static sequencia = 0;
 
   readonly titulo = input.required<string>();
+  readonly secao = input('CADASTRO RÁPIDO');
   readonly fechar = output<void>();
   protected readonly tituloId = `cadastro-rapido-titulo-${++DialogoRapido.sequencia}`;
 

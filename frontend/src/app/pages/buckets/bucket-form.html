@@ -71,14 +71,16 @@
 
       <label class="form-field">
         Valor mensal previsto (R$)
-        <input
-          type="number"
-          formControlName="valorMensal"
-          min="0.01"
-          step="0.01"
-          inputmode="decimal"
-          placeholder="200,00"
-        />
+        <app-campo-calculadora>
+          <input
+            type="number"
+            formControlName="valorMensal"
+            min="0.01"
+            step="0.01"
+            inputmode="decimal"
+            placeholder="200,00"
+          />
+        </app-campo-calculadora>
         @if (form.controls.valorMensal.invalid && form.controls.valorMensal.touched) {
           <small>Informe um valor mensal maior que zero.</small>
         }

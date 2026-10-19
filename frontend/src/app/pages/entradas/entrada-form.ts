@@ -8,12 +8,13 @@ import { ContaBancaria, ContaBancariaService } from '../../core/conta-bancaria.s
 import { Entrada, EntradaRequest, EntradaService } from '../../core/entrada.service';
 import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
 import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
+import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 
 type CadastroRapido = { tipo: 'categoria' } | { tipo: 'subcategoria'; categoria: Categoria };
 
 @Component({
   selector: 'app-entrada-form',
-  imports: [CategoriaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
+  imports: [CampoCalculadora, CategoriaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
   templateUrl: './entrada-form.html',
   styleUrls: [
     '../cartoes/cartoes.css',
