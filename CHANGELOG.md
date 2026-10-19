@@ -2,6 +2,20 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## frontend 1.0.3 — 2026-10-19
+
+- Imagem: `ricardo1782/financas-frontend:1.0.3` (também `latest`)
+- Commit: `78ff0af` (tag `frontend-v1.0.3`)
+- Próxima versão de desenvolvimento: 1.0.4
+- Mudanças:
+  - 50bb7c4 feat: ler comprovantes de maquininha de cartão com IA
+  - 20fefbb fix(frontend): ícones cortados no menu lateral recolhido
+  - f8766eb fix(frontend): seletor de cores nos formulários de cartão e conta
+  - 0001f55 feat: listar modelos disponíveis no cadastro de provedores de IA
+  - 5fb7bf5 feat(frontend): calculadora nos campos de valor
+  - 4b10b4a feat: cadastro de entradas com recorrência e receitas no dashboard
+  - 63d4ac1 feat(frontend): filtrar saídas pelo cartão principal com seus adicionais
+
 ## backend 1.0.2 — 2026-10-19
 
 - Imagem: `ricardo1782/financas-backend:1.0.2` (também `latest`)
