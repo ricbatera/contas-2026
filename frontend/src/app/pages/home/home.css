@@ -200,7 +200,15 @@
 
 .collapsed .nav-item {
   justify-content: center;
+  gap: 0;
   padding-inline: 0;
+}
+
+/* Invisível não basta: o texto ainda ocuparia largura e empurraria o ícone para fora do item. */
+.collapsed .nav-label {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .nav-label,
