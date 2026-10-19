@@ -105,7 +105,13 @@
         <label class="form-field">
           <span>Cor da conta <span class="optional-label">(opcional)</span></span>
           <div class="color-input">
-            <span class="color-preview" [style.backgroundColor]="form.controls.cor.value || '#1e6fd0'"></span>
+            <input
+              class="color-preview"
+              type="color"
+              aria-label="Escolher a cor da conta"
+              [value]="form.controls.cor.value || '#1e6fd0'"
+              (input)="escolherCor($event)"
+            />
             <input
               type="text"
               formControlName="cor"

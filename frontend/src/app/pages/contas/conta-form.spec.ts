@@ -137,4 +137,17 @@ describe('ContaForm', () => {
     await fixture.whenStable();
     expect(navigate).toHaveBeenCalledWith(['/home/contas']);
   });
+
+  it('updates the optional color field when a color is picked', () => {
+    const fixture = TestBed.createComponent(ContaForm);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const picker = element.querySelector<HTMLInputElement>('input[type="color"]')!;
+    picker.value = '#228844';
+    picker.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(element.querySelector<HTMLInputElement>('input[type="text"][formControlName="cor"]')!.value).toBe('#228844');
+  });
 });

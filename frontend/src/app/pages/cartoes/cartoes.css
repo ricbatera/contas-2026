@@ -433,12 +433,23 @@
   gap: 8px;
 }
 
-.color-preview {
+.form-field input.color-preview {
   flex: 0 0 26px;
   width: 26px;
   height: 26px;
+  padding: 0;
   border: 1px solid #dfe5ed;
   border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.color-preview::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-preview::-webkit-color-swatch {
+  border: 0;
 }
 
 .form-error {

@@ -119,7 +119,13 @@
         <label class="form-field">
           <span>Cor do cartão</span>
           <div class="color-input">
-            <span class="color-preview" [style.backgroundColor]="form.controls.cor.value"></span>
+            <input
+              class="color-preview"
+              type="color"
+              aria-label="Escolher a cor do cartão"
+              [value]="form.controls.cor.value"
+              (input)="escolherCor($event)"
+            />
             <input
               type="text"
               formControlName="cor"

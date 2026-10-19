@@ -75,6 +75,11 @@ export class ContaForm {
     return NOMES_TIPO[tipo];
   }
 
+  protected escolherCor(event: Event): void {
+    this.form.controls.cor.setValue((event.target as HTMLInputElement).value);
+    this.form.controls.cor.markAsDirty();
+  }
+
   protected submit(): void {
     if (this.form.invalid || this.loading() || this.saving()) {
       this.form.markAllAsTouched();

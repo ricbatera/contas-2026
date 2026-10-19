@@ -41,7 +41,7 @@ describe('CartaoForm', () => {
     const digits = element.querySelector<HTMLInputElement>('[formControlName="ultimosDigitos"]')!;
     digits.value = '123';
     digits.dispatchEvent(new Event('input', { bubbles: true }));
-    const color = element.querySelector<HTMLInputElement>('[formControlName="cor"]')!;
+    const color = element.querySelector<HTMLInputElement>('input[type="text"][formControlName="cor"]')!;
     color.value = 'blue';
     color.dispatchEvent(new Event('input', { bubbles: true }));
 
@@ -163,5 +163,19 @@ describe('CartaoForm', () => {
       },
     });
     expect(navigate).toHaveBeenCalledWith(['/home/cartoes']);
+  });
+
+  it('updates the hexadecimal field when a color is picked', () => {
+    const fixture = TestBed.createComponent(CartaoForm);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    http.expectOne('/api/cartoes/principais').flush({ data: [] });
+
+    const picker = element.querySelector<HTMLInputElement>('input[type="color"]')!;
+    picker.value = '#ff8800';
+    picker.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(element.querySelector<HTMLInputElement>('input[type="text"][formControlName="cor"]')!.value).toBe('#ff8800');
   });
 });
