@@ -29,5 +29,7 @@ public interface CartaoRepository extends JpaRepository<Cartao, UUID> {
 
     boolean existsByCartaoPrincipal_Id(UUID cartaoPrincipalId);
 
-    @Query("select c from Cartao c left join fetch c.cartaoPrincipal where c.ultimosDigitos in :digitos")
-    java.util.List<Cartao> listarPorUltimosDigitos(@Param("digitos") java.util.Collection<String> digitos);}
+    /** Todos os cartões do usuário com o principal carregado, para casar finais (às vezes parciais) da fatura. */
+    @Query("select c from Cartao c left join fetch c.cartaoPrincipal")
+    java.util.List<Cartao> listarComPrincipal();
+}

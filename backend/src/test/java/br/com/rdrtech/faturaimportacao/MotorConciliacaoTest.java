@@ -173,6 +173,7 @@ class MotorConciliacaoTest {
     @Test
     void auxiliaresDevemNormalizarEntradasDaIa() {
         assertThat(MotorConciliacao.normalizarDigitos("**** 1234")).isEqualTo("1234");
+        assertThat(MotorConciliacao.normalizarDigitos("*117")).isEqualTo("117");
         assertThat(MotorConciliacao.normalizarDigitos("12")).isNull();
         assertThat(MotorConciliacao.converterData("2026-10-05T00:00:00")).isEqualTo(LocalDate.of(2026, 10, 5));
         assertThat(MotorConciliacao.converterData("05/10")).isNull();

@@ -327,12 +327,16 @@ final class MotorConciliacao {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    /**
+     * Final do cartão lido pela IA: os 4 últimos dígitos, ou só 3 quando a fatura mascara um deles
+     * (ex.: "*117"). O cartão é casado depois por sufixo.
+     */
     static String normalizarDigitos(String valor) {
         if (valor == null) {
             return null;
         }
         String digitos = valor.replaceAll("\\D", "");
-        return digitos.length() < 4 ? null : digitos.substring(digitos.length() - 4);
+        return digitos.length() < 3 ? null : digitos.substring(Math.max(0, digitos.length() - 4));
     }
 
     static LocalDate converterData(String valor) {

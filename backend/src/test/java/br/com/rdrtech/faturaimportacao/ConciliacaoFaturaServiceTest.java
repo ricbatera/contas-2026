@@ -3,7 +3,6 @@ package br.com.rdrtech.faturaimportacao;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -70,7 +69,7 @@ class ConciliacaoFaturaServiceTest {
                 .vencimento(VENCIMENTO.minusMonths(1)).build();
         importacao = new FaturaImportacao();
         importacao.setId(UUID.randomUUID());
-        when(cartaoRepository.listarPorUltimosDigitos(anyCollection())).thenReturn(List.of(principal));
+        when(cartaoRepository.listarComPrincipal()).thenReturn(List.of(principal));
         when(faturaRepository.buscarPorCartaoECompetencia(eq(principal.getId()), anyInt())).thenReturn(Optional.empty());
         when(faturaRepository.buscarPorCartaoECompetencia(principal.getId(), 202610)).thenReturn(Optional.of(fatura));
         when(faturaRepository.buscarPorCartaoECompetencia(principal.getId(), 202609))
@@ -127,11 +126,38 @@ class ConciliacaoFaturaServiceTest {
 
     @Test
     void deveFalharQuandoNenhumCartaoCorresponde() {
-        when(cartaoRepository.listarPorUltimosDigitos(anyCollection())).thenReturn(List.of());
+        when(cartaoRepository.listarComPrincipal()).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.aplicar(importacao, fatura(item("X", "1.00", 1, 1)), List.of(), List.of()))
                 .isInstanceOf(FaturaImportacaoInvalidaException.class)
                 .hasMessageContaining("1111");
+    }
+
+    @Test
+    void deveIdentificarCartaoPeloFinalMascaradoNaFatura() {
+        Cartao outro = Cartao.builder().nome("Outro").ultimosDigitos("2222").tipo(TipoCartao.PRINCIPAL).build();
+        outro.setId(UUID.randomUUID());
+        when(cartaoRepository.listarComPrincipal()).thenReturn(List.of(outro, principal));
+        Saida mercado = saidaComParcela(fatura, "Mercado", 1, 1, "80.00");
+
+        ResumoImportacao resumo = service.aplicar(importacao, faturaDoFinal("*111", item("MERCADO X", "80.00", 1, 1, "*111")),
+                List.of(), List.of());
+
+        assertThat(mercado.getDescricaoFatura()).isEqualTo("MERCADO X");
+        assertThat(resumo.conciliados()).hasSize(1);
+        assertThat(resumo.avisos()).isEmpty();
+    }
+
+    @Test
+    void deveFalharQuandoFinalMascaradoCorrespondeAMaisDeUmCartaoPrincipal() {
+        Cartao outro = Cartao.builder().nome("Outro").ultimosDigitos("9111").tipo(TipoCartao.PRINCIPAL).build();
+        outro.setId(UUID.randomUUID());
+        when(cartaoRepository.listarComPrincipal()).thenReturn(List.of(outro, principal));
+
+        assertThatThrownBy(() -> service.aplicar(importacao,
+                faturaDoFinal("*111", item("X", "1.00", 1, 1, "*111")), List.of(), List.of()))
+                .isInstanceOf(FaturaImportacaoInvalidaException.class)
+                .hasMessageContaining("mais de um cartão principal");
     }
 
     private Saida saidaComParcela(Fatura destino, String descricao, int numero, int quantidade, String valor) {
@@ -151,5 +177,13 @@ class ConciliacaoFaturaServiceTest {
 
     private static ItemLido item(String descricao, String valor, int parcela, int total) {
         return new ItemLido("1111", null, descricao, new BigDecimal(valor), parcela, total, "COMPRA", null, null);
+    }
+
+    private static FaturaLidaIa faturaDoFinal(String finalCartao, ItemLido... itens) {
+        return new FaturaLidaIa(VENCIMENTO.toString(), null, List.of(new CartaoLido(finalCartao, null)), List.of(itens));
+    }
+
+    private static ItemLido item(String descricao, String valor, int parcela, int total, String finalCartao) {
+        return new ItemLido(finalCartao, null, descricao, new BigDecimal(valor), parcela, total, "COMPRA", null, null);
     }
 }

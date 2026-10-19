@@ -272,17 +272,21 @@ public class ConciliacaoFaturaService {
         lida.itens().forEach(i -> adicionarSeValido(digitos, MotorConciliacao.normalizarDigitos(i.ultimosDigitos())));
         if (digitos.isEmpty()) {
             throw new FaturaImportacaoInvalidaException(
-                    "A IA não identificou os 4 últimos dígitos de nenhum cartão na fatura.");
+                    "A IA não identificou o final de nenhum cartão na fatura.");
         }
 
-        List<Cartao> encontrados = cartaoRepository.listarPorUltimosDigitos(digitos);
+        // Algumas faturas mascaram um dígito do final (ex.: "*117"); por isso o casamento é por sufixo.
+        List<Cartao> cadastrados = cartaoRepository.listarComPrincipal();
         Map<UUID, Set<String>> digitosPorPrincipal = new HashMap<>();
         Map<UUID, Cartao> principais = new HashMap<>();
-        for (Cartao cartao : encontrados) {
-            Cartao principal = principalDe(cartao);
-            principais.put(principal.getId(), principal);
-            digitosPorPrincipal.computeIfAbsent(principal.getId(), id -> new LinkedHashSet<>())
-                    .add(cartao.getUltimosDigitos());
+        for (String finalLido : digitos) {
+            for (Cartao cartao : cadastrados) {
+                if (terminaEm(cartao, finalLido)) {
+                    Cartao principal = principalDe(cartao);
+                    principais.put(principal.getId(), principal);
+                    digitosPorPrincipal.computeIfAbsent(principal.getId(), id -> new LinkedHashSet<>()).add(finalLido);
+                }
+            }
         }
         if (principais.isEmpty()) {
             throw new FaturaImportacaoInvalidaException("Nenhum cartão cadastrado termina em "
@@ -300,10 +304,14 @@ public class ConciliacaoFaturaService {
         Cartao principal = principais.get(candidatos.getFirst());
 
         Map<String, Cartao> porDigitos = new LinkedHashMap<>();
-        encontrados.stream()
-                .filter(cartao -> principalDe(cartao).getId().equals(principal.getId()))
-                .sorted(Comparator.comparing(Cartao::isAtivo).reversed())
-                .forEach(cartao -> porDigitos.putIfAbsent(cartao.getUltimosDigitos(), cartao));
+        for (String finalLido : digitos) {
+            cadastrados.stream()
+                    .filter(cartao -> terminaEm(cartao, finalLido))
+                    .filter(cartao -> principalDe(cartao).getId().equals(principal.getId()))
+                    .sorted(Comparator.comparing(Cartao::isAtivo).reversed())
+                    .findFirst()
+                    .ifPresent(cartao -> porDigitos.put(finalLido, cartao));
+        }
         digitos.stream()
                 .filter(d -> !porDigitos.containsKey(d))
                 .forEach(d -> avisos.add("O final " + d + " aparece na fatura, mas não é um cartão de "
@@ -324,6 +332,10 @@ public class ConciliacaoFaturaService {
                     .forEach(sub -> subcategorias.put(sub.getId(), sub));
         }
         return new SugestoesCategoria(categorias, subcategorias);
+    }
+
+    private static boolean terminaEm(Cartao cartao, String finalLido) {
+        return cartao.getUltimosDigitos() != null && cartao.getUltimosDigitos().endsWith(finalLido);
     }
 
     private static Cartao principalDe(Cartao cartao) {

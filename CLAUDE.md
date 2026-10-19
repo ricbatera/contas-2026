@@ -105,7 +105,7 @@ O script pergunta as imagens (Enter = `:latest`; só uma tag, como `1.0.3`, comp
 - uma consulta por trecho: cada página com lançamentos, e páginas grandes divididas em até 40 lançamentos;
 - cada trecho recebe o último cartão visto antes dele;
 - `ConferenciaTextoFatura` corrige a parcela a partir da linha do PDF (o `NN/NN` depois da descrição; números antes da data não contam);
-- se a IA ler menos de 90% das linhas de lançamento do PDF, a importação ganha um aviso. O `ConciliacaoFaturaService` identifica o cartão principal pelos 4 últimos dígitos. As regras ficam em `MotorConciliacao`, uma classe pura, sem banco. Na `Saida`, `descricao` é o apelido do usuário e `descricaoFatura` é o texto da fatura, que fica vazio quando a saída é lançada à mão. As etapas são:
+- se a IA ler menos de 90% das linhas de lançamento do PDF, a importação ganha um aviso. O `ConciliacaoFaturaService` identifica o cartão principal pelos 4 últimos dígitos, casados por sufixo, porque há faturas que mascaram um deles (ex.: `*117`, aceito a partir de 3 dígitos). As regras ficam em `MotorConciliacao`, uma classe pura, sem banco. Na `Saida`, `descricao` é o apelido do usuário e `descricaoFatura` é o texto da fatura, que fica vazio quando a saída é lançada à mão. As etapas são:
 1. decisões do usuário: pré-saída vinculada, rejeitada ou com sugestão recusada (`saida_descartada_id`);
 2. casamento exato por valor, número e quantidade de parcelas, sem conflito com a `descricaoFatura`. Um empate entre saídas diferentes não é decidido aqui;
 3. por valor, quando o par é único e a `descricaoFatura` está vazia ou é parecida. Exemplo: assinatura 8/12 no sistema e 1/1 no PDF;

@@ -50,7 +50,9 @@ public class LeitorFaturaIa {
             - "vencimento" é a data de vencimento da fatura e "total" é o valor total a pagar. Preencha \
             só se aparecerem nesta página; senão, use null.
             - Identifique cada cartão (titular e adicionais) pelos 4 últimos dígitos do cabeçalho da sua \
-            seção e informe em cada item o cartão da seção em que ele aparece.
+            seção e informe em cada item o cartão da seção em que ele aparece. Se a fatura mascarar \
+            algum desses dígitos (ex.: "*117" ou "XXXX XXXX XXXX *117"), informe só os dígitos visíveis \
+            ("117"); nunca invente o dígito que falta.
             - Não são lançamentos: totais ("VALOR TOTAL"), resumo da fatura, saldo anterior, limites, \
             cotação do dólar, saldo de obrigações futuras, simulações de juros, CET e opções de \
             parcelamento da fatura.
