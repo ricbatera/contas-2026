@@ -2,6 +2,17 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## backend 1.0.2 — 2026-10-19
+
+- Imagem: `ricardo1782/financas-backend:1.0.2` (também `latest`)
+- Commit: `50bb7c4` (tag `backend-v1.0.2`)
+- Próxima versão de desenvolvimento: 1.0.3
+- Mudanças:
+  - 50bb7c4 feat: ler comprovantes de maquininha de cartão com IA
+  - a5412e2 fix: identificar o cartão quando a fatura mascara um dígito do final
+  - 0001f55 feat: listar modelos disponíveis no cadastro de provedores de IA
+  - 4b10b4a feat: cadastro de entradas com recorrência e receitas no dashboard
+
 ## frontend 1.0.2 — 2026-10-17
 
 - Imagem: `ricardo1782/financas-frontend:1.0.2` (também `latest`)
