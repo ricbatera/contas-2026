@@ -19,7 +19,7 @@
       Cartão principal
       <select [value]="cartaoId()" (change)="selecionarCartao($event)" [disabled]="!cartoes().length">
         @for (cartao of cartoes(); track cartao.id) {
-          <option [value]="cartao.id">{{ cartao.nome }} · {{ cartao.banco }}</option>
+          <option [value]="cartao.id" [selected]="cartao.id === cartaoId()">{{ cartao.nome }} · {{ cartao.banco }}</option>
         }
       </select>
     </label>
@@ -32,7 +32,7 @@
         [disabled]="!competencias().length"
       >
         @for (item of competencias(); track item.competencia) {
-          <option [value]="item.competencia">
+          <option [value]="item.competencia" [selected]="item.competencia === competencia()">
             {{ rotuloCompetencia(item.competencia) }} · vence {{ item.vencimento | date: 'dd/MM/yyyy' }}
           </option>
         }
