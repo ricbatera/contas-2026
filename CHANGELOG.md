@@ -2,6 +2,14 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## frontend 1.0.5 — 2026-10-25
+
+- Imagem: `ricardo1782/financas-frontend:1.0.5` (também `latest`)
+- Commit: `4ad77a2` (tag `frontend-v1.0.5`)
+- Próxima versão de desenvolvimento: 1.0.6
+- Mudanças:
+  - 5347c18 feat: rate limit por IP e bloqueio temporário do login
+
 ## backend 1.0.3 — 2026-10-25
 
 - Imagem: `ricardo1782/financas-backend:1.0.3` (também `latest`)
