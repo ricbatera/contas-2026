@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Cartao, CartaoService } from '../../core/cartao.service';
 import { FormaPagamento, Saida, SaidaParcela, SaidaService } from '../../core/saida.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { mesReferencia } from '../../shared/data/mes-referencia';
 
 interface FiltrosSaida {
   texto: string;
@@ -54,12 +55,12 @@ const filtrosVazios = (): FiltrosSaida => ({
   valorMaximo: '',
 });
 
-const filtrosMesAtual = (): FiltrosSaida => {
-  const hoje = new Date();
+const filtrosMesReferencia = (): FiltrosSaida => {
+  const { mes, ano } = mesReferencia();
   return {
     ...filtrosVazios(),
-    mesVencimento: String(hoje.getMonth() + 1).padStart(2, '0'),
-    anoVencimento: String(hoje.getFullYear()),
+    mesVencimento: String(mes).padStart(2, '0'),
+    anoVencimento: String(ano),
   };
 };
 
@@ -169,8 +170,8 @@ export class SaidasList implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly workingId = signal<string | null>(null);
   protected readonly filtrosAbertos = signal(false);
-  protected readonly filtrosRascunho = signal<FiltrosSaida>(filtrosMesAtual());
-  protected readonly filtrosAplicados = signal<FiltrosSaida>(filtrosMesAtual());
+  protected readonly filtrosRascunho = signal<FiltrosSaida>(filtrosMesReferencia());
+  protected readonly filtrosAplicados = signal<FiltrosSaida>(filtrosMesReferencia());
   protected readonly erroFiltros = signal<string | null>(null);
   protected readonly quantidadeFiltrosAtivos = computed(() =>
     Object.values(this.filtrosAplicados()).filter(Boolean).length,
@@ -222,7 +223,7 @@ export class SaidasList implements OnInit {
   );
   protected readonly mesesDisponiveis = MESES;
   protected readonly anosDisponiveis = computed(() => {
-    const anos = new Set<string>([String(new Date().getFullYear())]);
+    const anos = new Set<string>([String(new Date().getFullYear()), String(mesReferencia().ano)]);
     for (const saida of this.saidas()) {
       for (const parcela of saida.parcelas) {
         const ano = parcela.vencimento.slice(0, 4);
@@ -322,7 +323,7 @@ export class SaidasList implements OnInit {
   }
 
   protected limparFiltros(): void {
-    const filtros = filtrosMesAtual();
+    const filtros = filtrosMesReferencia();
     this.filtrosRascunho.set(filtros);
     this.filtrosAplicados.set(filtros);
     this.erroFiltros.set(null);

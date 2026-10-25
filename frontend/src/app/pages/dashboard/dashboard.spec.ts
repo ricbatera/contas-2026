@@ -3,6 +3,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Dashboard } from './dashboard';
+import { inicioMesReferencia } from '../../shared/data/mes-referencia';
 
 describe('Dashboard', () => {
   let http: HttpTestingController;
@@ -44,7 +45,7 @@ describe('Dashboard', () => {
   it('defaults to the current competence and displays forecast breakdown', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
-    const current = new Date();
+    const current = inicioMesReferencia();
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector<HTMLSelectElement>('.dashboard-period select')?.value)
       .toBe(String(current.getMonth() + 1));
@@ -86,10 +87,10 @@ describe('Dashboard', () => {
   it('consults the selected competence and reports loading failures', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
-    http.expectOne('/api/dashboard?mes=' + (new Date().getMonth() + 1) + '&ano=' + new Date().getFullYear())
+    http.expectOne('/api/dashboard?mes=' + (inicioMesReferencia().getMonth() + 1) + '&ano=' + inicioMesReferencia().getFullYear())
       .flush({ data: {
-        mes: new Date().getMonth() + 1,
-        ano: new Date().getFullYear(),
+        mes: inicioMesReferencia().getMonth() + 1,
+        ano: inicioMesReferencia().getFullYear(),
         gastosLancados: 0,
         bucketsReservados: 0,
         contasFixasMesAnterior: 0,
@@ -98,7 +99,7 @@ describe('Dashboard', () => {
         receitasRecebidas: 0,
         saldoPrevisto: -0,
       } });
-    responderProjecao(new Date().getMonth() + 1, new Date().getFullYear());
+    responderProjecao(inicioMesReferencia().getMonth() + 1, inicioMesReferencia().getFullYear());
     const element = fixture.nativeElement as HTMLElement;
     element.querySelector<HTMLSelectElement>('.dashboard-period select')!.value = '12';
     element.querySelector<HTMLSelectElement>('.dashboard-period select')!
@@ -139,7 +140,7 @@ describe('Dashboard', () => {
   it('reloads the chart when its displayed month count changes', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
-    const now = new Date();
+    const now = inicioMesReferencia();
     http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
       mes: now.getMonth() + 1,
       ano: now.getFullYear(),
@@ -168,7 +169,7 @@ describe('Dashboard', () => {
   it('shows chart loading errors and allows retry', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
-    const now = new Date();
+    const now = inicioMesReferencia();
     http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
       mes: now.getMonth() + 1,
       ano: now.getFullYear(),
@@ -195,7 +196,7 @@ describe('Dashboard', () => {
   it('loads expense details only when clicked and closes the modal with Escape', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
-    const now = new Date();
+    const now = inicioMesReferencia();
     http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
       mes: now.getMonth() + 1,
       ano: now.getFullYear(),
@@ -245,7 +246,7 @@ describe('Dashboard', () => {
   it('shows forecast income, balance and income details', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
-    const now = new Date();
+    const now = inicioMesReferencia();
     http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
       mes: now.getMonth() + 1,
       ano: now.getFullYear(),
@@ -281,11 +282,12 @@ describe('Dashboard', () => {
   });
 
   it('loads bucket and previous-month fixed expense details on demand', () => {
+    const now = inicioMesReferencia();
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
     http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
-      mes: 10,
-      ano: 2026,
+      mes: now.getMonth() + 1,
+      ano: now.getFullYear(),
       gastosLancados: 0,
       bucketsReservados: 200,
       contasFixasMesAnterior: 50,
@@ -294,7 +296,7 @@ describe('Dashboard', () => {
       receitasRecebidas: 0,
       saldoPrevisto: -250,
     } });
-    responderProjecao(10, 2026);
+    responderProjecao(now.getMonth() + 1, now.getFullYear());
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
     const buttons = element.querySelectorAll<HTMLButtonElement>('.forecast-breakdown .forecast-breakdown-item');
@@ -320,8 +322,8 @@ describe('Dashboard', () => {
     fixture.detectChanges();
     const request = http.expectOne((item) =>
       item.url === '/api/dashboard/contas-fixas'
-      && item.params.get('mes') === '10'
-      && item.params.get('ano') === '2026',
+      && item.params.get('mes') === String(now.getMonth() + 1)
+      && item.params.get('ano') === String(now.getFullYear()),
     );
     request.flush({ data: [{
       descricao: 'Internet',
@@ -341,7 +343,7 @@ describe('Dashboard', () => {
   it('shows an error when loading a breakdown fails', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
-    const now = new Date();
+    const now = inicioMesReferencia();
     http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
       mes: now.getMonth() + 1,
       ano: now.getFullYear(),

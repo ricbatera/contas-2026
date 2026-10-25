@@ -3,6 +3,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Faturas } from './faturas';
+import { inicioMesReferencia } from '../../shared/data/mes-referencia';
 
 describe('Faturas', () => {
   let http: HttpTestingController;
@@ -36,7 +37,7 @@ describe('Faturas', () => {
       }],
     });
 
-    const currentCompetence = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
+    const currentCompetence = inicioMesReferencia().getFullYear() * 100 + inicioMesReferencia().getMonth() + 1;
     const olderCompetence = currentCompetence - 1;
     http.expectOne('/api/faturas/cartoes/card-1/competencias').flush({
       data: [
@@ -75,6 +76,9 @@ describe('Faturas', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
+    const [cartaoSelect, competenciaSelect] = Array.from(element.querySelectorAll('select'));
+    expect(cartaoSelect.value).toBe('card-1');
+    expect(competenciaSelect.value).toBe(String(currentCompetence));
     expect(element.textContent).toContain('Principal');
     expect(element.textContent).toContain('Mercado');
     expect(element.textContent).toContain('Compra no adicional');
@@ -125,7 +129,7 @@ describe('Faturas', () => {
         ativo: true,
       }],
     });
-    const currentCompetence = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
+    const currentCompetence = inicioMesReferencia().getFullYear() * 100 + inicioMesReferencia().getMonth() + 1;
     http.expectOne('/api/faturas/cartoes/card-1/competencias').flush({
       data: [
         { competencia: currentCompetence + 1, vencimento: '2026-12-15', total: 75 },

@@ -8,6 +8,7 @@ import {
   DashboardResumo,
   DashboardService,
 } from '../../core/dashboard.service';
+import { mesReferencia } from '../../shared/data/mes-referencia';
 
 const MESES = Array.from({ length: 12 }, (_, index) => ({
   valor: index + 1,
@@ -56,12 +57,10 @@ export class Dashboard implements OnInit {
   protected readonly meses = MESES;
   protected readonly quantidadesMeses = Array.from({ length: 22 }, (_, index) => index + 3);
   protected readonly quantidadeMeses = signal(12);
-  protected readonly mes = signal(new Date().getMonth() + 1);
-  protected readonly ano = signal(new Date().getFullYear());
-  private readonly competenciaProjecao = signal({
-    mes: new Date().getMonth() + 1,
-    ano: new Date().getFullYear(),
-  });
+  private readonly referencia = mesReferencia();
+  protected readonly mes = signal(this.referencia.mes);
+  protected readonly ano = signal(this.referencia.ano);
+  private readonly competenciaProjecao = signal({ ...this.referencia });
   protected readonly resumo = signal<DashboardResumo | null>(null);
   protected readonly projecao = signal<DashboardProjecaoMes[]>([]);
   protected readonly projecaoLoading = signal(true);

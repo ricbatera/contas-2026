@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { EntradaOcorrencia, EntradaService, StatusOcorrencia } from '../../core/entrada.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { mesReferencia } from '../../shared/data/mes-referencia';
 
 interface FiltrosEntrada {
   texto: string;
@@ -45,7 +46,7 @@ const centavos = (valor: number): number => Math.round(valor * 100);
 export class EntradasList implements OnInit {
   private readonly service = inject(EntradaService);
 
-  protected readonly competencia = signal({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear() });
+  protected readonly competencia = signal(mesReferencia());
   protected readonly rotuloCompetencia = computed(() => {
     const { mes, ano } = this.competencia();
     return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })

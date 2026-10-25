@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Bucket, BucketService } from '../../core/bucket.service';
+import { mesReferencia } from '../../shared/data/mes-referencia';
 
 const MESES = Array.from({ length: 12 }, (_, index) => ({
   valor: index + 1,
@@ -22,8 +23,9 @@ registerLocaleData(localePtBr);
 export class BucketsList implements OnInit {
   private readonly service = inject(BucketService);
   protected readonly meses = MESES;
-  protected readonly mes = signal(new Date().getMonth() + 1);
-  protected readonly ano = signal(new Date().getFullYear());
+  private readonly referencia = mesReferencia();
+  protected readonly mes = signal(this.referencia.mes);
+  protected readonly ano = signal(this.referencia.ano);
   protected readonly buckets = signal<Bucket[]>([]);
   protected readonly loading = signal(true);
   protected readonly workingId = signal<string | null>(null);

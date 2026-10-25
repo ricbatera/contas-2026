@@ -6,26 +6,21 @@ import { vi } from 'vitest';
 import { Cartao } from '../../core/cartao.service';
 import { Saida } from '../../core/saida.service';
 import { SaidasList } from './saidas-list';
+import { inicioMesReferencia } from '../../shared/data/mes-referencia';
 
 function dataEsteMes(dia: number): string {
-  const hoje = new Date();
+  const hoje = inicioMesReferencia();
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
 }
 
 function dataMesOffset(offset: number, dia: number): string {
-  const hoje = new Date();
+  const hoje = inicioMesReferencia();
   const data = new Date(hoje.getFullYear(), hoje.getMonth() + offset, dia);
   return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
 }
 
-function dataDiaOffset(offset: number): string {
-  const data = new Date();
-  data.setDate(data.getDate() + offset);
-  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
-}
-
 function competenciaAtual(): { mes: string; ano: string } {
-  const hoje = new Date();
+  const hoje = inicioMesReferencia();
   return {
     mes: String(hoje.getMonth() + 1).padStart(2, '0'),
     ano: String(hoje.getFullYear()),
@@ -267,7 +262,7 @@ describe('SaidasList', () => {
     const fixture = TestBed.createComponent(SaidasList);
     fixture.detectChanges();
     const competencia = competenciaAtual();
-    const mesAnterior = new Date();
+    const mesAnterior = inicioMesReferencia();
     mesAnterior.setDate(0);
     const dataMesAnterior =
       `${mesAnterior.getFullYear()}-${String(mesAnterior.getMonth() + 1).padStart(2, '0')}-${String(mesAnterior.getDate()).padStart(2, '0')}`;
@@ -612,9 +607,9 @@ describe('SaidasList', () => {
           descricao: 'Compra futura',
           quantidadeParcelas: 3,
           parcelas: [
-            { id: 'future-1', numero: 1, valor: 100, vencimento: dataDiaOffset(1), faturaId: null, vencimentoFatura: null },
-            { id: 'future-2', numero: 2, valor: 100, vencimento: dataDiaOffset(31), faturaId: null, vencimentoFatura: null },
-            { id: 'future-3', numero: 3, valor: 100, vencimento: dataDiaOffset(61), faturaId: null, vencimentoFatura: null },
+            { id: 'future-1', numero: 1, valor: 100, vencimento: dataMesOffset(0, 5), faturaId: null, vencimentoFatura: null },
+            { id: 'future-2', numero: 2, valor: 100, vencimento: dataMesOffset(1, 5), faturaId: null, vencimentoFatura: null },
+            { id: 'future-3', numero: 3, valor: 100, vencimento: dataMesOffset(2, 5), faturaId: null, vencimentoFatura: null },
           ],
         }),
         saida({
@@ -622,7 +617,7 @@ describe('SaidasList', () => {
           descricao: 'Compra vencida',
           quantidadeParcelas: 2,
           parcelas: [
-            { id: 'past-1', numero: 1, valor: 80, vencimento: dataDiaOffset(-60), faturaId: null, vencimentoFatura: null },
+            { id: 'past-1', numero: 1, valor: 80, vencimento: dataMesOffset(-2, 5), faturaId: null, vencimentoFatura: null },
             { id: 'past-2', numero: 2, valor: 80, vencimento: dataEsteMes(1), faturaId: null, vencimentoFatura: null },
           ],
         }),

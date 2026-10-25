@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Simulacao } from './simulacao';
+import { inicioMesReferencia } from '../../shared/data/mes-referencia';
 
 describe('Simulacao', () => {
   let http: HttpTestingController;
@@ -21,7 +22,7 @@ describe('Simulacao', () => {
   });
 
   function flushProjection(): void {
-    const now = new Date();
+    const now = inicioMesReferencia();
     http.expectOne((request) =>
       request.url === '/api/dashboard/projecao'
       && request.params.get('mes') === String(now.getMonth() + 1)
@@ -120,7 +121,7 @@ describe('Simulacao', () => {
   it('updates the forecast when the displayed month range changes', () => {
     const fixture = TestBed.createComponent(Simulacao);
     fixture.detectChanges();
-    const now = new Date();
+    const now = inicioMesReferencia();
     const initialRequest = http.expectOne((request) =>
       request.url === '/api/dashboard/projecao'
       && request.params.get('quantidade') === '12',

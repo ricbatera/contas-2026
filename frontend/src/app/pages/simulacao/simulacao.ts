@@ -5,6 +5,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DashboardProjecaoMes, DashboardService } from '../../core/dashboard.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { mesReferencia } from '../../shared/data/mes-referencia';
 
 registerLocaleData(localePtBr);
 
@@ -151,10 +152,10 @@ export class Simulacao implements OnInit {
     const requisicaoAtual = ++this.requisicao;
     this.loading.set(true);
     this.error.set(null);
-    const agora = new Date();
+    const referencia = mesReferencia();
     this.service.consultarProjecao(
-      agora.getMonth() + 1,
-      agora.getFullYear(),
+      referencia.mes,
+      referencia.ano,
       this.quantidadeMeses(),
     ).subscribe({
       next: (projecao) => {

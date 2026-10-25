@@ -3,6 +3,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { BucketsList } from './buckets-list';
+import { inicioMesReferencia } from '../../shared/data/mes-referencia';
 
 describe('BucketsList', () => {
   let http: HttpTestingController;
@@ -20,7 +21,7 @@ describe('BucketsList', () => {
   it('loads the current competence and displays planned, consumed and remaining values', () => {
     const fixture = TestBed.createComponent(BucketsList);
     fixture.detectChanges();
-    const now = new Date();
+    const now = inicioMesReferencia();
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector<HTMLSelectElement>('.bucket-period select')?.value)
       .toBe(String(now.getMonth() + 1));

@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Cartao, CartaoService } from '../../core/cartao.service';
 import { Fatura, FaturaCompetencia, FaturaParcela, FaturaService } from '../../core/fatura.service';
+import { mesReferencia } from '../../shared/data/mes-referencia';
 
 registerLocaleData(localePtBr);
 
@@ -101,9 +102,9 @@ export class Faturas implements OnInit {
           this.loading.set(false);
           return;
         }
-        const atual = new Date();
-        const competenciaAtual = atual.getFullYear() * 100 + atual.getMonth() + 1;
-        const selecionada = competencias.find((item) => item.competencia === competenciaAtual)
+        const referencia = mesReferencia();
+        const competenciaReferencia = referencia.ano * 100 + referencia.mes;
+        const selecionada = competencias.find((item) => item.competencia === competenciaReferencia)
           ?? competencias[0];
         this.competencia.set(selecionada.competencia);
         this.carregarFatura(cartaoId, selecionada.competencia);

@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from './app.routes';
+import { inicioMesReferencia } from './shared/data/mes-referencia';
 
 describe('Application routes', () => {
   let http: HttpTestingController;
@@ -29,7 +30,7 @@ describe('Application routes', () => {
     http.expectOne('/api/usuarios/me').flush({
       data: { nome: 'Ana', sobrenome: 'Silva' },
     });
-    const now = new Date();
+    const now = inicioMesReferencia();
     const request = http.expectOne((item) =>
       item.url === '/api/dashboard'
       && item.params.get('mes') === String(now.getMonth() + 1)
@@ -67,7 +68,7 @@ describe('Application routes', () => {
     http.expectOne('/api/usuarios/me').flush({
       data: { nome: 'Ana', sobrenome: 'Silva' },
     });
-    const now = new Date();
+    const now = inicioMesReferencia();
     http.expectOne((request) =>
       request.url === '/api/dashboard/projecao'
       && request.params.get('mes') === String(now.getMonth() + 1)
@@ -188,7 +189,7 @@ describe('Application routes', () => {
     http.expectOne('/api/usuarios/me').flush({
       data: { nome: 'Ana', sobrenome: 'Silva' },
     });
-    const now = new Date();
+    const now = inicioMesReferencia();
     const request = http.expectOne((item) =>
       item.url === '/api/buckets'
       && item.params.get('mes') === String(now.getMonth() + 1)

@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { EntradaOcorrencia } from '../../core/entrada.service';
 import { EntradasList } from './entradas-list';
+import { inicioMesReferencia } from '../../shared/data/mes-referencia';
 
 function ocorrencia(overrides: Partial<EntradaOcorrencia>): EntradaOcorrencia {
   return {
@@ -58,7 +59,7 @@ describe('EntradasList', () => {
     const fixture = TestBed.createComponent(EntradasList);
     fixture.detectChanges();
     const request = esperarOcorrencias();
-    const hoje = new Date();
+    const hoje = inicioMesReferencia();
     expect(request.request.params.get('mes')).toBe(String(hoje.getMonth() + 1));
     expect(request.request.params.get('ano')).toBe(String(hoje.getFullYear()));
     request.flush({
@@ -87,7 +88,7 @@ describe('EntradasList', () => {
     fixture.detectChanges();
 
     (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[aria-label="Próximo mês"]')!.click();
-    const proximo = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+    const proximo = new Date(inicioMesReferencia().getFullYear(), inicioMesReferencia().getMonth() + 1, 1);
     const request = esperarOcorrencias();
     expect(request.request.params.get('mes')).toBe(String(proximo.getMonth() + 1));
     expect(request.request.params.get('ano')).toBe(String(proximo.getFullYear()));
