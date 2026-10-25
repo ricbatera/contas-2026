@@ -14,7 +14,7 @@
 }
 
 .capitalize {
-  text-transform: capitalize;
+  display: inline-block;
 }
 
 .import-wait,
@@ -341,4 +341,8 @@
   margin: 6px 0 0;
   color: #8a5a00;
   font-size: 11px;
+}
+
+.capitalize::first-letter {
+  text-transform: uppercase;
 }

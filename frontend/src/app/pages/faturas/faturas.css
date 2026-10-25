@@ -76,7 +76,6 @@
 
 .fatura-summary-heading .section-description {
   margin-top: 5px;
-  text-transform: capitalize;
 }
 
 .fatura-total {
@@ -175,4 +174,8 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.fatura-summary-heading .section-description::first-letter {
+  text-transform: uppercase;
 }

@@ -60,7 +60,6 @@
   font-size: 13px;
   text-align: center;
   white-space: nowrap;
-  text-transform: capitalize;
 }
 
 .user-actions {
@@ -366,4 +365,8 @@
     opacity: 0.3;
     transform: scale(0.7);
   }
+}
+
+.date-time::first-letter {
+  text-transform: uppercase;
 }

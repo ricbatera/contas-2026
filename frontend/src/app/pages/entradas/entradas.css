@@ -28,7 +28,6 @@
   color: #26364d;
   font-size: 15px;
   text-align: center;
-  text-transform: capitalize;
 }
 
 .entrada-totals {
@@ -110,4 +109,8 @@
   .saida-actions {
     flex-wrap: wrap;
   }
+}
+
+.entrada-month-label::first-letter {
+  text-transform: uppercase;
 }

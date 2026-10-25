@@ -78,7 +78,6 @@
   margin: 0;
   color: #24364b;
   font-size: 18px;
-  text-transform: capitalize;
 }
 
 .forecast-total {
@@ -486,4 +485,8 @@
   .dashboard-detail-item {
     gap: 10px;
   }
+}
+
+.forecast-heading h3::first-letter {
+  text-transform: uppercase;
 }

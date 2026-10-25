@@ -320,7 +320,6 @@
   color: #42536b;
   font-size: 11px;
   font-weight: 600;
-  text-transform: capitalize;
 }
 
 .month-totals {
@@ -429,4 +428,8 @@
   .simulation-layout {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.month-heading h4::first-letter {
+  text-transform: uppercase;
 }
