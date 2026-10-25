@@ -104,6 +104,16 @@
 			<artifactId>pdfbox</artifactId>
 			<version>3.0.5</version>
 		</dependency>
+		<!-- Rate limit por IP (token bucket) e contadores em memória com expiração -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j_jdk17-core</artifactId>
+			<version>8.14.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

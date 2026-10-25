@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import br.com.rdrtech.auth.dto.TokenResponse;
 import br.com.rdrtech.categoria.CategoriasPadraoService;
 import br.com.rdrtech.exception.CredenciaisInvalidasException;
 import br.com.rdrtech.exception.EmailJaCadastradoException;
+import br.com.rdrtech.exception.LoginBloqueadoException;
 import br.com.rdrtech.exception.RefreshTokenInvalidoException;
 import br.com.rdrtech.role.NomePerfil;
 import br.com.rdrtech.role.Role;
@@ -52,6 +54,8 @@ class AuthServiceTest {
     private JwtService jwtService;
     @Mock
     private CategoriasPadraoService categoriasPadraoService;
+    @Mock
+    private BloqueioLoginService bloqueioLoginService;
 
     private AuthService authService;
 
@@ -60,7 +64,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(usuarioRepository, roleRepository, refreshTokenRepository, passwordEncoder, jwtService, categoriasPadraoService);
+        authService = new AuthService(usuarioRepository, roleRepository, refreshTokenRepository, passwordEncoder, jwtService, categoriasPadraoService, bloqueioLoginService);
 
         roleUser = Role.builder().nome(NomePerfil.USER).build();
         usuario = Usuario.builder()
@@ -119,6 +123,8 @@ class AuthServiceTest {
         when(passwordEncoder.matches(eq("senha-errada"), anyString())).thenReturn(false);
 
         assertThatThrownBy(() -> authService.login(request)).isInstanceOf(CredenciaisInvalidasException.class);
+        verify(bloqueioLoginService).registrarFalha(usuario.getEmail());
+        verify(bloqueioLoginService, never()).registrarSucesso(anyString());
     }
 
     @Test
@@ -127,6 +133,17 @@ class AuthServiceTest {
         when(usuarioRepository.findByEmail(request.email())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(request)).isInstanceOf(CredenciaisInvalidasException.class);
+        verify(bloqueioLoginService).registrarFalha(request.email());
+    }
+
+    @Test
+    void login_deveLancarLoginBloqueadoException_semConferirSenha_quandoEmailBloqueado() {
+        LoginRequest request = new LoginRequest(usuario.getEmail(), "senha-correta");
+        doThrow(new LoginBloqueadoException(10)).when(bloqueioLoginService).verificar(usuario.getEmail());
+
+        assertThatThrownBy(() -> authService.login(request)).isInstanceOf(LoginBloqueadoException.class);
+        verify(usuarioRepository, never()).findByEmail(anyString());
+        verify(passwordEncoder, never()).matches(any(), any());
     }
 
     @Test
@@ -140,6 +157,7 @@ class AuthServiceTest {
 
         assertThat(result.accessToken()).isEqualTo("access-token");
         assertThat(result.expiresIn()).isEqualTo(3600L);
+        verify(bloqueioLoginService).registrarSucesso(usuario.getEmail());
     }
 
     @Test

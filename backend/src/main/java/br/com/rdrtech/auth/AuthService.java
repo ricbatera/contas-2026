@@ -35,6 +35,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final CategoriasPadraoService categoriasPadraoService;
+    private final BloqueioLoginService bloqueioLoginService;
 
     @Transactional
     public TokenResponse register(RegisterRequest request) {
@@ -61,9 +62,14 @@ public class AuthService {
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
+        bloqueioLoginService.verificar(request.email());
         Usuario usuario = usuarioRepository.findByEmail(request.email())
                 .filter(u -> passwordEncoder.matches(request.senha(), u.getSenha()))
-                .orElseThrow(CredenciaisInvalidasException::new);
+                .orElseThrow(() -> {
+                    bloqueioLoginService.registrarFalha(request.email());
+                    return new CredenciaisInvalidasException();
+                });
+        bloqueioLoginService.registrarSucesso(request.email());
         return issueTokens(usuario);
     }
 

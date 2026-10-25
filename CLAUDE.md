@@ -86,6 +86,12 @@ O script pergunta as imagens (Enter = `:latest`; só uma tag, como `1.0.3`, comp
 
 **Segurança:** JWT HS256 stateless via `spring-boot-starter-oauth2-resource-server` (`security/SecurityConfig`, `JwtService`). O claim `roles` vira `ROLE_*`. Rotas públicas: `/api/auth/**` (register/login/refresh), Swagger, `/actuator/health` e `/h2-console/**`. O id do usuário atual vem de `SecurityUtils.getCurrentUserId()`.
 
+**Proteção contra abuso:** são duas camadas de rate limit por IP, e tudo responde 429:
+- o nginx (`limit_req`/`limit_conn` em `frontend/nginx.conf`) limita `/api/auth/` a 10/min e `/api/` a 20/s;
+- o backend tem o `ratelimit/RateLimitFilter` (Bucket4j + Caffeine, em memória), que roda antes do Spring Security e usa o IP de `X-Real-IP` (`IpCliente`). Os limites ficam em `seguranca.rate-limit.*`: `auth` vale para `/api/auth/**` e `api` para o resto.
+
+O `auth/BloqueioLoginService` bloqueia o login de um e-mail por `seguranca.login.duracao-bloqueio` (15 min) depois de `max-tentativas` (5) senhas erradas seguidas. Nesse período, nem a senha certa entra (`LoginBloqueadoException`, 429). E-mails inexistentes também são contados, para não revelar contas. O estado fica em memória e é zerado no reinício. O `application-test.properties` desliga o rate limit, porque os IT registram usuários do mesmo IP. Só o `RateLimitIT` o liga, via `@TestPropertySource`.
+
 **Respostas e erros:** controllers retornam `SuccessResponse.of(data)`, e o JSON fica no formato `{ data, message, timestamp }`, por isso os testes leem `$.data...`. Erros de regra de negócio estendem `exception.BusinessException`, e cada subclasse define seu `HttpStatus` via `getStatus()`. O `GlobalExceptionHandler` converte tudo em `ErrorResponse`. Para um erro novo, crie uma subclasse em `exception/`, sem handler extra.
 
 **Esquema do banco (Flyway):** o schema é versionado em `backend/src/main/resources/db/migration` e aplicado pelo Flyway na inicialização. O Hibernate só valida (`ddl-auto=validate`) em todos os perfis, exceto `h2`.

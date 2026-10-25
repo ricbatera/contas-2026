@@ -131,4 +131,33 @@ class AuthControllerIT {
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void login_deveBloquearTemporariamente_depoisDeCincoSenhasErradas() throws Exception {
+        String email = "bloqueio-" + System.nanoTime() + "@example.com";
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegisterRequest("Rodrigo", "Dias", email, "Senha123!", "11999999999"))))
+                .andExpect(status().isCreated());
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new LoginRequest(email, "SenhaErrada1!"))))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest(email, "Senha123!"))))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.message").value("Muitas tentativas de login. Tente novamente em 15 minutos."));
+
+        String outroEmail = "nao-bloqueado-" + System.nanoTime() + "@example.com";
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest(outroEmail, "qualquer"))))
+                .andExpect(status().isUnauthorized());
+    }
 }
