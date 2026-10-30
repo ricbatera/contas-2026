@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { Router, RouterLink } from '@angular/router';
 import { FaturaImportacaoService, lerArquivoBase64 } from '../../core/fatura-importacao.service';
 import { ImportacaoMonitorService } from '../../core/importacao-monitor.service';
@@ -10,7 +11,7 @@ export const TAMANHO_MAXIMO_PDF = 10 * 1024 * 1024;
 
 @Component({
   selector: 'app-fatura-importar',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, ReactiveFormsModule, RouterLink],
   templateUrl: './fatura-importar.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })

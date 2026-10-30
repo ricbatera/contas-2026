@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CurrencyPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   ContaBancariaRequest,
@@ -21,7 +22,7 @@ const NOMES_TIPO: Record<(typeof TIPOS_CONTA)[number], string> = {
 
 @Component({
   selector: 'app-conta-form',
-  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './conta-form.html',
   styleUrls: ['../cartoes/cartoes.css', './contas.css'],
 })

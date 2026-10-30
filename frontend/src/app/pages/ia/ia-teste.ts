@@ -2,13 +2,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ProvedorIa, ProvedorIaService, TesteIa } from '../../core/provedor-ia.service';
 import { INFO_PROVEDOR, mensagemErroHttp } from './provedores-ia';
 
 @Component({
   selector: 'app-ia-teste',
-  imports: [DecimalPipe, ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, DecimalPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './ia-teste.html',
   styleUrls: ['../cartoes/cartoes.css', '../contas/contas.css', './ia.css'],
 })

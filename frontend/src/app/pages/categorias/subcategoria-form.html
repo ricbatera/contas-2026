@@ -38,6 +38,7 @@
           {{ categoria()?.ativo ? '' : 'Ative a categoria para defini-la como padrão.' }}
         </small>
       </label>
+      <app-aviso-formulario />
       <div class="form-actions">
         <a class="secondary-button" routerLink="/home/categorias">Cancelar</a>
         <button class="primary-button" type="submit" [disabled]="saving()">

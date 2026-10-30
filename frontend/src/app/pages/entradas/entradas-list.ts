@@ -2,6 +2,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { RouterLink } from '@angular/router';
 import { EntradaOcorrencia, EntradaService, StatusOcorrencia } from '../../core/entrada.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
@@ -40,7 +41,7 @@ const centavos = (valor: number): number => Math.round(valor * 100);
 
 @Component({
   selector: 'app-entradas-list',
-  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './entradas-list.html',
   styleUrls: ['../cartoes/cartoes.css', '../saidas/saidas.css', './entradas.css'],
 })

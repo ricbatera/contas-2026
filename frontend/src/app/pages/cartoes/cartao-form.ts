@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   BANDEIRAS,
@@ -12,7 +13,7 @@ import {
 
 @Component({
   selector: 'app-cartao-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, ReactiveFormsModule, RouterLink],
   templateUrl: './cartao-form.html',
   styleUrls: ['./cartoes.css', './cartao-form.css'],
 })

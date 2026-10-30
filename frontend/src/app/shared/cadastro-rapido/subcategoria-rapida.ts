@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../formulario/aviso-formulario';
 import { Categoria, CategoriaService, Subcategoria } from '../../core/categoria.service';
 import { DialogoRapido, mensagemErro } from './dialogo-rapido';
 
 @Component({
   selector: 'app-subcategoria-rapida',
-  imports: [DialogoRapido, ReactiveFormsModule],
+  imports: [AvisoFormulario, DialogoRapido, ReactiveFormsModule],
   template: `
     <app-dialogo-rapido titulo="Nova subcategoria" (fechar)="cancelado.emit()">
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -21,6 +22,7 @@ import { DialogoRapido, mensagemErro } from './dialogo-rapido';
             }
           </label>
         </div>
+        <app-aviso-formulario />
         <footer class="filter-dialog-actions cadastro-rapido-actions">
           <button class="secondary-button" type="button" (click)="cancelado.emit()">Cancelar</button>
           <button class="primary-button" type="submit" [disabled]="saving()">

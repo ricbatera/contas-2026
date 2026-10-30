@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Categoria, CategoriaService, Subcategoria } from '../../core/categoria.service';
@@ -15,7 +16,7 @@ type CadastroRapido = { tipo: 'categoria' } | { tipo: 'subcategoria'; categoria:
 
 @Component({
   selector: 'app-entrada-form',
-  imports: [CampoCalculadora, CampoMoeda, CategoriaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
+  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CategoriaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
   templateUrl: './entrada-form.html',
   styleUrls: [
     '../cartoes/cartoes.css',

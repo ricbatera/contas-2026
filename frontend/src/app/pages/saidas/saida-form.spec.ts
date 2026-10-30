@@ -205,6 +205,25 @@ describe('SaidaForm', () => {
     expect(element.textContent).toContain('As próximas parcelas serão programadas mensalmente');
   });
 
+  it('warns about the required fields when saving an empty form', async () => {
+    const fixture = TestBed.createComponent(SaidaForm);
+    fixture.detectChanges();
+    flushDependencies();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLFormElement>('form')!.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(element.querySelector('app-aviso-formulario')?.textContent).toContain(
+      'Preencha os campos obrigatórios destacados.',
+    );
+    expect(document.activeElement).toBe(element.querySelector('[formControlName="descricao"]'));
+  });
+
   it('accepts a negative refund split with the same sign and blocks mixed signs', () => {
     const fixture = TestBed.createComponent(SaidaForm);
     fixture.detectChanges();

@@ -45,6 +45,7 @@
         }
       </label>
 
+      <app-aviso-formulario />
       <div class="form-actions">
         @if (testing() && provedorSelecionado(); as p) {
           <small class="test-wait">Se o provedor não responder, o teste é encerrado em até {{ p.timeoutSegundos }} s.</small>

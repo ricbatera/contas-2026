@@ -1,1 +1,15 @@
 body { margin: 0; }
+
+/*
+ * Campos inválidos depois de tocados (ou de uma tentativa de salvar, via app-aviso-formulario).
+ * Os seletores começam em "form" para vencer os estilos encapsulados dos componentes.
+ */
+form :is(input, select, textarea).ng-invalid.ng-touched:not([type='checkbox'], [type='radio']) {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 1px rgba(192, 57, 43, 0.25);
+}
+
+form .form-field:has(.ng-invalid.ng-touched) > span,
+form .form-field:has(.ng-invalid.ng-touched) small {
+  color: #c0392b;
+}

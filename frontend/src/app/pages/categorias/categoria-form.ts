@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   CategoriaRequest,
@@ -10,7 +11,7 @@ import {
 
 @Component({
   selector: 'app-categoria-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, ReactiveFormsModule, RouterLink],
   templateUrl: './categoria-form.html',
   styleUrls: ['../cartoes/cartoes.css', './categorias.css'],
 })

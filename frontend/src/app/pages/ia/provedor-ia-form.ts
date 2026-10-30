@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   ModeloIa,
@@ -14,7 +15,7 @@ import { INFO_PROVEDOR, mensagemErroHttp } from './provedores-ia';
 
 @Component({
   selector: 'app-provedor-ia-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, ReactiveFormsModule, RouterLink],
   templateUrl: './provedor-ia-form.html',
   styleUrls: ['../cartoes/cartoes.css', '../contas/contas.css', './ia.css'],
 })

@@ -3,6 +3,7 @@ import localePtBr from '@angular/common/locales/pt';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { DashboardProjecaoMes, DashboardService } from '../../core/dashboard.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
@@ -28,7 +29,7 @@ const QUANTIDADES_PARCELAS = Array.from({ length: 60 }, (_, index) => index + 1)
 
 @Component({
   selector: 'app-simulacao',
-  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule],
+  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule],
   templateUrl: './simulacao.html',
   styleUrls: ['../cartoes/cartoes.css', './simulacao.css'],
 })

@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { Cartao, CartaoService } from '../../core/cartao.service';
@@ -21,7 +22,7 @@ import { ROTULO_STATUS_COMPROVANTE, rotuloModalidade } from './comprovantes-util
 
 @Component({
   selector: 'app-comprovante-revisao',
-  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './comprovante-revisao.html',
   styleUrls: ['../cartoes/cartoes.css', '../faturas/importacao.css', './comprovantes.css'],
 })

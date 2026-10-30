@@ -20,6 +20,7 @@
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>
     }
+    <app-aviso-formulario />
     <button type="submit" [disabled]="loading()">{{ loading() ? '...' : 'LOGIN' }}</button>
     <span class="switch">Sem conta? <a routerLink="/register">Cadastre-se</a></span>
   </form>

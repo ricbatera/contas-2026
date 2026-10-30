@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { BucketRequest, BucketService } from '../../core/bucket.service';
@@ -19,7 +20,7 @@ type CadastroRapido =
 
 @Component({
   selector: 'app-bucket-form',
-  imports: [CampoCalculadora, CampoMoeda, CategoriaRapida, PessoaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
+  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CategoriaRapida, PessoaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
   templateUrl: './bucket-form.html',
   styleUrls: ['../cartoes/cartoes.css', './buckets.css', '../../shared/cadastro-rapido/cadastro-rapido.css'],
 })

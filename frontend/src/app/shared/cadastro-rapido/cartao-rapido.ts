@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AvisoFormulario } from '../formulario/aviso-formulario';
 import { BANDEIRAS, Cartao, CartaoService, TIPOS_CARTAO } from '../../core/cartao.service';
 import { DialogoRapido, mensagemErro } from './dialogo-rapido';
 
 @Component({
   selector: 'app-cartao-rapido',
-  imports: [DialogoRapido, ReactiveFormsModule],
+  imports: [AvisoFormulario, DialogoRapido, ReactiveFormsModule],
   templateUrl: './cartao-rapido.html',
   styleUrls: ['../../pages/cartoes/cartoes.css', '../../pages/saidas/saidas.css', './cadastro-rapido.css'],
 })
