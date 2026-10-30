@@ -15,6 +15,8 @@ import {
   ComprovanteService,
   ModalidadeComprovante,
 } from '../../core/comprovante.service';
+import { ProvedorIaService, SituacaoIa } from '../../core/provedor-ia.service';
+import { AvisoIa } from '../../shared/ia/aviso-ia';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mensagemErro } from '../faturas/importacao-util';
@@ -22,7 +24,7 @@ import { ROTULO_STATUS_COMPROVANTE, rotuloModalidade } from './comprovantes-util
 
 @Component({
   selector: 'app-comprovante-revisao',
-  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, AvisoIa, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './comprovante-revisao.html',
   styleUrls: ['../cartoes/cartoes.css', '../faturas/importacao.css', './comprovantes.css'],
 })
@@ -63,6 +65,10 @@ export class ComprovanteRevisao implements OnInit {
   /** getRawValue inclui os campos desabilitados (comprovante já aprovado ou rejeitado). */
   private readonly valores = toSignal(this.form.valueChanges.pipe(map(() => this.form.getRawValue())),
     { initialValue: this.form.getRawValue() });
+  protected readonly situacaoIa = toSignal(inject(ProvedorIaService).situacao(), {
+    initialValue: 'VERIFICANDO' as SituacaoIa,
+  });
+  protected readonly iaDisponivel = computed(() => this.situacaoIa() === 'DISPONIVEL');
   protected readonly pendente = computed(() => this.comprovante()?.status === 'PENDENTE');
   protected readonly debito = computed(() => this.valores().modalidade === 'DEBITO');
   protected readonly valorParcela = computed(() => {

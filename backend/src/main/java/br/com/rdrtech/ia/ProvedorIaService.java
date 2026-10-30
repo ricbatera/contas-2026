@@ -1,5 +1,6 @@
 package br.com.rdrtech.ia;
 
+import br.com.rdrtech.exception.IaNaoConfiguradaException;
 import br.com.rdrtech.exception.LimiteProvedoresIaExcedidoException;
 import br.com.rdrtech.exception.ProvedorIaDuplicadoException;
 import br.com.rdrtech.exception.ProvedorIaInvalidoException;
@@ -184,7 +185,7 @@ public class ProvedorIaService {
     /** Modelo do provedor padrão ativo do usuário, para as funcionalidades de IA do sistema. */
     public ChatModel chatModelPadrao() {
         ProvedorIa provedor = provedorIaRepository.findFirstByPadraoTrueAndAtivoTrue()
-                .orElseThrow(() -> new ProvedorIaInvalidoException("Nenhum provedor de IA padrão ativo configurado"));
+                .orElseThrow(IaNaoConfiguradaException::new);
         return chatModelFactory.obter(provedor);
     }
 

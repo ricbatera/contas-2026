@@ -104,4 +104,28 @@ describe('ProvedorIaService', () => {
     expect(req.request.body).toEqual(pedido);
     req.flush({ data: modelos });
   });
+
+  it('reports whether the AI features can be used', () => {
+    const situacoes: string[] = [];
+    const casos = [
+      [],
+      [{ ...provedor, padrao: false }],
+      [{ ...provedor, ativo: false }],
+      [{ ...provedor, padrao: false }, provedor],
+    ];
+    for (const provedores of casos) {
+      service.situacao().subscribe((situacao) => situacoes.push(situacao));
+      http.expectOne('/api/ia/provedores').flush({ data: provedores });
+    }
+
+    expect(situacoes).toEqual(['SEM_PROVEDOR', 'SEM_PADRAO_ATIVO', 'SEM_PADRAO_ATIVO', 'DISPONIVEL']);
+  });
+
+  it('does not block the AI features when the providers cannot be loaded', () => {
+    let situacao: string | undefined;
+    service.situacao().subscribe((valor) => (situacao = valor));
+    http.expectOne('/api/ia/provedores').flush(null, { status: 500, statusText: 'Erro' });
+
+    expect(situacao).toBe('DISPONIVEL');
+  });
 });

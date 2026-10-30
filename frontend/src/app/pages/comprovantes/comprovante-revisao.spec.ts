@@ -47,6 +47,8 @@ const CATEGORIAS = [
     subcategorias: [{ id: 'sub-1', nome: 'Lojas', ativo: true }] },
 ];
 
+const PROVEDOR_PADRAO = { id: 'ia-1', nome: 'OpenAI', padrao: true, ativo: true };
+
 describe('ComprovanteRevisao', () => {
   let http: HttpTestingController;
 
@@ -67,9 +69,10 @@ describe('ComprovanteRevisao', () => {
 
   afterEach(() => http.verify());
 
-  function carregar(comprovante: object = COMPROVANTE) {
+  function carregar(comprovante: object = COMPROVANTE, provedores: object[] = [PROVEDOR_PADRAO]) {
     const fixture = TestBed.createComponent(ComprovanteRevisao);
     fixture.detectChanges();
+    http.expectOne('/api/ia/provedores').flush({ data: provedores });
     http.expectOne('/api/comprovantes/comp-1').flush({ data: comprovante });
     http.expectOne('/api/cartoes').flush({ data: CARTOES });
     http.expectOne('/api/categorias').flush({ data: CATEGORIAS });
@@ -127,5 +130,14 @@ describe('ComprovanteRevisao', () => {
     expect(element.querySelector('[formControlName="quantidadeParcelas"]')).toBeNull();
     expect(element.querySelector('[formControlName="primeiroVencimento"]')).toBeNull();
     expect(element.textContent).not.toContain('vencimento da 1ª parcela');
+  });
+
+  it('blocks reading again and links to the AI setup when there is no AI integration', () => {
+    const { element } = carregar(COMPROVANTE, []);
+
+    const reler = Array.from(element.querySelectorAll('button')).find((b) => b.textContent?.includes('Ler de novo'))!;
+    expect(reler.disabled).toBe(true);
+    expect(element.querySelector('app-aviso-ia')!.textContent).toContain('Este recurso usa IA.');
+    expect(element.querySelector('a[href="/home/ia/provedores/novo"]')).not.toBeNull();
   });
 });

@@ -13,6 +13,7 @@
   </div>
 
   <div class="card-form comprovante-envio">
+    <app-aviso-ia [situacao]="situacaoIa()" />
     @if (error()) {
       <div class="form-error" role="alert">{{ error() }}</div>
     }
@@ -22,7 +23,7 @@
         <img [src]="url" alt="Prévia do comprovante selecionado" />
         <figcaption>{{ arquivo()?.name }}</figcaption>
       </figure>
-    } @else {
+    } @else if (iaDisponivel()) {
       <div class="comprovante-origens">
         <label class="comprovante-origem">
           <input type="file" accept="image/*" capture="environment" (change)="selecionar($event)" />
@@ -56,7 +57,7 @@
     <div class="form-actions">
       @if (arquivo()) {
         <button class="secondary-button" type="button" [disabled]="enviando()" (click)="descartar()">Trocar foto</button>
-        <button class="primary-button" type="button" [disabled]="enviando()" (click)="enviar()">
+        <button class="primary-button" type="button" [disabled]="enviando() || !iaDisponivel()" (click)="enviar()">
           {{ enviando() ? 'Lendo...' : 'Ler comprovante' }}
         </button>
       } @else {

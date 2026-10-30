@@ -137,6 +137,23 @@ class ComprovanteControllerIT {
     }
 
     @Test
+    void deveRecusarComprovanteSemProvedorDeIaConfigurado() throws Exception {
+        String token = registrar("comprovante-sem-ia");
+        mockMvc.perform(post("/api/comprovantes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ComprovanteRequest("foto.jpg",
+                                Base64.getEncoder().encodeToString(JPEG)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        "Configure uma integração de IA padrão e ativa para usar este recurso."));
+
+        mockMvc.perform(get("/api/comprovantes").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
     void deveEditarEAprovarComprovanteDeDebito() throws Exception {
         String token = registrar("comprovante-debito");
         Referencias ref = criarReferencias(token);

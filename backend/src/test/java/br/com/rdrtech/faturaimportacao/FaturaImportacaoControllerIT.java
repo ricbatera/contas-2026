@@ -206,6 +206,24 @@ class FaturaImportacaoControllerIT {
     }
 
     @Test
+    void deveRecusarImportacaoSemProvedorDeIaConfigurado() throws Exception {
+        String token = registrar("importa-sem-ia");
+
+        mockMvc.perform(post("/api/faturas/importacoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new FaturaImportacaoRequest(
+                                "fatura.pdf", Base64.getEncoder().encodeToString(pdf(null)), null))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        "Configure uma integração de IA padrão e ativa para usar este recurso."));
+
+        mockMvc.perform(get("/api/faturas/importacoes").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
     void deveRecusarArquivoQueNaoEPdf() throws Exception {
         String token = registrar("importa-naopdf");
         criarReferencias(token);

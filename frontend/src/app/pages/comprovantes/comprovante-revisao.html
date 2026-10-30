@@ -38,9 +38,12 @@
         @if (error()) {
           <div class="form-error" role="alert">{{ error() }}</div>
         }
+        @if (pendente()) {
+          <app-aviso-ia [situacao]="situacaoIa()" />
+        }
         @if (c.erroLeitura && c.status === 'PENDENTE') {
           <div class="form-error" role="alert">
-            {{ c.erroLeitura }} Preencha os campos à mão ou use “Ler de novo”.
+            {{ c.erroLeitura }} Preencha os campos à mão{{ iaDisponivel() ? ' ou use “Ler de novo”' : '' }}.
           </div>
         }
         @if (c.avisos.length && c.status === 'PENDENTE') {
@@ -151,7 +154,7 @@
               <small class="import-wait">Para aprovar, informe: {{ faltando().join(', ') }}.</small>
             }
             <button class="delete-button" type="button" [disabled]="!!ocupado()" (click)="rejeitar()">Rejeitar</button>
-            <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="reler()">
+            <button class="secondary-button" type="button" [disabled]="!!ocupado() || !iaDisponivel()" (click)="reler()">
               {{ ocupado() === 'reler' ? 'Lendo...' : 'Ler de novo' }}
             </button>
             @if (form.dirty) {

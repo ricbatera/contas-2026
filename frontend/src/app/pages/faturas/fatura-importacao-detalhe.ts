@@ -1,6 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, Observable, of, switchMap, tap } from 'rxjs';
 import { Cartao, CartaoService } from '../../core/cartao.service';
@@ -8,6 +9,8 @@ import { Categoria, CategoriaService } from '../../core/categoria.service';
 import { FaturaImportacao, FaturaImportacaoService } from '../../core/fatura-importacao.service';
 import { ImportacaoMonitorService } from '../../core/importacao-monitor.service';
 import { PreSaida, PreSaidaRequest, PreSaidaService } from '../../core/pre-saida.service';
+import { ProvedorIaService, SituacaoIa } from '../../core/provedor-ia.service';
+import { AvisoIa } from '../../shared/ia/aviso-ia';
 import { mensagemErro, ROTULO_STATUS, rotuloCompetencia } from './importacao-util';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
@@ -19,7 +22,7 @@ interface Rascunho extends PreSaidaRequest {
 
 @Component({
   selector: 'app-fatura-importacao-detalhe',
-  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, RouterLink],
+  imports: [AvisoIa, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './fatura-importacao-detalhe.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })
@@ -45,6 +48,11 @@ export class FaturaImportacaoDetalhe implements OnInit {
   protected readonly rotuloStatus = ROTULO_STATUS;
   protected readonly rotuloCompetencia = rotuloCompetencia;
   protected readonly parcelas = Array.from({ length: 60 }, (_, index) => index + 1);
+
+  protected readonly situacaoIa = toSignal(inject(ProvedorIaService).situacao(), {
+    initialValue: 'VERIFICANDO' as SituacaoIa,
+  });
+  protected readonly iaDisponivel = computed(() => this.situacaoIa() === 'DISPONIVEL');
 
   protected readonly pendentes = computed(() =>
     (this.importacao()?.preSaidas ?? []).filter((item) => item.status === 'PENDENTE'));

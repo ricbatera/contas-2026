@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { catchError, map, Observable, of } from 'rxjs';
 import { ApiResponse } from './auth.service';
 
 export const TIPOS_PROVEDOR_IA = ['OPENAI', 'ANTHROPIC', 'GEMINI', 'OLLAMA'] as const;
@@ -65,6 +65,8 @@ export interface ModelosIa {
   erro: string | null;
 }
 
+export type SituacaoIa = 'VERIFICANDO' | 'DISPONIVEL' | 'SEM_PROVEDOR' | 'SEM_PADRAO_ATIVO';
+
 @Injectable({ providedIn: 'root' })
 export class ProvedorIaService {
   private readonly http = inject(HttpClient);
@@ -102,6 +104,22 @@ export class ProvedorIaService {
     return this.http
       .post<ApiResponse<ModelosIa>>(`${this.endpoint}/modelos`, request)
       .pipe(map((response) => response.data));
+  }
+
+  /**
+   * Se os recursos de IA (comprovantes, importação de fatura) podem ser usados: o backend exige um
+   * provedor padrão e ativo. Falha na consulta não bloqueia a tela, porque o backend recusa de qualquer jeito.
+   */
+  situacao(): Observable<SituacaoIa> {
+    return this.listar().pipe(
+      map((provedores): SituacaoIa => {
+        if (provedores.length === 0) {
+          return 'SEM_PROVEDOR';
+        }
+        return provedores.some((provedor) => provedor.padrao && provedor.ativo) ? 'DISPONIVEL' : 'SEM_PADRAO_ATIVO';
+      }),
+      catchError(() => of<SituacaoIa>('DISPONIVEL')),
+    );
   }
 
   testar(id: string, prompt: string | null): Observable<TesteIa> {

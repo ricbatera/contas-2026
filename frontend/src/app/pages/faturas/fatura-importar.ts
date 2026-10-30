@@ -1,17 +1,20 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
+import { AvisoIa } from '../../shared/ia/aviso-ia';
 import { Router, RouterLink } from '@angular/router';
 import { FaturaImportacaoService, lerArquivoBase64 } from '../../core/fatura-importacao.service';
 import { ImportacaoMonitorService } from '../../core/importacao-monitor.service';
+import { ProvedorIaService, SituacaoIa } from '../../core/provedor-ia.service';
 import { mensagemErro } from './importacao-util';
 
 export const TAMANHO_MAXIMO_PDF = 10 * 1024 * 1024;
 
 @Component({
   selector: 'app-fatura-importar',
-  imports: [AvisoFormulario, ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, AvisoIa, ReactiveFormsModule, RouterLink],
   templateUrl: './fatura-importar.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })
@@ -29,6 +32,21 @@ export class FaturaImportar {
   protected readonly senhaErro = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly enviando = signal(false);
+  protected readonly situacaoIa = toSignal(inject(ProvedorIaService).situacao(), {
+    initialValue: 'VERIFICANDO' as SituacaoIa,
+  });
+  protected readonly iaDisponivel = computed(() => this.situacaoIa() === 'DISPONIVEL');
+
+  constructor() {
+    effect(() => {
+      const senha = this.form.controls.senha;
+      if (this.iaDisponivel()) {
+        senha.enable();
+      } else {
+        senha.disable();
+      }
+    });
+  }
 
   protected selecionarArquivo(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -55,6 +73,9 @@ export class FaturaImportar {
   }
 
   protected async enviar(): Promise<void> {
+    if (!this.iaDisponivel()) {
+      return;
+    }
     const arquivo = this.arquivo();
     if (!arquivo) {
       this.arquivoErro.set('Selecione o PDF da fatura.');

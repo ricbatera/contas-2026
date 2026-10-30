@@ -77,7 +77,7 @@
             <button class="delete-button" type="button" (click)="excluir()">Excluir</button>
             <button class="secondary-button" type="button" (click)="confirmar.set(null)">Cancelar</button>
           } @else {
-            <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="confirmar.set('reprocessar')">
+            <button class="secondary-button" type="button" [disabled]="!!ocupado() || !iaDisponivel()" (click)="confirmar.set('reprocessar')">
               {{ ocupado() === 'reprocessar' ? 'Lendo com IA...' : 'Reprocessar' }}
             </button>
             <button class="secondary-button" type="button" [disabled]="!!ocupado()" (click)="confirmar.set('excluir')">
@@ -86,6 +86,9 @@
           }
         </div>
       </div>
+      @if (!processando()) {
+        <app-aviso-ia [situacao]="situacaoIa()" />
+      }
       @if (processando()) {
         <div class="import-processing" role="status">
           <span class="spinner" aria-hidden="true"></span>
