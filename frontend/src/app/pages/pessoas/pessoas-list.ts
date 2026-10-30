@@ -4,12 +4,13 @@ import { RouterLink } from '@angular/router';
 import { Pessoa, PessoaService } from '../../core/pessoa.service';
 import { correspondeBusca } from '../../shared/busca/busca';
 import { CampoBusca } from '../../shared/busca/campo-busca';
+import { PessoaSaidas } from './pessoa-saidas';
 
 @Component({
   selector: 'app-pessoas-list',
-  imports: [CampoBusca, RouterLink],
+  imports: [CampoBusca, PessoaSaidas, RouterLink],
   templateUrl: './pessoas-list.html',
-  styleUrls: ['../cartoes/cartoes.css', './pessoas.css'],
+  styleUrls: ['../cartoes/cartoes.css', '../categorias/categorias.css', './pessoas.css'],
 })
 export class PessoasList implements OnInit {
   private readonly service = inject(PessoaService);
@@ -18,6 +19,7 @@ export class PessoasList implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly deletingId = signal<string | null>(null);
+  protected readonly guia = signal<'cadastro' | 'saidas'>('cadastro');
   protected readonly busca = signal('');
   protected readonly pessoasEncontradas = computed(() =>
     this.pessoas().filter((pessoa) =>

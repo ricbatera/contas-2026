@@ -1,0 +1,125 @@
+@if (pessoas().length === 0) {
+  <div class="state-card empty-state">
+    <h3>Nenhuma pessoa cadastrada</h3>
+    <p>Cadastre uma pessoa e atribua saídas a ela para acompanhar os gastos dela aqui.</p>
+  </div>
+} @else {
+  <div class="pessoa-saidas-filtros">
+    <label class="form-field">
+      Pessoa
+      <select [value]="pessoaId()" (change)="selecionarPessoa($event)">
+        @for (pessoa of pessoasOrdenadas(); track pessoa.id) {
+          <option [value]="pessoa.id" [selected]="pessoa.id === pessoaId()">
+            {{ pessoa.nome }}{{ pessoa.ativo ? '' : ' (inativa)' }}
+          </option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <div class="entrada-month-bar">
+    <div class="entrada-month-nav">
+      <button class="secondary-button" type="button" aria-label="Mês anterior" (click)="mudarMes(-1)">‹</button>
+      <strong class="entrada-month-label" aria-live="polite">{{ rotuloCompetencia() }}</strong>
+      <button class="secondary-button" type="button" aria-label="Próximo mês" (click)="mudarMes(1)">›</button>
+    </div>
+    <div class="pessoa-total" aria-live="polite">
+      <span class="pessoa-total-nome">{{ nomePessoa() }}</span>
+      <span>Total no mês{{ busca() ? ' (busca)' : '' }}</span>
+      <strong>{{ totalDoMes() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Carregando saídas...</div>
+  } @else if (error()) {
+    <div class="state-card state-error" role="alert">
+      <p>{{ error() }}</p>
+      <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
+    </div>
+  } @else {
+    <section class="fatura-items" aria-label="Saídas da pessoa no mês">
+      @if (itensDoMes().length) {
+        <app-campo-busca [(termo)]="busca" placeholder="Buscar saídas da pessoa" />
+      }
+      @for (item of itensEncontrados(); track item.parcela.id) {
+        <article class="fatura-item">
+          <div class="fatura-item-main">
+            <h4>
+              <a [routerLink]="['/home/saidas', item.saida.id, 'editar']">{{ item.saida.descricao }}</a>
+            </h4>
+            <p>{{ item.saida.categoriaNome }} · {{ item.saida.subcategoriaNome }}</p>
+            <div class="fatura-item-meta">
+              <span>Vence em {{ item.parcela.vencimento | date: 'dd/MM/yyyy' }}</span>
+              @if (item.saida.quantidadeParcelas > 1) {
+                <span>Parcela {{ item.parcela.numero }}/{{ item.saida.quantidadeParcelas }}</span>
+              }
+              <span>{{ nomeForma(item.saida.formaPagamento) }}</span>
+              @if (item.saida.cartaoNome) {
+                <span>{{ item.saida.cartaoNome }}</span>
+              }
+              @if (item.saida.contaFixa) {
+                <span>Conta fixa</span>
+              }
+            </div>
+          </div>
+          <div class="pessoa-saida-valor">
+            <strong>{{ item.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+            @if (item.valor !== item.parcela.valor) {
+              <small>de {{ item.parcela.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</small>
+            }
+          </div>
+        </article>
+      } @empty {
+        <div class="state-card">
+          {{ itensDoMes().length ? 'Nenhum resultado para “' + busca() + '”.' : 'Nenhuma saída desta pessoa vence em ' + rotuloCompetencia() + '.' }}
+        </div>
+      }
+    </section>
+
+    <article class="projection-card" aria-labelledby="pessoa-progressao-titulo">
+      <div class="projection-heading">
+        <div>
+          <p class="section-kicker">PROGRESSÃO MENSAL</p>
+          <h3 id="pessoa-progressao-titulo">Gastos da pessoa por mês</h3>
+          <p>A partir de {{ rotuloCompetencia() }}, somando a parte dela em cada parcela.</p>
+        </div>
+        <label class="form-field projection-count">
+          Meses exibidos
+          <select [value]="quantidadeMeses()" (change)="atualizarQuantidadeMeses($event)">
+            @for (quantidade of quantidadesMeses; track quantidade) {
+              <option [value]="quantidade" [selected]="quantidade === quantidadeMeses()">{{ quantidade }} meses</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="projection-chart-scroll">
+        <svg class="projection-chart" [attr.width]="larguraGrafico()" height="300"
+          [attr.viewBox]="'0 0 ' + larguraGrafico() + ' 300'" role="group"
+          aria-label="Gráfico de barras dos gastos mensais da pessoa">
+          <title>Gastos mensais da pessoa</title>
+          @for (eixo of eixosGrafico(); track eixo.valor) {
+            <g class="chart-axis">
+              <line x1="76" [attr.x2]="larguraGrafico() - 18" [attr.y1]="eixo.y" [attr.y2]="eixo.y"></line>
+              <text x="68" [attr.y]="eixo.y + 4" text-anchor="end">{{ eixo.rotulo }}</text>
+            </g>
+          }
+          @for (barra of barrasGrafico(); track barra.chave) {
+            <g class="chart-bar" tabindex="0" role="img" [attr.aria-label]="barra.descricao">
+              <title>{{ barra.descricao }}</title>
+              @if (barra.altura > 0) {
+                <rect [attr.x]="barra.x" [attr.y]="barra.y" [attr.width]="barra.largura"
+                  [attr.height]="barra.altura" fill="#3278c7" rx="2"></rect>
+                <text class="chart-total" [attr.x]="barra.centro" [attr.y]="barra.y - 8"
+                  text-anchor="middle">{{ barra.rotuloTotal }}</text>
+              }
+              <text class="chart-month" [attr.x]="barra.centro" y="282" text-anchor="middle">{{ barra.rotuloMes }}</text>
+            </g>
+          }
+        </svg>
+      </div>
+      <p class="projection-note">Passe o cursor ou foque em uma barra para ver o valor do mês.</p>
+    </article>
+  }
+}

@@ -80,6 +80,25 @@ describe('PessoasList', () => {
     confirm.mockRestore();
   });
 
+  it('opens the expenses by person tab', () => {
+    const fixture = TestBed.createComponent(PessoasList);
+    fixture.detectChanges();
+    http.expectOne('/api/pessoas').flush({ data: pessoas });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const guias = element.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    expect(Array.from(guias).map((guia) => guia.textContent?.trim())).toEqual(['Cadastro', 'Saídas por pessoa']);
+    guias[1].click();
+    fixture.detectChanges();
+    http.expectOne('/api/saidas').flush({ data: [] });
+    fixture.detectChanges();
+
+    expect(element.querySelector('app-pessoa-saidas')).not.toBeNull();
+    expect(element.querySelector('.people-list')).toBeNull();
+    expect(guias[1].getAttribute('aria-selected')).toBe('true');
+  });
+
   it('filters people while typing in the search field, ignoring accents', () => {
     const fixture = TestBed.createComponent(PessoasList);
     fixture.detectChanges();

@@ -20,6 +20,15 @@
     </div>
   }
 
+  @if (!loading() && pessoas().length > 0) {
+    <div class="category-tabs" role="tablist" aria-label="Guias de pessoas">
+      <button class="category-tab" type="button" role="tab" [class.active]="guia() === 'cadastro'"
+        [attr.aria-selected]="guia() === 'cadastro'" (click)="guia.set('cadastro')">Cadastro</button>
+      <button class="category-tab" type="button" role="tab" [class.active]="guia() === 'saidas'"
+        [attr.aria-selected]="guia() === 'saidas'" (click)="guia.set('saidas')">Saídas por pessoa</button>
+    </div>
+  }
+
   @if (loading()) {
     <div class="state-card" role="status">Carregando pessoas...</div>
   } @else if (pessoas().length === 0 && !error()) {
@@ -31,6 +40,8 @@
       <p>Cadastre uma pessoa para relacioná-la às suas movimentações financeiras.</p>
       <a class="primary-button" routerLink="/home/pessoas/novo">Cadastrar pessoa</a>
     </div>
+  } @else if (pessoas().length > 0 && guia() === 'saidas') {
+    <app-pessoa-saidas [pessoas]="pessoas()" />
   } @else if (pessoas().length > 0) {
     <app-campo-busca [(termo)]="busca" placeholder="Buscar pessoas" />
     @if (pessoasEncontradas().length === 0) {
