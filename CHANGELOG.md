@@ -2,6 +2,15 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## frontend 1.0.9 — 2026-10-30
+
+- Imagem: `ricardo1782/financas-frontend:1.0.9` (também `latest`)
+- Commit: `5190d95` (tag `frontend-v1.0.9`)
+- Próxima versão de desenvolvimento: 1.0.10
+- Mudanças:
+  - 5190d95 feat(frontend): imagem e PDF das saídas da pessoa
+  - 1108446 feat(frontend): guia de saídas por pessoa com progressão mensal
+
 ## frontend 1.0.8 — 2026-10-30
 
 - Imagem: `ricardo1782/financas-frontend:1.0.8` (também `latest`)
