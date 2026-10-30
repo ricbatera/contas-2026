@@ -1,12 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ProvedorIa, ProvedorIaService, TipoProvedorIa } from '../../core/provedor-ia.service';
 import { INFO_PROVEDOR, mensagemErroHttp } from './provedores-ia';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 
 @Component({
   selector: 'app-provedores-ia-list',
-  imports: [RouterLink],
+  imports: [CampoBusca, RouterLink],
   templateUrl: './provedores-ia-list.html',
   styleUrls: ['../cartoes/cartoes.css', '../contas/contas.css', './ia.css'],
 })
@@ -17,6 +19,17 @@ export class ProvedoresIaList implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly deletingId = signal<string | null>(null);
+  protected readonly busca = signal('');
+  protected readonly provedoresEncontrados = computed(() =>
+    this.provedores().filter((provedor) => correspondeBusca(
+      this.busca(),
+      provedor.nome,
+      this.nomeTipo(provedor.tipo),
+      provedor.modelo,
+      provedor.baseUrl,
+      provedor.padrao ? 'Padrão' : null,
+      provedor.ativo ? null : 'Inativo',
+    )));
 
   ngOnInit(): void {
     this.carregar();

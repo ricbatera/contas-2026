@@ -95,8 +95,9 @@
           <p>Adicione uma despesa para visualizar o impacto mês a mês.</p>
         </div>
       } @else {
+        <app-campo-busca class="campo-busca-largo" [(termo)]="busca" placeholder="Buscar despesas simuladas" />
         <ul class="simulation-list">
-          @for (item of simulacoes(); track item.id) {
+          @for (item of simulacoesEncontradas(); track item.id) {
             <li class="simulation-item">
               <div class="simulation-item-icon" aria-hidden="true">↗</div>
               <div class="simulation-item-description">
@@ -107,6 +108,8 @@
               <button class="remove-simulation-button" type="button" [attr.aria-label]="'Remover ' + item.nome"
                 (click)="remover(item.id)">×</button>
             </li>
+          } @empty {
+            <li class="simulation-empty">Nenhum resultado para “{{ busca() }}”.</li>
           }
         </ul>
       }

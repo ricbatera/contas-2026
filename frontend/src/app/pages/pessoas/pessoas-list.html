@@ -32,8 +32,12 @@
       <a class="primary-button" routerLink="/home/pessoas/novo">Cadastrar pessoa</a>
     </div>
   } @else if (pessoas().length > 0) {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar pessoas" />
+    @if (pessoasEncontradas().length === 0) {
+      <div class="state-card" role="status">Nenhum resultado para “{{ busca() }}”.</div>
+    }
     <div class="people-list">
-      @for (pessoa of pessoas(); track pessoa.id) {
+      @for (pessoa of pessoasEncontradas(); track pessoa.id) {
         <article class="person-item">
           <div class="person-avatar" aria-hidden="true">{{ pessoa.nome.charAt(0).toLocaleUpperCase() }}</div>
           <div class="person-info">

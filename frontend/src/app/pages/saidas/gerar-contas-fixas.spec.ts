@@ -90,6 +90,22 @@ describe('GerarContasFixas', () => {
     expect(gerado).toHaveBeenCalledWith({ criadas: [], ignoradas: 0 });
   });
 
+  it('hides items outside the search but still generates every selected item', () => {
+    const fixture = criar([previa({}), previa({ serieId: 'serie-2', descricao: 'Água', valorPorParcela: 80 })]);
+    const element = fixture.nativeElement as HTMLElement;
+
+    digitar(element.querySelector<HTMLInputElement>('input[type="search"]')!, 'agua');
+    fixture.detectChanges();
+    const visiveis = Array.from(element.querySelectorAll('.conta-fixa-item strong')).map((s) => s.textContent);
+    expect(visiveis).toEqual(['Água']);
+    expect(element.querySelector('.conta-fixa-total')!.textContent).toContain('inclui 1 selecionada(s) fora da busca');
+
+    element.querySelector<HTMLButtonElement>('.primary-button')!.click();
+    const request = http.expectOne('/api/saidas/contas-fixas');
+    expect(request.request.body.itens.map((item: { serieId: string }) => item.serieId)).toEqual(['serie-1', 'serie-2']);
+    request.flush({ data: { criadas: [], ignoradas: 0 } });
+  });
+
   it('blocks approval when the date is outside the month', () => {
     const fixture = criar([previa({})]);
     const element = fixture.nativeElement as HTMLElement;

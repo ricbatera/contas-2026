@@ -12,8 +12,9 @@
       <p class="conta-fixa-ajuda filter-full">
         Cada conta repete a última ocorrência. Ajuste o valor e a data se precisar e desmarque o que não quer lançar.
       </p>
+      <app-campo-busca class="campo-busca-largo filter-full" [(termo)]="busca" placeholder="Buscar contas fixas" />
       <ul class="conta-fixa-lista filter-full">
-        @for (linha of linhas(); track linha.item.serieId) {
+        @for (linha of linhasVisiveis(); track linha.item.serieId) {
           <li class="conta-fixa-item" [class.desmarcada]="!linha.selecionada">
             <label class="conta-fixa-titulo">
               <input
@@ -58,6 +59,8 @@
               </label>
             </div>
           </li>
+        } @empty {
+          <li class="conta-fixa-vazia">Nenhum resultado para “{{ busca() }}”.</li>
         }
       </ul>
     }
@@ -65,7 +68,12 @@
 
   <footer class="filter-dialog-actions">
     @if (linhas().length > 0) {
-      <span class="conta-fixa-total" aria-live="polite">Total: {{ total() | currency: 'BRL' }}</span>
+      <span class="conta-fixa-total" aria-live="polite">
+        Total: {{ total() | currency: 'BRL' }}
+        @if (selecionadasOcultas()) {
+          <small>(inclui {{ selecionadasOcultas() }} selecionada(s) fora da busca)</small>
+        }
+      </span>
     } @else {
       <span></span>
     }

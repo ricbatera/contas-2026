@@ -7,10 +7,12 @@ import {
   TipoCategoria,
   TIPOS_CATEGORIA,
 } from '../../core/categoria.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 
 @Component({
   selector: 'app-categorias-list',
-  imports: [RouterLink],
+  imports: [CampoBusca, RouterLink],
   templateUrl: './categorias-list.html',
   styleUrls: ['../cartoes/cartoes.css', './categorias.css'],
 })
@@ -23,6 +25,7 @@ export class CategoriasList implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly workingId = signal<string | null>(null);
+  protected readonly busca = signal('');
 
   ngOnInit(): void {
     this.carregar();
@@ -32,6 +35,21 @@ export class CategoriasList implements OnInit {
     return this.categorias()
       .filter((categoria) => categoria.tipo === tipo)
       .sort((a, b) => Number(b.padrao) - Number(a.padrao) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+
+  /**
+   * Categorias do tipo que casam com a busca. Se o nome da categoria casa, ela aparece inteira;
+   * senão, aparece só com as subcategorias que casam.
+   */
+  protected encontradasPorTipo(tipo: TipoCategoria): Categoria[] {
+    const termo = this.busca();
+    return this.porTipo(tipo).flatMap((categoria) => {
+      if (correspondeBusca(termo, categoria.nome)) {
+        return [categoria];
+      }
+      const subcategorias = categoria.subcategorias.filter((sub) => correspondeBusca(termo, sub.nome));
+      return subcategorias.length ? [{ ...categoria, subcategorias }] : [];
+    });
   }
 
   protected tituloTipo(tipo: TipoCategoria): string {

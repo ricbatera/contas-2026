@@ -52,14 +52,22 @@
       <p>Cadastre seu salário como entrada recorrente para prever o recebimento todo mês.</p>
       <a class="primary-button" routerLink="/home/entradas/nova">Cadastrar entrada</a>
     </div>
-  } @else if (ocorrenciasFiltradas().length === 0 && !error()) {
+  } @else if (ocorrencias().length > 0) {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar entradas" />
+  }
+  @if (!loading() && ocorrencias().length > 0 && ocorrenciasFiltradas().length === 0 && !error()) {
     <div class="state-card empty-state">
       <div class="empty-icon" aria-hidden="true">⌕</div>
-      <h3>Nenhuma entrada corresponde aos filtros</h3>
+      <h3>Nenhuma entrada corresponde {{ busca() ? 'à busca e aos filtros' : 'aos filtros' }}</h3>
       <p>Altere os critérios ou limpe os filtros para ver todas as entradas do mês.</p>
-      <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+      <div class="saida-toolbar-actions">
+        @if (busca()) {
+          <button class="secondary-button" type="button" (click)="busca.set('')">Limpar busca</button>
+        }
+        <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+      </div>
     </div>
-  } @else {
+  } @else if (!loading() && ocorrencias().length > 0) {
     <div class="saida-list">
       @for (ocorrencia of ocorrenciasFiltradas(); track ocorrencia.id) {
         <article class="saida-card" [class.entrada-cancelada]="ocorrencia.status === 'CANCELADA'">

@@ -64,7 +64,8 @@
       <a class="primary-button" routerLink="/home/saidas/nova">Cadastrar saída</a>
     </div>
   } @else {
-    @if (quantidadeFiltrosAtivos() > 0) {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar saídas" />
+    @if (quantidadeFiltrosAtivos() > 0 || busca()) {
       <p class="filter-results-count" aria-live="polite">
         {{ cardsVisiveis().length }} parcela(s) em {{ saidasFiltradas().length }} de {{ saidas().length }} saída(s)
       </p>
@@ -72,9 +73,14 @@
     @if (cardsVisiveis().length === 0) {
       <div class="state-card empty-state">
         <div class="empty-icon" aria-hidden="true">⌕</div>
-        <h3>Nenhuma saída corresponde aos filtros</h3>
+        <h3>Nenhuma saída corresponde {{ busca() ? 'à busca e aos filtros' : 'aos filtros' }}</h3>
         <p>Altere os critérios ou limpe os filtros para ver todas as saídas.</p>
-        <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+        <div class="saida-toolbar-actions">
+          @if (busca()) {
+            <button class="secondary-button" type="button" (click)="busca.set('')">Limpar busca</button>
+          }
+          <button class="secondary-button" type="button" (click)="limparFiltros()">Limpar filtros</button>
+        </div>
       </div>
     } @else {
       <div class="saida-list">

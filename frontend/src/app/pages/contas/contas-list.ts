@@ -1,8 +1,10 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ContaBancaria, ContaBancariaService, TipoConta } from '../../core/conta-bancaria.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 
 const NOMES_TIPO: Record<TipoConta, string> = {
   CORRENTE: 'Conta corrente',
@@ -14,7 +16,7 @@ const NOMES_TIPO: Record<TipoConta, string> = {
 
 @Component({
   selector: 'app-contas-list',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CampoBusca, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './contas-list.html',
   styleUrls: ['../cartoes/cartoes.css', './contas.css'],
 })
@@ -25,6 +27,18 @@ export class ContasList implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly deletingId = signal<string | null>(null);
+  protected readonly busca = signal('');
+  protected readonly contasEncontradas = computed(() =>
+    this.contas().filter((conta) => correspondeBusca(
+      this.busca(),
+      conta.nome,
+      conta.banco,
+      this.tipoConta(conta.tipoConta),
+      conta.agencia,
+      conta.numeroConta,
+      conta.saldoInicial,
+      conta.ativo ? 'Ativa' : 'Inativa',
+    )));
 
   ngOnInit(): void {
     this.carregar();

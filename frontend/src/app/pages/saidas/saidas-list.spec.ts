@@ -297,6 +297,39 @@ describe('SaidasList', () => {
     expect(element.textContent).not.toContain('2x');
   });
 
+  it('combines the quick search with the dialog filters and totals only the matches', () => {
+    const fixture = TestBed.createComponent(SaidasList);
+    fixture.detectChanges();
+    http.expectOne('/api/saidas').flush({ data: [
+      saida({ id: 'expense-1', descricao: 'Supermercado', valorPorParcela: 120, valorTotal: 120,
+        parcelas: [{ id: 'p-1', numero: 1, valor: 120, vencimento: dataEsteMes(10), faturaId: null, vencimentoFatura: null }],
+        responsabilidades: [{ pessoaId: null, usuarioId: 'user-1', nome: 'Ana Silva', valorPorParcela: 120 }] }),
+      saida({ id: 'expense-2', descricao: 'Farmácia', categoriaNome: 'Saúde', subcategoriaNome: 'Remédios',
+        valorPorParcela: 30, valorTotal: 30,
+        parcelas: [{ id: 'p-2', numero: 1, valor: 30, vencimento: dataEsteMes(12), faturaId: null, vencimentoFatura: null }],
+        responsabilidades: [{ pessoaId: null, usuarioId: 'user-1', nome: 'Ana Silva', valorPorParcela: 30 }] }),
+    ] });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.saida-visible-total')!.textContent).toMatch(/150[.,]00/);
+
+    const busca = element.querySelector<HTMLInputElement>('input[type="search"]')!;
+    busca.value = 'remedios';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    const titulos = Array.from(element.querySelectorAll('.saida-card h3')).map((h) => h.textContent?.trim());
+    expect(titulos).toEqual(['Farmácia']);
+    expect(element.querySelector('.saida-visible-total')!.textContent).toMatch(/30[.,]00/);
+
+    busca.value = 'xyz';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(element.textContent).toContain('Nenhuma saída corresponde à busca e aos filtros');
+    Array.from(element.querySelectorAll('button')).find((b) => b.textContent?.includes('Limpar busca'))!.click();
+    fixture.detectChanges();
+    expect(element.querySelectorAll('.saida-card')).toHaveLength(2);
+  });
+
   it('initially shows only expenses due this month and pre-fills the current month and year', () => {
     const fixture = TestBed.createComponent(SaidasList);
     fixture.detectChanges();

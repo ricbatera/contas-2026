@@ -110,6 +110,10 @@
       }
     </article>
 
+    @if (possuiItens()) {
+      <app-campo-busca [(termo)]="busca" placeholder="Buscar lançamentos e pré-saídas" />
+    }
+
     @if (imp.resumo?.avisos?.length) {
       <section class="fatura-items import-section" aria-label="Avisos">
         <h3>Avisos</h3>
@@ -124,7 +128,7 @@
     @if (imp.status === 'CONCLUIDA' || pendentes().length) {
       <section class="fatura-items import-section" aria-label="Pré-saídas pendentes">
         <div class="import-section-heading">
-          <h3>Pré-saídas pendentes ({{ pendentes().length }})</h3>
+          <h3>Pré-saídas pendentes ({{ contagem(pendentesVisiveis(), pendentes()) }})</h3>
           @if (pendentes().length) {
             <button
               class="primary-button"
@@ -144,7 +148,7 @@
           }
         </p>
 
-        @for (item of pendentes(); track item.id) {
+        @for (item of pendentesVisiveis(); track item.id) {
           @let r = rascunhos()[item.id];
           <article class="pre-saida-card">
             <div class="pre-saida-heading">
@@ -277,16 +281,16 @@
             </div>
           </article>
         } @empty {
-          <div class="state-card">Nenhuma pré-saída pendente.</div>
+          <div class="state-card">{{ pendentes().length ? "Nenhuma pendente para “" + busca() + "”." : "Nenhuma pré-saída pendente." }}</div>
         }
       </section>
     }
 
     @if (imp.resumo?.conciliados?.length) {
       <section class="fatura-items import-section" aria-label="Lançamentos conciliados">
-        <h3>Já lançados ({{ imp.resumo!.conciliados.length }})</h3>
+        <h3>Já lançados ({{ contagem(conciliadosVisiveis(), imp.resumo!.conciliados) }})</h3>
         <p class="section-description">Compras que já existiam nas saídas. A descrição da fatura foi atualizada com o texto do PDF.</p>
-        @for (item of imp.resumo!.conciliados; track $index) {
+        @for (item of conciliadosVisiveis(); track $index) {
           <article class="fatura-item">
             <div class="fatura-item-main">
               <h4>{{ item.descricaoPdf }}</h4>
@@ -318,7 +322,7 @@
     @if (aprovadas().length || rejeitadas().length || vinculadas().length) {
       <section class="fatura-items import-section" aria-label="Pré-saídas revisadas">
         <h3>Revisadas</h3>
-        @for (item of vinculadas(); track item.id) {
+        @for (item of vinculadasVisiveis(); track item.id) {
           <article class="fatura-item">
             <div class="fatura-item-main">
               <h4>{{ item.descricaoFatura }}</h4>
@@ -335,7 +339,7 @@
             <strong>{{ item.valorPorParcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
           </article>
         }
-        @for (item of aprovadas(); track item.id) {
+        @for (item of aprovadasVisiveis(); track item.id) {
           <article class="fatura-item">
             <div class="fatura-item-main">
               <h4>{{ item.descricao }}</h4>
@@ -349,7 +353,7 @@
             <strong>{{ item.valorPorParcela | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
           </article>
         }
-        @for (item of rejeitadas(); track item.id) {
+        @for (item of rejeitadasVisiveis(); track item.id) {
           <article class="fatura-item">
             <div class="fatura-item-main">
               <h4>{{ item.descricao }}</h4>
@@ -369,8 +373,8 @@
 
     @if (imp.resumo?.ignorados?.length) {
       <section class="fatura-items import-section" aria-label="Lançamentos ignorados">
-        <h3>Ignorados ({{ imp.resumo!.ignorados.length }})</h3>
-        @for (item of imp.resumo!.ignorados; track $index) {
+        <h3>Ignorados ({{ contagem(ignoradosVisiveis(), imp.resumo!.ignorados) }})</h3>
+        @for (item of ignoradosVisiveis(); track $index) {
           <article class="fatura-item">
             <div class="fatura-item-main">
               <h4>{{ item.descricao }}</h4>

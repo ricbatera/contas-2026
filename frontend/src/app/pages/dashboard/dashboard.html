@@ -185,8 +185,12 @@
             @if (detalhes().length === 0) {
               <div class="dashboard-modal-state">Nenhum item compõe este valor.</div>
             } @else {
+              <app-campo-busca class="campo-busca-largo" [(termo)]="buscaDetalhes" placeholder="Buscar itens" />
+              @if (detalhesEncontrados().length === 0) {
+                <div class="dashboard-modal-state" role="status">Nenhum resultado para “{{ buscaDetalhes() }}”.</div>
+              }
               <div class="dashboard-detail-list">
-                @for (item of detalhes(); track $index) {
+                @for (item of detalhesEncontrados(); track $index) {
                   <article class="dashboard-detail-item">
                     <div>
                       @if (item.descricao || item.situacao) {
@@ -219,7 +223,7 @@
               </div>
             }
             <footer class="dashboard-modal-total">
-              <span>Total dos itens</span>
+              <span>{{ buscaDetalhes() ? 'Total dos itens encontrados' : 'Total dos itens' }}</span>
               <strong>{{ totalDetalhes() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
             </footer>
           }

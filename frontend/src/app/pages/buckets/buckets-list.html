@@ -47,8 +47,12 @@
       <a class="primary-button" routerLink="/home/buckets/novo">Criar bucket</a>
     </div>
   } @else if (buckets().length > 0) {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar buckets" />
+    @if (bucketsEncontrados().length === 0) {
+      <div class="state-card" role="status">Nenhum resultado para “{{ busca() }}”.</div>
+    }
     <div class="bucket-list">
-      @for (bucket of buckets(); track bucket.id) {
+      @for (bucket of bucketsEncontrados(); track bucket.id) {
         <article class="bucket-card">
           <div class="bucket-card-heading">
             <div>

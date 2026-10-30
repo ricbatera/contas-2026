@@ -250,6 +250,53 @@ describe('Dashboard', () => {
     expect(element.querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('searches the detail items and totals only the matches', () => {
+    const fixture = TestBed.createComponent(Dashboard);
+    fixture.detectChanges();
+    const now = inicioMesReferencia();
+    http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
+      mes: now.getMonth() + 1,
+      ano: now.getFullYear(),
+      gastosLancados: 225.5,
+      bucketsReservados: 0,
+      contasFixas: 0,
+      contasFixasPrevistas: 0,
+      totalPrevisto: 225.5,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -225.5,
+    } });
+    responderProjecao(now.getMonth() + 1, now.getFullYear());
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.forecast-breakdown .forecast-breakdown-item')!.click();
+    fixture.detectChanges();
+    const item = (descricao: string, subcategoriaNome: string, valor: number) => ({
+      descricao, categoriaNome: 'Casa', subcategoriaNome, vencimento: '2026-10-15',
+      numeroParcela: 1, quantidadeParcelas: 1, valor,
+    });
+    http.expectOne((request) => request.url === '/api/dashboard/saidas')
+      .flush({ data: [item('Mercado', 'Alimentação', 125.5), item('Farmácia', 'Saúde', 100)] });
+    fixture.detectChanges();
+
+    const busca = element.querySelector<HTMLInputElement>('[role="dialog"] input[type="search"]')!;
+    busca.value = 'saude';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const lista = element.querySelector('.dashboard-detail-list')!.textContent;
+    expect(lista).toContain('Farmácia');
+    expect(lista).not.toContain('Mercado');
+    expect(element.querySelector('.dashboard-modal-total')!.textContent).toContain('Total dos itens encontrados');
+    expect(element.querySelector('.dashboard-modal-total')!.textContent).toContain('100,00');
+
+    // O primeiro Escape só limpa a busca; o modal continua aberto.
+    busca.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(element.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(element.querySelector('.dashboard-modal-total')!.textContent).toContain('225,50');
+  });
+
   it('shows forecast income, balance and income details', () => {
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();

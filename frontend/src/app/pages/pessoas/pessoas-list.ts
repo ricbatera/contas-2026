@@ -1,11 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Pessoa, PessoaService } from '../../core/pessoa.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 
 @Component({
   selector: 'app-pessoas-list',
-  imports: [RouterLink],
+  imports: [CampoBusca, RouterLink],
   templateUrl: './pessoas-list.html',
   styleUrls: ['../cartoes/cartoes.css', './pessoas.css'],
 })
@@ -16,6 +18,10 @@ export class PessoasList implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly deletingId = signal<string | null>(null);
+  protected readonly busca = signal('');
+  protected readonly pessoasEncontradas = computed(() =>
+    this.pessoas().filter((pessoa) =>
+      correspondeBusca(this.busca(), pessoa.nome, pessoa.ativo ? 'Ativa' : 'Inativa')));
 
   ngOnInit(): void {
     this.carregar();

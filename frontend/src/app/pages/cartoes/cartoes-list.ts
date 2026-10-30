@@ -1,12 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Cartao, CartaoService } from '../../core/cartao.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 
 @Component({
   selector: 'app-cartoes-list',
-  imports: [DatePipe, RouterLink],
+  imports: [CampoBusca, DatePipe, RouterLink],
   templateUrl: './cartoes-list.html',
   styleUrl: './cartoes.css',
 })
@@ -16,6 +18,19 @@ export class CartoesList implements OnInit {
   protected readonly cartoes = signal<Cartao[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly busca = signal('');
+  protected readonly cartoesEncontrados = computed(() =>
+    this.cartoes().filter((cartao) => correspondeBusca(
+      this.busca(),
+      cartao.nome,
+      cartao.banco,
+      this.nomeBandeira(cartao.bandeira),
+      cartao.ultimosDigitos,
+      cartao.tipo === 'ADICIONAL' ? 'Adicional' : 'Principal',
+      cartao.virtual ? 'Virtual' : null,
+      cartao.ativo ? 'Ativo' : 'Inativo',
+      this.nomePrincipal(cartao.cartaoPrincipalId),
+    )));
 
   ngOnInit(): void {
     this.carregar();

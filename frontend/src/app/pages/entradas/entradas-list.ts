@@ -5,6 +5,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { RouterLink } from '@angular/router';
 import { EntradaOcorrencia, EntradaService, StatusOcorrencia } from '../../core/entrada.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mesReferencia } from '../../shared/data/mes-referencia';
@@ -41,7 +43,7 @@ const centavos = (valor: number): number => Math.round(valor * 100);
 
 @Component({
   selector: 'app-entradas-list',
-  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [AvisoFormulario, CampoBusca, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './entradas-list.html',
   styleUrls: ['../cartoes/cartoes.css', '../saidas/saidas.css', './entradas.css'],
 })
@@ -64,11 +66,25 @@ export class EntradasList implements OnInit {
   protected readonly quantidadeFiltrosAtivos = computed(() =>
     Object.values(this.filtrosAplicados()).filter(Boolean).length,
   );
+  /** Busca rápida, que se soma aos filtros do diálogo. */
+  protected readonly busca = signal('');
   protected readonly ocorrenciasFiltradas = computed(() => {
     const filtros = this.filtrosAplicados();
     const texto = filtros.texto.trim().toLocaleLowerCase('pt-BR');
+    const busca = this.busca();
     return this.ocorrencias().filter((ocorrencia) =>
       (!texto || ocorrencia.descricao.toLocaleLowerCase('pt-BR').includes(texto))
+      && correspondeBusca(
+        busca,
+        ocorrencia.descricao,
+        ocorrencia.categoriaNome,
+        ocorrencia.subcategoriaNome,
+        ocorrencia.contaBancariaNome,
+        this.nomeStatus(ocorrencia.status),
+        ocorrencia.recorrente ? 'Recorrente' : null,
+        ocorrencia.valorPrevisto,
+        ocorrencia.valorRecebido,
+      )
       && (!filtros.categoriaId || ocorrencia.categoriaId === filtros.categoriaId)
       && (!filtros.subcategoriaId || ocorrencia.subcategoriaId === filtros.subcategoriaId)
       && (!filtros.contaBancariaId || ocorrencia.contaBancariaId === filtros.contaBancariaId)

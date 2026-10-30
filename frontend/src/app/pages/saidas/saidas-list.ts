@@ -11,6 +11,8 @@ import {
   SaidaParcela,
   SaidaService,
 } from '../../core/saida.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mesReferencia } from '../../shared/data/mes-referencia';
@@ -87,7 +89,7 @@ const MESES = Array.from({ length: 12 }, (_, index) => ({
 
 @Component({
   selector: 'app-saidas-list',
-  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, GerarContasFixas, RouterLink],
+  imports: [CampoBusca, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, GerarContasFixas, RouterLink],
   templateUrl: './saidas-list.html',
   styleUrls: ['../cartoes/cartoes.css', './saidas.css'],
 })
@@ -98,14 +100,33 @@ export class SaidasList implements OnInit {
   protected readonly saidas = signal<Saida[]>([]);
   private readonly cartoes = signal<Cartao[]>([]);
   private readonly cartoesPorId = computed(() => new Map(this.cartoes().map((cartao) => [cartao.id, cartao])));
+  /** Busca rápida, que se soma aos filtros do diálogo. */
+  protected readonly busca = signal('');
   protected readonly saidasFiltradas = computed(() => {
     const filtros = this.filtrosAplicados();
     const texto = filtros.texto.trim().toLocaleLowerCase('pt-BR');
     const valorMinimo = filtros.valorMinimo === '' ? null : Number(filtros.valorMinimo);
     const valorMaximo = filtros.valorMaximo === '' ? null : Number(filtros.valorMaximo);
 
+    const busca = this.busca();
+
     return this.saidas().filter((saida) => {
       if (texto && !`${saida.descricao} ${saida.descricaoFatura ?? ''}`.toLocaleLowerCase('pt-BR').includes(texto)) {
+        return false;
+      }
+      if (!correspondeBusca(
+        busca,
+        saida.descricao,
+        saida.descricaoFatura,
+        saida.categoriaNome,
+        saida.subcategoriaNome,
+        saida.cartaoNome,
+        this.nomeForma(saida.formaPagamento),
+        saida.contaFixa ? 'Conta fixa' : null,
+        ...saida.responsabilidades.map((responsavel) => responsavel.nome),
+        saida.valorPorParcela,
+        saida.valorTotal,
+      )) {
         return false;
       }
       if (filtros.formaPagamento && saida.formaPagamento !== filtros.formaPagamento) {

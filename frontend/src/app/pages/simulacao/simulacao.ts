@@ -7,6 +7,8 @@ import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { DashboardProjecaoMes, DashboardService } from '../../core/dashboard.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 
 registerLocaleData(localePtBr);
@@ -29,7 +31,7 @@ const QUANTIDADES_PARCELAS = Array.from({ length: 60 }, (_, index) => index + 1)
 
 @Component({
   selector: 'app-simulacao',
-  imports: [AvisoFormulario, CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule],
+  imports: [AvisoFormulario, CampoBusca, CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule],
   templateUrl: './simulacao.html',
   styleUrls: ['../cartoes/cartoes.css', './simulacao.css'],
 })
@@ -42,6 +44,11 @@ export class Simulacao implements OnInit {
   protected readonly quantidadesParcelas = QUANTIDADES_PARCELAS;
   protected readonly quantidadeMeses = signal(12);
   protected readonly simulacoes = signal<SimulacaoSaida[]>([]);
+  /** A busca só filtra a lista; o gráfico continua considerando todas as simulações. */
+  protected readonly busca = signal('');
+  protected readonly simulacoesEncontradas = computed(() =>
+    this.simulacoes().filter((item) =>
+      correspondeBusca(this.busca(), item.nome, `${item.quantidadeParcelas}x`, item.valorPorParcela)));
   protected readonly projecao = signal<DashboardProjecaoMes[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);

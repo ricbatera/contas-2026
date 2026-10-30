@@ -147,4 +147,24 @@ describe('CategoriasList', () => {
     expect(text).not.toContain('Aluguel');
     confirm.mockRestore();
   });
+
+  it('finds a category by the name of one of its subcategories', () => {
+    const fixture = TestBed.createComponent(CategoriasList);
+    fixture.detectChanges();
+    http.expectOne('/api/categorias').flush({ data: categorias });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const busca = element.querySelector<HTMLInputElement>('input[type="search"]')!;
+    busca.value = 'aluguel';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const nomes = Array.from(element.querySelectorAll('.category-card .category-title h4'))
+      .map((heading) => heading.textContent?.trim());
+    expect(nomes).toEqual(['Moradia']);
+    expect(element.textContent).toContain('Aluguel');
+    const contagens = Array.from(element.querySelectorAll('.category-tab-count')).map((span) => span.textContent);
+    expect(contagens).toEqual(['1', '0']);
+  });
 });

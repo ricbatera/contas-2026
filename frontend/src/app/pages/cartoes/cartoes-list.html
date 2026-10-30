@@ -26,8 +26,12 @@
       <a class="primary-button" routerLink="/home/cartoes/novo">Cadastrar cartão</a>
     </div>
   } @else {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar cartões" />
+    @if (cartoesEncontrados().length === 0) {
+      <div class="state-card" role="status">Nenhum resultado para “{{ busca() }}”.</div>
+    }
     <div class="cards-grid">
-      @for (cartao of cartoes(); track cartao.id) {
+      @for (cartao of cartoesEncontrados(); track cartao.id) {
         <article class="card-item">
           <div class="payment-card" [style.--card-color]="cartao.cor">
             <div class="payment-card-top">

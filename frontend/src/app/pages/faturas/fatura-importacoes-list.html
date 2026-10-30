@@ -34,8 +34,12 @@
       <a class="primary-button" routerLink="/home/faturas/importar">Importar fatura</a>
     </div>
   } @else {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar importações" />
+    @if (importacoes().length && importacoesEncontradas().length === 0) {
+      <div class="state-card" role="status">Nenhum resultado para “{{ busca() }}”.</div>
+    }
     <section class="fatura-items" aria-label="Importações">
-      @for (item of importacoes(); track item.id) {
+      @for (item of importacoesEncontradas(); track item.id) {
         <a class="fatura-item import-link" [routerLink]="['/home/faturas/importacoes', item.id]">
           <div class="fatura-item-main">
             <h4>{{ item.nomeArquivo }}</h4>

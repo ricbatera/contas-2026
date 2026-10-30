@@ -179,3 +179,9 @@
 .fatura-summary-heading .section-description::first-letter {
   text-transform: uppercase;
 }
+
+.fatura-busca-total {
+  margin: -6px 0 12px;
+  color: #5b6577;
+  font-size: 12px;
+}

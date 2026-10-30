@@ -1,13 +1,15 @@
 import { CurrencyPipe, DatePipe, registerLocaleData } from '@angular/common';
 import localePtBr from '@angular/common/locales/pt';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, OnInit, signal } from '@angular/core';
 import {
   DashboardItem,
   DashboardProjecaoMes,
   DashboardResumo,
   DashboardService,
 } from '../../core/dashboard.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 
 const MESES = Array.from({ length: 12 }, (_, index) => ({
@@ -48,7 +50,7 @@ interface GraficoEixo {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DatePipe],
+  imports: [CampoBusca, CurrencyPipe, DatePipe],
   templateUrl: './dashboard.html',
   styleUrls: ['../cartoes/cartoes.css', './dashboard.css'],
 })
@@ -72,6 +74,17 @@ export class Dashboard implements OnInit {
   protected readonly detalhesTitulo = signal('');
   protected readonly detalhesRotuloData = signal('Vencimento');
   protected readonly detalhes = signal<DashboardItem[]>([]);
+  protected readonly buscaDetalhes = signal('');
+  protected readonly detalhesEncontrados = computed(() =>
+    this.detalhes().filter((item) => correspondeBusca(
+      this.buscaDetalhes(),
+      item.descricao,
+      item.categoriaNome,
+      item.subcategoriaNome,
+      item.situacao === 'GERADA' ? 'Gerada' : item.situacao === 'PREVISTA' ? 'Previsão' : null,
+      item.numeroParcela && item.quantidadeParcelas ? `${item.numeroParcela}/${item.quantidadeParcelas}` : null,
+      item.valor,
+    )));
   protected readonly detalhesLoading = signal(false);
   protected readonly detalhesError = signal<string | null>(null);
   private detalheRequest = 0;
@@ -136,6 +149,7 @@ export class Dashboard implements OnInit {
     this.detalhesTitulo.set(titulo);
     this.detalhesRotuloData.set(tipo === 'entradas' ? 'Data' : 'Vencimento');
     this.detalhes.set([]);
+    this.buscaDetalhes.set('');
     this.detalhesError.set(null);
     this.detalhesLoading.set(true);
     this.detalhesAbertos.set(true);
@@ -179,7 +193,7 @@ export class Dashboard implements OnInit {
   }
 
   protected totalDetalhes(): number {
-    return this.detalhes().reduce((total, item) => total + Math.round(item.valor * 100), 0) / 100;
+    return this.detalhesEncontrados().reduce((total, item) => total + Math.round(item.valor * 100), 0) / 100;
   }
 
   protected larguraGrafico(): number {

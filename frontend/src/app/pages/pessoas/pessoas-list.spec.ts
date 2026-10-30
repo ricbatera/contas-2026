@@ -79,4 +79,24 @@ describe('PessoasList', () => {
     expect(http.match('/api/pessoas/pessoa-1')).toHaveLength(0);
     confirm.mockRestore();
   });
+
+  it('filters people while typing in the search field, ignoring accents', () => {
+    const fixture = TestBed.createComponent(PessoasList);
+    fixture.detectChanges();
+    http.expectOne('/api/pessoas').flush({ data: pessoas });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const busca = element.querySelector<HTMLInputElement>('input[type="search"]')!;
+
+    busca.value = 'joao';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(element.textContent).toContain('João Souza');
+    expect(element.textContent).not.toContain('Maria Silva');
+
+    busca.value = 'pedro';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(element.textContent).toContain('Nenhum resultado para “pedro”.');
+  });
 });

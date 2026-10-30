@@ -30,8 +30,12 @@
       <a class="primary-button" routerLink="/home/contas/novo">Cadastrar conta</a>
     </div>
   } @else if (contas().length > 0) {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar contas" />
+    @if (contasEncontradas().length === 0) {
+      <div class="state-card" role="status">Nenhum resultado para “{{ busca() }}”.</div>
+    }
     <div class="account-grid">
-      @for (conta of contas(); track conta.id) {
+      @for (conta of contasEncontradas(); track conta.id) {
         <article class="account-item">
           <div class="account-card" [style.--card-color]="conta.cor || '#1e6fd0'">
             <div class="account-card-top">

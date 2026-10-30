@@ -11,6 +11,8 @@ import { ImportacaoMonitorService } from '../../core/importacao-monitor.service'
 import { PreSaida, PreSaidaRequest, PreSaidaService } from '../../core/pre-saida.service';
 import { ProvedorIaService, SituacaoIa } from '../../core/provedor-ia.service';
 import { AvisoIa } from '../../shared/ia/aviso-ia';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { mensagemErro, ROTULO_STATUS, rotuloCompetencia } from './importacao-util';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
@@ -22,7 +24,7 @@ interface Rascunho extends PreSaidaRequest {
 
 @Component({
   selector: 'app-fatura-importacao-detalhe',
-  imports: [AvisoIa, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, RouterLink],
+  imports: [AvisoIa, CampoBusca, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './fatura-importacao-detalhe.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })
@@ -62,6 +64,33 @@ export class FaturaImportacaoDetalhe implements OnInit {
     (this.importacao()?.preSaidas ?? []).filter((item) => item.status === 'REJEITADA'));
   protected readonly vinculadas = computed(() =>
     (this.importacao()?.preSaidas ?? []).filter((item) => item.status === 'VINCULADA'));
+  /**
+   * Busca que filtra todas as seções da tela. Só muda o que é exibido: "Aprovar completas" continua
+   * valendo para todas as pendentes prontas.
+   */
+  protected readonly busca = signal('');
+  protected readonly pendentesVisiveis = computed(() => this.pendentes().filter((item) => this.preSaidaNaBusca(item)));
+  protected readonly vinculadasVisiveis = computed(() => this.vinculadas().filter((item) => this.preSaidaNaBusca(item)));
+  protected readonly aprovadasVisiveis = computed(() => this.aprovadas().filter((item) => this.preSaidaNaBusca(item)));
+  protected readonly rejeitadasVisiveis = computed(() => this.rejeitadas().filter((item) => this.preSaidaNaBusca(item)));
+  protected readonly conciliadosVisiveis = computed(() =>
+    (this.importacao()?.resumo?.conciliados ?? []).filter((item) => correspondeBusca(
+      this.busca(),
+      item.descricaoPdf,
+      item.descricaoSaida,
+      item.ultimosDigitos,
+      `${item.numeroParcela}/${item.quantidadeParcelas}`,
+      item.valor,
+    )));
+  protected readonly ignoradosVisiveis = computed(() =>
+    (this.importacao()?.resumo?.ignorados ?? []).filter((item) =>
+      correspondeBusca(this.busca(), item.descricao, item.motivo, item.valor)));
+  protected readonly possuiItens = computed(() => {
+    const importacao = this.importacao();
+    return !!importacao && (importacao.preSaidas.length > 0
+      || (importacao.resumo?.conciliados.length ?? 0) > 0
+      || (importacao.resumo?.ignorados.length ?? 0) > 0);
+  });
   /** Completas e sem sugestão em aberto: aprovar uma com sugestão poderia duplicar uma saída. */
   protected readonly prontas = computed(() =>
     this.pendentes().filter((item) => !item.saidaSugeridaId && this.completa(this.rascunhos()[item.id])));
@@ -154,6 +183,27 @@ export class FaturaImportacaoDetalhe implements OnInit {
     }
     this.rascunhos.update((rascunhos) => ({ ...rascunhos, [id]: proximo }));
     this.limparErro(id);
+  }
+
+  /** "3" sem busca; "1 de 3" com busca. */
+  protected contagem(visiveis: unknown[], todos: unknown[]): string {
+    return this.busca() ? `${visiveis.length} de ${todos.length}` : `${todos.length}`;
+  }
+
+  private preSaidaNaBusca(item: PreSaida): boolean {
+    return correspondeBusca(
+      this.busca(),
+      item.descricao,
+      item.descricaoFatura,
+      untracked(() => this.rascunhos()[item.id]?.descricao),
+      item.cartaoNome,
+      item.cartaoUltimosDigitos,
+      item.categoriaNome,
+      item.subcategoriaNome,
+      item.saidaSugeridaDescricao,
+      `${item.numeroParcela}/${item.quantidadeParcelas}`,
+      item.valorPorParcela,
+    );
   }
 
   protected completa(rascunho: Rascunho | undefined): boolean {

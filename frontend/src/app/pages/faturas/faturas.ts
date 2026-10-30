@@ -2,16 +2,18 @@ import { CurrencyPipe, DatePipe, registerLocaleData } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import localePtBr from '@angular/common/locales/pt';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Cartao, CartaoService } from '../../core/cartao.service';
 import { Fatura, FaturaCompetencia, FaturaParcela, FaturaService } from '../../core/fatura.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 
 registerLocaleData(localePtBr);
 
 @Component({
   selector: 'app-faturas',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CampoBusca, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './faturas.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })
@@ -26,6 +28,20 @@ export class Faturas implements OnInit {
   protected readonly fatura = signal<Fatura | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly busca = signal('');
+  protected readonly parcelasEncontradas = computed(() =>
+    (this.fatura()?.parcelas ?? []).filter((parcela) => correspondeBusca(
+      this.busca(),
+      parcela.descricao,
+      parcela.descricaoFatura,
+      parcela.cartaoNome,
+      `${parcela.numeroParcela}/${parcela.quantidadeParcelas}`,
+      this.nomesResponsaveis(parcela),
+      parcela.valor,
+    )));
+  /** Soma em centavos das parcelas encontradas, para não acumular erro de ponto flutuante. */
+  protected readonly totalEncontrado = computed(() =>
+    this.parcelasEncontradas().reduce((total, parcela) => total + Math.round(parcela.valor * 100), 0) / 100);
 
   ngOnInit(): void {
     this.carregarCartoes();

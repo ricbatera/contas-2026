@@ -6,6 +6,8 @@ import {
   GerarContasFixasResponse,
   SaidaService,
 } from '../../core/saida.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { DialogoRapido, mensagemErro } from '../../shared/cadastro-rapido/dialogo-rapido';
@@ -20,7 +22,7 @@ interface LinhaContaFixa {
 /** Revisão das contas fixas propostas para o mês: nada é gravado até o usuário aprovar. */
 @Component({
   selector: 'app-gerar-contas-fixas',
-  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DialogoRapido],
+  imports: [CampoBusca, CampoCalculadora, CampoMoeda, CurrencyPipe, DialogoRapido],
   templateUrl: './gerar-contas-fixas.html',
   styleUrls: [
     '../cartoes/cartoes.css',
@@ -42,6 +44,23 @@ export class GerarContasFixas implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly selecionadas = computed(() => this.linhas().filter((linha) => linha.selecionada));
+  /**
+   * A busca só esconde linhas: as selecionadas fora dela continuam no total e são geradas ao aprovar,
+   * por isso o rodapé avisa quantas estão ocultas.
+   */
+  protected readonly busca = signal('');
+  protected readonly linhasVisiveis = computed(() =>
+    this.linhas().filter((linha) => correspondeBusca(
+      this.busca(),
+      linha.item.descricao,
+      linha.item.categoriaNome,
+      linha.item.subcategoriaNome,
+      this.nomeForma(linha.item.formaPagamento),
+      ...linha.item.responsaveis,
+      linha.valor,
+    )));
+  protected readonly selecionadasOcultas = computed(() =>
+    this.selecionadas().length - this.linhasVisiveis().filter((linha) => linha.selecionada).length);
   protected readonly total = computed(() =>
     this.selecionadas().reduce((centavos, linha) => centavos + Math.round(Number(linha.valor) * 100), 0) / 100,
   );

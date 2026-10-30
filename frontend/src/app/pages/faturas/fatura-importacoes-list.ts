@@ -1,14 +1,16 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, OnInit, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FaturaImportacaoLista, FaturaImportacaoService } from '../../core/fatura-importacao.service';
 import { ImportacaoMonitorService } from '../../core/importacao-monitor.service';
 import { mensagemErro, ROTULO_STATUS, rotuloCompetencia } from './importacao-util';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 
 @Component({
   selector: 'app-fatura-importacoes-list',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CampoBusca, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './fatura-importacoes-list.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })
@@ -21,6 +23,17 @@ export class FaturaImportacoesList implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly rotuloStatus = ROTULO_STATUS;
   protected readonly rotuloCompetencia = rotuloCompetencia;
+  protected readonly busca = signal('');
+  protected readonly importacoesEncontradas = computed(() =>
+    this.importacoes().filter((item) => correspondeBusca(
+      this.busca(),
+      item.nomeArquivo,
+      this.rotuloStatus[item.status],
+      item.cartaoNome,
+      item.cartaoUltimosDigitos,
+      item.competencia ? rotuloCompetencia(item.competencia) : null,
+      item.totalPdf,
+    )));
 
   constructor() {
     // Recarrega quando o monitor vê uma importação terminar (a primeira execução é ignorada).

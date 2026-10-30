@@ -32,8 +32,12 @@
       <a class="primary-button" routerLink="/home/comprovantes/novo">Enviar comprovante</a>
     </div>
   } @else {
+    <app-campo-busca [(termo)]="busca" placeholder="Buscar comprovantes" />
+    @if (comprovantes().length && comprovantesEncontrados().length === 0) {
+      <div class="state-card" role="status">Nenhum resultado para “{{ busca() }}”.</div>
+    }
     <section class="fatura-items" aria-label="Comprovantes">
-      @for (item of comprovantes(); track item.id) {
+      @for (item of comprovantesEncontrados(); track item.id) {
         <a class="fatura-item import-link" [routerLink]="['/home/comprovantes', item.id]">
           <div class="fatura-item-main">
             <h4>{{ item.descricao || item.estabelecimento || 'Comprovante sem descrição' }}</h4>

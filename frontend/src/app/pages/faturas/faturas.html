@@ -79,7 +79,16 @@
 
     <section class="fatura-items" aria-label="Lançamentos da fatura">
       <h3>Compras e parcelas</h3>
-      @for (parcela of atual.parcelas; track parcela.saidaId + '-' + parcela.numeroParcela) {
+      @if (atual.parcelas.length) {
+        <app-campo-busca [(termo)]="busca" placeholder="Buscar compras" />
+      }
+      @if (busca() && atual.parcelas.length) {
+        <p class="fatura-busca-total" aria-live="polite">
+          {{ parcelasEncontradas().length }} de {{ atual.parcelas.length }} lançamento(s) ·
+          <strong>{{ totalEncontrado() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+        </p>
+      }
+      @for (parcela of parcelasEncontradas(); track parcela.saidaId + '-' + parcela.numeroParcela) {
         <article class="fatura-item">
           <div class="fatura-item-main">
             <h4>{{ parcela.descricaoFatura || parcela.descricao }}</h4>
@@ -99,7 +108,9 @@
           <strong>{{ parcela.valor | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
         </article>
       } @empty {
-        <div class="state-card">Esta fatura não possui parcelas.</div>
+        <div class="state-card">
+          {{ atual.parcelas.length ? 'Nenhum resultado para “' + busca() + '”.' : 'Esta fatura não possui parcelas.' }}
+        </div>
       }
     </section>
   }

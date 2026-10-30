@@ -1,9 +1,11 @@
 import { CurrencyPipe, DecimalPipe, registerLocaleData } from '@angular/common';
 import localePtBr from '@angular/common/locales/pt';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Bucket, BucketService } from '../../core/bucket.service';
+import { correspondeBusca } from '../../shared/busca/busca';
+import { CampoBusca } from '../../shared/busca/campo-busca';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 
 const MESES = Array.from({ length: 12 }, (_, index) => ({
@@ -16,7 +18,7 @@ registerLocaleData(localePtBr);
 
 @Component({
   selector: 'app-buckets-list',
-  imports: [CurrencyPipe, DecimalPipe, RouterLink],
+  imports: [CampoBusca, CurrencyPipe, DecimalPipe, RouterLink],
   templateUrl: './buckets-list.html',
   styleUrls: ['../cartoes/cartoes.css', './buckets.css'],
 })
@@ -31,6 +33,17 @@ export class BucketsList implements OnInit {
   protected readonly workingId = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly competenciaError = signal<string | null>(null);
+  protected readonly busca = signal('');
+  protected readonly bucketsEncontrados = computed(() =>
+    this.buckets().filter((bucket) => correspondeBusca(
+      this.busca(),
+      bucket.categoriaNome,
+      bucket.subcategoriaNome,
+      bucket.responsavelNome,
+      bucket.valorMensal,
+      bucket.valorConsumido,
+      bucket.saldo,
+    )));
 
   ngOnInit(): void {
     this.carregar();
