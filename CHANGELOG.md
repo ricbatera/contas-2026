@@ -2,6 +2,16 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## frontend 1.0.8 — 2026-10-30
+
+- Imagem: `ricardo1782/financas-frontend:1.0.8` (também `latest`)
+- Commit: `8d4b025` (tag `frontend-v1.0.8`)
+- Próxima versão de desenvolvimento: 1.0.9
+- Mudanças:
+  - f875351 feat(frontend): campo de busca em todas as listagens e modais
+  - 2e648c9 feat: bloquear comprovantes e importação de fatura sem IA configurada
+  - 09e4e52 fix(frontend): corrigir idioma e título da página para pt-BR
+
 ## backend 1.0.6 — 2026-10-30
 
 - Imagem: `ricardo1782/financas-backend:1.0.6` (também `latest`)
