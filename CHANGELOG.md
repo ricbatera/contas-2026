@@ -2,6 +2,15 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## frontend 1.0.6 — 2026-10-30
+
+- Imagem: `ricardo1782/financas-frontend:1.0.6` (também `latest`)
+- Commit: `fe9fa8c` (tag `frontend-v1.0.6`)
+- Próxima versão de desenvolvimento: 1.0.7
+- Mudanças:
+  - d5bec65 feat: gerar contas fixas do mês e card de contas fixas com geradas e previstas
+  - c9ceb6a fix(frontend): maiúscula só na primeira letra das datas e meses
+
 ## backend 1.0.4 — 2026-10-30
 
 - Imagem: `ricardo1782/financas-backend:1.0.4` (também `latest`)
