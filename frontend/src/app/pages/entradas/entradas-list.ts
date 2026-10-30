@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { EntradaOcorrencia, EntradaService, StatusOcorrencia } from '../../core/entrada.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 
 interface FiltrosEntrada {
@@ -39,7 +40,7 @@ const centavos = (valor: number): number => Math.round(valor * 100);
 
 @Component({
   selector: 'app-entradas-list',
-  imports: [CampoCalculadora, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './entradas-list.html',
   styleUrls: ['../cartoes/cartoes.css', '../saidas/saidas.css', './entradas.css'],
 })
@@ -108,7 +109,7 @@ export class EntradasList implements OnInit {
   protected readonly recebendo = signal<EntradaOcorrencia | null>(null);
   protected readonly erroRecebimento = signal<string | null>(null);
   protected readonly formRecebimento = inject(FormBuilder).nonNullable.group({
-    valorRecebido: [0, [Validators.required, Validators.min(0.01)]],
+    valorRecebido: [null as number | null, [Validators.required, Validators.min(0.01)]],
     dataRecebimento: ['', Validators.required],
   });
 

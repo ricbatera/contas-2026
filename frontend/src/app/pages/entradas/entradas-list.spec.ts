@@ -105,7 +105,7 @@ describe('EntradasList', () => {
     botao(element, 'Receber').click();
     fixture.detectChanges();
     const valor = element.querySelector<HTMLInputElement>('[formControlName="valorRecebido"]')!;
-    expect(Number(valor.value)).toBe(5000);
+    expect(valor.value).toBe('5.000,00');
     valor.value = '4900';
     valor.dispatchEvent(new Event('input', { bubbles: true }));
     const data = element.querySelector<HTMLInputElement>('[formControlName="dataRecebimento"]')!;

@@ -9,12 +9,13 @@ import { Entrada, EntradaRequest, EntradaService } from '../../core/entrada.serv
 import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
 import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 
 type CadastroRapido = { tipo: 'categoria' } | { tipo: 'subcategoria'; categoria: Categoria };
 
 @Component({
   selector: 'app-entrada-form',
-  imports: [CampoCalculadora, CategoriaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
+  imports: [CampoCalculadora, CampoMoeda, CategoriaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
   templateUrl: './entrada-form.html',
   styleUrls: [
     '../cartoes/cartoes.css',
@@ -43,7 +44,7 @@ export class EntradaForm {
 
   protected readonly form = this.fb.group({
     descricao: ['', [Validators.required, Validators.maxLength(120)]],
-    valor: [0, [Validators.required, Validators.min(0.01)]],
+    valor: [null as number | null, [Validators.required, Validators.min(0.01)]],
     recorrente: [false],
     dataInicial: ['', Validators.required],
     dataFinal: [''],

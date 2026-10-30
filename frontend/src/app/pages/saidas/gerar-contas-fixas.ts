@@ -7,19 +7,20 @@ import {
   SaidaService,
 } from '../../core/saida.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { DialogoRapido, mensagemErro } from '../../shared/cadastro-rapido/dialogo-rapido';
 
 interface LinhaContaFixa {
   item: ContaFixaPrevia;
   selecionada: boolean;
-  valor: string;
+  valor: number | null;
   data: string;
 }
 
 /** Revisão das contas fixas propostas para o mês: nada é gravado até o usuário aprovar. */
 @Component({
   selector: 'app-gerar-contas-fixas',
-  imports: [CampoCalculadora, CurrencyPipe, DialogoRapido],
+  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DialogoRapido],
   templateUrl: './gerar-contas-fixas.html',
   styleUrls: [
     '../cartoes/cartoes.css',
@@ -58,7 +59,7 @@ export class GerarContasFixas implements OnInit {
     this.linhas.set(this.itens().map((item) => ({
       item,
       selecionada: !item.aviso,
-      valor: String(item.valorPorParcela),
+      valor: item.valorPorParcela,
       data: item.dataSugerida,
     })));
   }
@@ -68,8 +69,8 @@ export class GerarContasFixas implements OnInit {
     this.atualizar(serieId, { selecionada });
   }
 
-  protected alterarValor(serieId: string, event: Event): void {
-    this.atualizar(serieId, { valor: (event.target as HTMLInputElement).value });
+  protected alterarValor(serieId: string, valor: number | null): void {
+    this.atualizar(serieId, { valor });
   }
 
   protected alterarData(serieId: string, event: Event): void {
@@ -81,11 +82,8 @@ export class GerarContasFixas implements OnInit {
     if (selecionadas.length === 0 || this.saving()) {
       return;
     }
-    const invalida = selecionadas.find((linha) => {
-      const valor = Number(linha.valor);
-      return linha.valor === '' || !Number.isFinite(valor) || valor < 0.01
-        || !linha.data || linha.data < this.primeiroDia() || linha.data > this.ultimoDia();
-    });
+    const invalida = selecionadas.find((linha) => linha.valor === null || linha.valor < 0.01
+      || !linha.data || linha.data < this.primeiroDia() || linha.data > this.ultimoDia());
     if (invalida) {
       this.error.set(`Revise "${invalida.item.descricao}": informe um valor positivo e uma data dentro do mês.`);
       return;

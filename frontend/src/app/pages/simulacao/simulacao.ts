@@ -5,6 +5,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DashboardProjecaoMes, DashboardService } from '../../core/dashboard.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 
 registerLocaleData(localePtBr);
@@ -27,7 +28,7 @@ const QUANTIDADES_PARCELAS = Array.from({ length: 60 }, (_, index) => index + 1)
 
 @Component({
   selector: 'app-simulacao',
-  imports: [CampoCalculadora, CurrencyPipe, ReactiveFormsModule],
+  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule],
   templateUrl: './simulacao.html',
   styleUrls: ['../cartoes/cartoes.css', './simulacao.css'],
 })
@@ -48,7 +49,7 @@ export class Simulacao implements OnInit {
   protected readonly storageReady = signal(false);
   protected readonly formulario = this.fb.group({
     nome: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100)]],
-    valorPorParcela: [0, [Validators.required, Validators.min(0.01)]],
+    valorPorParcela: [null as number | null, [Validators.required, Validators.min(0.01)]],
     quantidadeParcelas: [1, [Validators.required, Validators.min(1), Validators.max(60)]],
   });
 
@@ -101,7 +102,7 @@ export class Simulacao implements OnInit {
     }
 
     if (this.salvarSimulacoes([...this.simulacoes(), simulacao])) {
-      this.formulario.reset({ nome: '', valorPorParcela: 0, quantidadeParcelas: 1 });
+      this.formulario.reset({ nome: '', valorPorParcela: null, quantidadeParcelas: 1 });
     }
   }
 

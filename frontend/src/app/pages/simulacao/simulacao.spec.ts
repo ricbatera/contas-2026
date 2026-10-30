@@ -53,7 +53,7 @@ describe('Simulacao', () => {
     name.value = 'Notebook';
     name.dispatchEvent(new Event('input', { bubbles: true }));
     const amount = element.querySelector<HTMLInputElement>('[formControlName="valorPorParcela"]')!;
-    amount.value = '850.1';
+    amount.value = '850,1';
     amount.dispatchEvent(new Event('input', { bubbles: true }));
     const installments = element.querySelector<HTMLSelectElement>('[formControlName="quantidadeParcelas"]')!;
     expect(installments.options).toHaveLength(60);
@@ -68,7 +68,7 @@ describe('Simulacao', () => {
     secondName.value = 'Mouse';
     secondName.dispatchEvent(new Event('input', { bubbles: true }));
     const secondAmount = element.querySelector<HTMLInputElement>('[formControlName="valorPorParcela"]')!;
-    secondAmount.value = '0.2';
+    secondAmount.value = '0,2';
     secondAmount.dispatchEvent(new Event('input', { bubbles: true }));
     element.querySelector<HTMLFormElement>('form')!.dispatchEvent(
       new Event('submit', { bubbles: true, cancelable: true }),

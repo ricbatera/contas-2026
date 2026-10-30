@@ -94,6 +94,11 @@ class SaidaControllerIT {
 
     private SaidaRequest requestCredito(
             ExpenseReferences references, BigDecimal valor, LocalDate vencimento, int parcelas, boolean contaFixa) {
+        return requestCredito(references, valor, new BigDecimal("20.00"), vencimento, parcelas, contaFixa);
+    }
+
+    private SaidaRequest requestCredito(ExpenseReferences references, BigDecimal valor, BigDecimal partePessoa,
+            LocalDate vencimento, int parcelas, boolean contaFixa) {
         return new SaidaRequest(
                 "Compra compartilhada",
                 "Compra",
@@ -107,8 +112,47 @@ class SaidaControllerIT {
                 UUID.fromString(references.subcategoriaId()),
                 ModoResponsabilidade.DIVIDIR,
                 null,
-                List.of(new SaidaParteRequest(UUID.fromString(references.pessoaId()), new BigDecimal("20.00"))),
+                List.of(new SaidaParteRequest(UUID.fromString(references.pessoaId()), partePessoa)),
                 contaFixa);
+    }
+
+    @Test
+    void deveAceitarReembolsoComValorNegativoDivididoComPessoa() throws Exception {
+        String token = registrar("saida-reembolso");
+        ExpenseReferences references = criarReferencias(token, false);
+        SaidaRequest request = requestCredito(references, new BigDecimal("-50.00"), new BigDecimal("-20.00"),
+                LocalDate.of(2026, 11, 15), 1, false);
+
+        mockMvc.perform(post("/api/saidas")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.valorPorParcela").value(-50.00))
+                .andExpect(jsonPath("$.data.parcelas.length()").value(1))
+                .andExpect(jsonPath("$.data.responsabilidades.length()").value(2))
+                .andExpect(jsonPath("$.data.responsabilidades[0].valorPorParcela").value(-20.00))
+                .andExpect(jsonPath("$.data.responsabilidades[1].valorPorParcela").value(-30.00));
+    }
+
+    @Test
+    void deveRejeitarValorZeroParteComSinalTrocadoEContaFixaNegativa() throws Exception {
+        String token = registrar("saida-reembolso-invalido");
+        ExpenseReferences references = criarReferencias(token, false);
+        LocalDate vencimento = LocalDate.of(2026, 11, 15);
+        List<SaidaRequest> invalidas = List.of(
+                requestCredito(references, BigDecimal.ZERO, new BigDecimal("-20.00"), vencimento, 1, false),
+                requestCredito(references, new BigDecimal("-50.00"), new BigDecimal("20.00"), vencimento, 1, false),
+                requestCredito(references, new BigDecimal("-50.00"), new BigDecimal("-60.00"), vencimento, 1, false),
+                requestCredito(references, new BigDecimal("-50.00"), new BigDecimal("-20.00"), vencimento, 1, true));
+
+        for (SaidaRequest request : invalidas) {
+            mockMvc.perform(post("/api/saidas")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
     @Test

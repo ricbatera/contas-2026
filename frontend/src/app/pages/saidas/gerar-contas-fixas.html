@@ -37,12 +37,11 @@
                 Valor (R$)
                 <app-campo-calculadora>
                   <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    [value]="linha.valor"
+                    appCampoMoeda
+                    placeholder="0,00"
+                    [valor]="linha.valor"
                     [disabled]="!linha.selecionada"
-                    (input)="alterarValor(linha.item.serieId, $event)"
+                    (valorChange)="alterarValor(linha.item.serieId, $event)"
                   />
                 </app-campo-calculadora>
               </label>

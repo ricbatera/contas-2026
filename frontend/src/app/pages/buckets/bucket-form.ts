@@ -10,6 +10,7 @@ import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
 import { PessoaRapida } from '../../shared/cadastro-rapido/pessoa-rapida';
 import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 
 type CadastroRapido =
   | { tipo: 'categoria' }
@@ -18,7 +19,7 @@ type CadastroRapido =
 
 @Component({
   selector: 'app-bucket-form',
-  imports: [CampoCalculadora, CategoriaRapida, PessoaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
+  imports: [CampoCalculadora, CampoMoeda, CategoriaRapida, PessoaRapida, ReactiveFormsModule, RouterLink, SubcategoriaRapida],
   templateUrl: './bucket-form.html',
   styleUrls: ['../cartoes/cartoes.css', './buckets.css', '../../shared/cadastro-rapido/cadastro-rapido.css'],
 })
@@ -62,7 +63,7 @@ export class BucketForm {
     categoriaId: ['', Validators.required],
     subcategoriaId: ['', Validators.required],
     responsavelPessoaId: [''],
-    valorMensal: [0, [Validators.required, Validators.min(0.01)]],
+    valorMensal: [null as number | null, [Validators.required, Validators.min(0.01)]],
   });
 
   constructor() {
@@ -159,7 +160,7 @@ export class BucketForm {
     const request: BucketRequest = {
       subcategoriaId: value.subcategoriaId,
       responsavelPessoaId: value.responsavelPessoaId || null,
-      valorMensal: value.valorMensal,
+      valorMensal: Number(value.valorMensal),
     };
     this.saving.set(true);
     this.error.set(null);

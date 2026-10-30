@@ -15,12 +15,13 @@ import {
   ModalidadeComprovante,
 } from '../../core/comprovante.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mensagemErro } from '../faturas/importacao-util';
 import { ROTULO_STATUS_COMPROVANTE, rotuloModalidade } from './comprovantes-util';
 
 @Component({
   selector: 'app-comprovante-revisao',
-  imports: [CampoCalculadora, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './comprovante-revisao.html',
   styleUrls: ['../cartoes/cartoes.css', '../faturas/importacao.css', './comprovantes.css'],
 })

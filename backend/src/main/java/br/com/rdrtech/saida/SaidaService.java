@@ -143,6 +143,13 @@ public class SaidaService {
     }
 
     private ValidatedReferences validarRequest(SaidaRequest request, ExistingReferences referencesAnteriores) {
+        // Valor negativo é reembolso (crédito na fatura) e abate os totais; só o zero é inválido.
+        if (request.valorPorParcela().signum() == 0) {
+            throw new SaidaInvalidaException("O valor por parcela não pode ser zero.");
+        }
+        if (request.contaFixa() && request.valorPorParcela().signum() < 0) {
+            throw new SaidaInvalidaException("Uma conta fixa não pode ter valor negativo.");
+        }
         boolean credito = request.formaPagamento() == FormaPagamento.CARTAO_CREDITO;
         Cartao cartao = null;
         if (credito) {
@@ -205,10 +212,14 @@ public class SaidaService {
                     .filter(item -> item.isAtivo()
                             || possuiResponsabilidadeAnterior(referencesAnteriores, item.getId()))
                     .orElseThrow(PessoaNaoEncontradaException::new);
+            if (parte.valorPorParcela().signum() != request.valorPorParcela().signum()) {
+                throw new SaidaInvalidaException(
+                        "Cada parte precisa ser diferente de zero e ter o mesmo sinal do valor da parcela.");
+            }
             partes.add(pessoa);
             soma = soma.add(parte.valorPorParcela());
         }
-        if (soma.compareTo(request.valorPorParcela()) > 0) {
+        if (soma.abs().compareTo(request.valorPorParcela().abs()) > 0) {
             throw new SaidaInvalidaException("A soma das partes não pode exceder o valor da parcela.");
         }
         if (request.modoResponsabilidade() == ModoResponsabilidade.PESSOA) {
@@ -247,7 +258,7 @@ public class SaidaService {
                     .build());
         }
         BigDecimal minhaParte = request.valorPorParcela().subtract(totalPessoas);
-        if (request.modoResponsabilidade() == ModoResponsabilidade.USUARIO || minhaParte.signum() > 0) {
+        if (request.modoResponsabilidade() == ModoResponsabilidade.USUARIO || minhaParte.signum() != 0) {
             saida.getResponsabilidades().add(SaidaResponsavel.builder()
                     .saida(saida)
                     .usuario(usuario)

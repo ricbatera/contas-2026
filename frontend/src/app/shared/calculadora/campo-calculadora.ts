@@ -1,9 +1,10 @@
 import { Component, ElementRef, inject } from '@angular/core';
+import { formatarValorMoeda } from '../moeda/moeda';
 import { CalculadoraService } from './calculadora.service';
 
 /**
- * Envolve um campo de valor e adiciona o botão da calculadora. O resultado é gravado no input
- * com um evento "input", que atualiza tanto formControlName quanto handlers (input).
+ * Envolve um campo de valor (input appCampoMoeda) e adiciona o botão da calculadora. O resultado
+ * é gravado no input já formatado, com um evento "input" que a diretiva converte em número.
  */
 @Component({
   selector: 'app-campo-calculadora',
@@ -64,11 +65,12 @@ export class CampoCalculadora {
     if (!campo || campo.disabled || campo.readOnly) {
       return;
     }
-    const valor = await this.calculadora.abrir(campo.value);
+    // Sem os pontos de milhar: na calculadora, "1.250,52" seria lido como 1,250,52.
+    const valor = await this.calculadora.abrir(campo.value.replace(/\./g, ''));
     if (valor === null) {
       return;
     }
-    campo.value = String(valor);
+    campo.value = formatarValorMoeda(valor);
     campo.dispatchEvent(new Event('input', { bubbles: true }));
     campo.focus();
   }

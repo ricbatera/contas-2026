@@ -10,6 +10,7 @@ import { ImportacaoMonitorService } from '../../core/importacao-monitor.service'
 import { PreSaida, PreSaidaRequest, PreSaidaService } from '../../core/pre-saida.service';
 import { mensagemErro, ROTULO_STATUS, rotuloCompetencia } from './importacao-util';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 
 /** Ajustes do usuário numa pré-saída pendente, ainda não gravados. */
 interface Rascunho extends PreSaidaRequest {
@@ -18,7 +19,7 @@ interface Rascunho extends PreSaidaRequest {
 
 @Component({
   selector: 'app-fatura-importacao-detalhe',
-  imports: [CampoCalculadora, CurrencyPipe, DatePipe, RouterLink],
+  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './fatura-importacao-detalhe.html',
   styleUrls: ['../cartoes/cartoes.css', './faturas.css', './importacao.css'],
 })
@@ -117,6 +118,12 @@ export class FaturaImportacaoDetalhe implements OnInit {
       ?.subcategorias.filter((subcategoria) => subcategoria.ativo) ?? [];
   }
 
+  protected alterarValor(id: string, valor: number | null): void {
+    const proximo: Rascunho = { ...this.rascunhos()[id], alterado: true, valorPorParcela: valor ?? 0 };
+    this.rascunhos.update((rascunhos) => ({ ...rascunhos, [id]: proximo }));
+    this.limparErro(id);
+  }
+
   protected alterar(id: string, campo: keyof PreSaidaRequest, event: Event): void {
     const valor = (event.target as HTMLInputElement | HTMLSelectElement).value;
     const atual = this.rascunhos()[id];
@@ -126,8 +133,6 @@ export class FaturaImportacaoDetalhe implements OnInit {
         proximo.descricao = valor;
         break;
       case 'valorPorParcela':
-        proximo.valorPorParcela = Number(valor);
-        break;
       case 'numeroParcela':
       case 'quantidadeParcelas':
         proximo[campo] = Number(valor);
@@ -149,7 +154,7 @@ export class FaturaImportacaoDetalhe implements OnInit {
       && !!rascunho.cartaoId
       && !!rascunho.categoriaId
       && !!rascunho.subcategoriaId
-      && rascunho.valorPorParcela > 0
+      && rascunho.valorPorParcela !== 0
       && rascunho.numeroParcela <= rascunho.quantidadeParcelas;
   }
 

@@ -54,10 +54,12 @@
       <label class="form-field">
         <span>Valor por parcela *</span>
         <app-campo-calculadora>
-          <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela" inputmode="decimal" />
+          <input appCampoMoeda permitirNegativo formControlName="valorPorParcela" placeholder="0,00" />
         </app-campo-calculadora>
         @if (form.controls.valorPorParcela.invalid && form.controls.valorPorParcela.touched) {
-          <small>Informe um valor positivo por parcela.</small>
+          <small>Informe um valor por parcela diferente de zero. Use negativo para reembolso.</small>
+        } @else if (contaFixaNegativa) {
+          <small>Uma conta fixa não pode ter valor negativo.</small>
         }
       </label>
 
@@ -212,7 +214,7 @@
                 <label class="form-field">
                   <span>Valor por parcela *</span>
                   <app-campo-calculadora>
-                    <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela" inputmode="decimal" />
+                    <input appCampoMoeda permitirNegativo formControlName="valorPorParcela" placeholder="0,00" />
                   </app-campo-calculadora>
                 </label>
                 <button class="remove-part" type="button" (click)="removerParte($index)" [disabled]="partes.length <= 1">
@@ -223,8 +225,8 @@
           </div>
           <button class="add-part" type="button" (click)="adicionarParte()">+ Adicionar pessoa</button>
           @if (pessoas().length === 0) { <small>Nenhuma pessoa cadastrada. Use "+" ao lado do campo para cadastrar.</small> }
-          @if (somaPartesExcedeValor) {
-            <div class="form-error" role="alert">A soma das partes não pode exceder o valor de cada parcela.</div>
+          @if (divisaoInvalida) {
+            <div class="form-error" role="alert">As partes precisam ter o mesmo sinal do valor da parcela, e a soma não pode excedê-lo.</div>
           }
           <div class="split-summary">
             Minha parte: <strong>{{ valorMinhaParte | currency: 'BRL' }}</strong> por parcela
@@ -242,7 +244,7 @@
         <button
           class="primary-button"
           type="submit"
-          [disabled]="saving() || !!dataError() || somaPartesExcedeValor || categorias().length === 0"
+          [disabled]="saving() || !!dataError() || divisaoInvalida || contaFixaNegativa || categorias().length === 0"
         >
           {{ saving() ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar saída' }}
         </button>

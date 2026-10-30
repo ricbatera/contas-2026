@@ -205,6 +205,35 @@ describe('SaidaForm', () => {
     expect(element.textContent).toContain('As próximas parcelas serão programadas mensalmente');
   });
 
+  it('accepts a negative refund split with the same sign and blocks mixed signs', () => {
+    const fixture = TestBed.createComponent(SaidaForm);
+    fixture.detectChanges();
+    flushDependencies();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const digitar = (input: HTMLInputElement, texto: string) => {
+      input.value = texto;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+    };
+    const amount = element.querySelector<HTMLInputElement>('[formControlName="valorPorParcela"]')!;
+    digitar(amount, '-100');
+    expect(amount.value).toBe('-100');
+    const mode = element.querySelector<HTMLSelectElement>('[formControlName="modoResponsabilidade"]')!;
+    mode.value = 'DIVIDIR';
+    mode.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    const share = element.querySelector<HTMLInputElement>('[formArrayName="partes"] input')!;
+
+    digitar(share, '-35');
+    expect(element.textContent).toMatch(/Minha parte:\s*-\s*R\$\s*65[,.]00/);
+    expect(element.textContent).not.toContain('mesmo sinal');
+
+    digitar(share, '35');
+    expect(element.textContent).toContain('As partes precisam ter o mesmo sinal do valor da parcela');
+  });
+
   describe('cadastro rápido', () => {
     function abrirFormulario() {
       const fixture = TestBed.createComponent(SaidaForm);

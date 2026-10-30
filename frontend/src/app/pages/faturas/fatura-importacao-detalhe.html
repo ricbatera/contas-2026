@@ -205,11 +205,11 @@
                 <span>Valor da parcela</span>
                 <app-campo-calculadora>
                   <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    [value]="r.valorPorParcela"
-                    (input)="alterar(item.id, 'valorPorParcela', $event)"
+                    appCampoMoeda
+                    permitirNegativo
+                    placeholder="0,00"
+                    [valor]="r.valorPorParcela"
+                    (valorChange)="alterarValor(item.id, $event)"
                   />
                 </app-campo-calculadora>
               </label>

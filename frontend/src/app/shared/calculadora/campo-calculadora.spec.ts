@@ -1,15 +1,16 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { CampoMoeda } from '../moeda/campo-moeda';
 import { CampoCalculadora } from './campo-calculadora';
 
 @Component({
-  imports: [CampoCalculadora, ReactiveFormsModule],
+  imports: [CampoCalculadora, CampoMoeda, ReactiveFormsModule],
   template: `
     <label>
       Valor
       <app-campo-calculadora>
-        <input type="number" [formControl]="valor" />
+        <input appCampoMoeda [formControl]="valor" />
       </app-campo-calculadora>
     </label>
   `,
@@ -53,7 +54,7 @@ describe('CampoCalculadora', () => {
   it('opens with the current value and writes the result back to the control', async () => {
     abrir();
     const expressao = dialogo()!.querySelector<HTMLInputElement>('input')!;
-    expect(expressao.value).toBe('12,5');
+    expect(expressao.value).toBe('12,50');
 
     expressao.value = '10+5,5';
     expressao.dispatchEvent(new Event('input'));

@@ -9,6 +9,7 @@ import {
   TIPOS_CONTA,
 } from '../../core/conta-bancaria.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 
 const NOMES_TIPO: Record<(typeof TIPOS_CONTA)[number], string> = {
   CORRENTE: 'Conta corrente',
@@ -20,7 +21,7 @@ const NOMES_TIPO: Record<(typeof TIPOS_CONTA)[number], string> = {
 
 @Component({
   selector: 'app-conta-form',
-  imports: [CampoCalculadora, CurrencyPipe, ReactiveFormsModule, RouterLink],
+  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './conta-form.html',
   styleUrls: ['../cartoes/cartoes.css', './contas.css'],
 })
@@ -42,7 +43,7 @@ export class ContaForm {
     tipoConta: ['CORRENTE' as (typeof TIPOS_CONTA)[number], [Validators.required]],
     agencia: ['', [Validators.maxLength(10)]],
     numeroConta: ['', [Validators.maxLength(20)]],
-    saldoInicial: [0, [Validators.required, Validators.min(0)]],
+    saldoInicial: [null as number | null, [Validators.min(0)]],
     cor: ['#1e6fd0', [Validators.pattern(/^$|^#[0-9A-Fa-f]{6}$/)]],
     ativo: [true],
   });
@@ -92,6 +93,7 @@ export class ContaForm {
       agencia: value.agencia || null,
       numeroConta: value.numeroConta || null,
       cor: value.cor || null,
+      saldoInicial: value.saldoInicial ?? 0,
     };
     this.saving.set(true);
     this.error.set(null);

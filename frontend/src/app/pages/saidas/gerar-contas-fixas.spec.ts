@@ -71,7 +71,7 @@ describe('GerarContasFixas', () => {
     fixture.componentInstance.gerado.subscribe(gerado);
 
     const [primeiro, segundo] = Array.from(element.querySelectorAll<HTMLElement>('.conta-fixa-item'));
-    digitar(primeiro.querySelector<HTMLInputElement>('input[type="number"]')!, '123.45');
+    digitar(primeiro.querySelector<HTMLInputElement>('input[appCampoMoeda]')!, '123,45');
     digitar(primeiro.querySelector<HTMLInputElement>('input[type="date"]')!, '2026-11-15');
     segundo.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click();
     fixture.detectChanges();

@@ -1,6 +1,5 @@
 package br.com.rdrtech.presaida.dto;
 
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -16,7 +15,7 @@ public record PreSaidaRequest(
         UUID cartaoId,
         UUID categoriaId,
         UUID subcategoriaId,
-        @NotNull @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal valorPorParcela,
+        @NotNull @Digits(integer = 10, fraction = 2) BigDecimal valorPorParcela,
         @NotNull @Min(1) @Max(60) Integer numeroParcela,
         @NotNull @Min(1) @Max(60) Integer quantidadeParcelas) {
 }

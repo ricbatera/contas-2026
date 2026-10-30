@@ -96,7 +96,7 @@
         <label class="form-field">
           <span>Valor total</span>
           <app-campo-calculadora>
-            <input type="number" formControlName="valorTotal" min="0.01" step="0.01" inputmode="decimal" />
+            <input appCampoMoeda formControlName="valorTotal" placeholder="0,00" />
           </app-campo-calculadora>
           @if (form.controls.valorTotal.invalid && form.controls.valorTotal.touched) {
             <small class="field-error">Informe um valor maior que zero.</small>

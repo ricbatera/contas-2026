@@ -21,6 +21,8 @@ import { CategoriaRapida } from '../../shared/cadastro-rapido/categoria-rapida';
 import { PessoaRapida } from '../../shared/cadastro-rapido/pessoa-rapida';
 import { SubcategoriaRapida } from '../../shared/cadastro-rapido/subcategoria-rapida';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
+import { valorDiferenteDeZero } from '../../shared/moeda/moeda';
 
 interface UserProfile {
   id: string;
@@ -38,6 +40,7 @@ type CadastroRapido =
   selector: 'app-saida-form',
   imports: [
     CampoCalculadora,
+    CampoMoeda,
     CartaoRapido,
     CategoriaRapida,
     CurrencyPipe,
@@ -79,7 +82,7 @@ export class SaidaForm {
     descricao: ['', [Validators.required, Validators.maxLength(120)]],
     descricaoFatura: [''],
     contaFixa: [false],
-    valorPorParcela: [0, [Validators.required, Validators.min(0.01)]],
+    valorPorParcela: [null as number | null, [Validators.required, valorDiferenteDeZero]],
     quantidadeParcelas: [1, [Validators.required, Validators.min(1), Validators.max(60)]],
     formaPagamento: ['CARTAO_CREDITO' as 'CARTAO_CREDITO' | 'OUTRO', Validators.required],
     pagamentoAlternativo: ['BOLETO' as Exclude<FormaPagamento, 'CARTAO_CREDITO'>, Validators.required],
@@ -141,21 +144,32 @@ export class SaidaForm {
     return categoria?.subcategorias.filter((subcategoria) => subcategoria.ativo) ?? [];
   }
 
-  protected get valorMinhaParte(): number {
-    const totalPessoasEmCentavos = this.partes.controls.reduce(
-      (sum, parte) => sum + Math.round(Number(parte.get('valorPorParcela')?.value || 0) * 100),
-      0,
-    );
-    const parcelaEmCentavos = Math.round(Number(this.form.controls.valorPorParcela.value || 0) * 100);
-    return Math.max(0, parcelaEmCentavos - totalPessoasEmCentavos) / 100;
+  private get partesEmCentavos(): number[] {
+    return this.partes.controls.map((parte) => Math.round(Number(parte.get('valorPorParcela')?.value || 0) * 100));
   }
 
-  protected get somaPartesExcedeValor(): boolean {
-    const somaEmCentavos = this.partes.controls.reduce(
-      (total, parte) => total + Math.round(Number(parte.get('valorPorParcela')?.value || 0) * 100),
-      0,
-    );
-    return somaEmCentavos > Math.round(Number(this.form.controls.valorPorParcela.value || 0) * 100);
+  private get parcelaEmCentavos(): number {
+    return Math.round(Number(this.form.controls.valorPorParcela.value || 0) * 100);
+  }
+
+  /** O que sobra para o usuário; num reembolso (parcela negativa) a parte também é negativa. */
+  protected get valorMinhaParte(): number {
+    const parcela = this.parcelaEmCentavos;
+    const restante = parcela - this.partesEmCentavos.reduce((soma, parte) => soma + parte, 0);
+    return Math.sign(restante) === Math.sign(parcela) ? restante / 100 : 0;
+  }
+
+  /** Partes com sinal diferente da parcela, ou que somadas excedem o valor dela. */
+  protected get divisaoInvalida(): boolean {
+    const parcela = this.parcelaEmCentavos;
+    const partes = this.partesEmCentavos;
+    const soma = partes.reduce((total, parte) => total + parte, 0);
+    return partes.some((parte) => parte !== 0 && parcela !== 0 && Math.sign(parte) !== Math.sign(parcela))
+      || Math.abs(soma) > Math.abs(parcela);
+  }
+
+  protected get contaFixaNegativa(): boolean {
+    return this.form.controls.contaFixa.value && this.parcelaEmCentavos < 0;
   }
 
   protected pessoaJaSelecionada(id: string, index: number): boolean {
@@ -241,7 +255,7 @@ export class SaidaForm {
   }
 
   protected submit(): void {
-    if (this.form.invalid || this.somaPartesExcedeValor || this.loading() || this.saving() || this.dataError()) {
+    if (this.form.invalid || this.divisaoInvalida || this.contaFixaNegativa || this.loading() || this.saving() || this.dataError()) {
       this.form.markAllAsTouched();
       return;
     }
@@ -460,10 +474,10 @@ export class SaidaForm {
     this.form.controls.responsavelPessoaId.updateValueAndValidity();
   }
 
-  private novaParte(pessoaId = '', valorPorParcela = 0) {
+  private novaParte(pessoaId = '', valorPorParcela: number | null = null) {
     return this.fb.group({
       pessoaId: [pessoaId, Validators.required],
-      valorPorParcela: [valorPorParcela, [Validators.required, Validators.min(0.01)]],
+      valorPorParcela: [valorPorParcela, [Validators.required, valorDiferenteDeZero]],
     });
   }
 

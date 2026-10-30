@@ -245,7 +245,7 @@ final class MotorConciliacao {
         }
         BigDecimal diferenca = item.valor().subtract(parcela.valor()).abs();
         return motivo != null && !motivo.isBlank()
-                && diferenca.compareTo(parcela.valor().multiply(VARIACAO_MAXIMA_IA)) <= 0;
+                && diferenca.compareTo(parcela.valor().abs().multiply(VARIACAO_MAXIMA_IA)) <= 0;
     }
 
     private static String divergencia(Item item, Parcela parcela) {

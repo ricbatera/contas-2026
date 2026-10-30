@@ -12,6 +12,7 @@ import {
   SaidaService,
 } from '../../core/saida.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
+import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 import { GerarContasFixas } from './gerar-contas-fixas';
 
@@ -86,7 +87,7 @@ const MESES = Array.from({ length: 12 }, (_, index) => ({
 
 @Component({
   selector: 'app-saidas-list',
-  imports: [CampoCalculadora, CurrencyPipe, DatePipe, GerarContasFixas, RouterLink],
+  imports: [CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, GerarContasFixas, RouterLink],
   templateUrl: './saidas-list.html',
   styleUrls: ['../cartoes/cartoes.css', './saidas.css'],
 })
@@ -348,6 +349,15 @@ export class SaidasList implements OnInit {
       [campo]: valor,
       ...(campo === 'categoriaId' ? { subcategoriaId: '' } : {}),
     }));
+    this.erroFiltros.set(null);
+  }
+
+  protected filtroValor(texto: string): number | null {
+    return texto === '' ? null : Number(texto);
+  }
+
+  protected atualizarFiltroValor(campo: 'valorMinimo' | 'valorMaximo', valor: number | null): void {
+    this.filtrosRascunho.update((filtros) => ({ ...filtros, [campo]: valor === null ? '' : String(valor) }));
     this.erroFiltros.set(null);
   }
 

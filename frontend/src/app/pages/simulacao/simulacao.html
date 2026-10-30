@@ -55,8 +55,8 @@
           <app-campo-calculadora>
             <div class="money-input">
               <span aria-hidden="true">R$</span>
-              <input type="number" min="0.01" step="0.01" formControlName="valorPorParcela"
-                inputmode="decimal" placeholder="0,00" />
+              <input appCampoMoeda formControlName="valorPorParcela"
+                placeholder="0,00" />
             </div>
           </app-campo-calculadora>
           @if (formulario.controls.valorPorParcela.invalid && formulario.controls.valorPorParcela.touched) {

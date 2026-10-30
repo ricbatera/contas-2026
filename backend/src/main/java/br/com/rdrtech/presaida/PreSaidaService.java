@@ -90,6 +90,9 @@ public class PreSaidaService {
                     .orElseThrow(SubcategoriaNaoEncontradaException::new);
         }
 
+        if (request.valorPorParcela().signum() == 0) {
+            throw new PreSaidaInvalidaException("O valor por parcela não pode ser zero.");
+        }
         // A parcela lida está na fatura da importação; mudar o número recalcula a primeira parcela.
         preSaida.setDescricao(request.descricao().trim());
         preSaida.setCartao(cartao);

@@ -259,11 +259,10 @@
               Mínimo
               <app-campo-calculadora>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  [value]="filtrosRascunho().valorMinimo"
-                  (input)="atualizarFiltro('valorMinimo', $event)"
+                  appCampoMoeda
+                  placeholder="0,00"
+                  [valor]="filtroValor(filtrosRascunho().valorMinimo)"
+                  (valorChange)="atualizarFiltroValor('valorMinimo', $event)"
                 />
               </app-campo-calculadora>
             </label>
@@ -271,11 +270,10 @@
               Máximo
               <app-campo-calculadora>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  [value]="filtrosRascunho().valorMaximo"
-                  (input)="atualizarFiltro('valorMaximo', $event)"
+                  appCampoMoeda
+                  placeholder="0,00"
+                  [valor]="filtroValor(filtrosRascunho().valorMaximo)"
+                  (valorChange)="atualizarFiltroValor('valorMaximo', $event)"
                 />
               </app-campo-calculadora>
             </label>

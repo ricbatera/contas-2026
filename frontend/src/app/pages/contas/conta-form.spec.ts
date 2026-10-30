@@ -33,20 +33,18 @@ describe('ContaForm', () => {
 
   afterEach(() => http.verify());
 
-  it('prevents submission when the initial balance is negative', () => {
+  it('starts the initial balance empty and does not accept a negative sign', () => {
     const fixture = TestBed.createComponent(ContaForm);
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
     const balance = element.querySelector<HTMLInputElement>('[formControlName="saldoInicial"]')!;
+    expect(balance.value).toBe('');
     balance.value = '-1';
     balance.dispatchEvent(new Event('input', { bubbles: true }));
-    element.querySelector<HTMLFormElement>('form')!.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true }),
-    );
     fixture.detectChanges();
 
-    expect(element.textContent).toContain('O saldo inicial deve ser maior ou igual a R$ 0,00.');
-    http.expectNone('/api/contas-bancarias');
+    expect(balance.value).toBe('1');
+    expect(fixture.componentInstance['form'].controls.saldoInicial.value).toBe(1);
   });
 
   it('creates an account with zero balance and null optional fields', async () => {
