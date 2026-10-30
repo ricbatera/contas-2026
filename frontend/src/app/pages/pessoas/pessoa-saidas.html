@@ -15,7 +15,20 @@
         }
       </select>
     </label>
+    <div class="pessoa-exportar" role="group" aria-label="Exportar saídas da pessoa">
+      <button class="secondary-button" type="button" [disabled]="loading() || !!error() || !!gerando()"
+        (click)="exportar('png')">
+        {{ gerando() === 'png' ? 'Gerando...' : 'Imagem' }}
+      </button>
+      <button class="secondary-button" type="button" [disabled]="loading() || !!error() || !!gerando()"
+        (click)="exportar('pdf')">
+        {{ gerando() === 'pdf' ? 'Gerando...' : 'PDF' }}
+      </button>
+    </div>
   </div>
+  @if (erroExportacao()) {
+    <div class="form-error pessoa-exportar-erro" role="alert">{{ erroExportacao() }}</div>
+  }
 
   <div class="entrada-month-bar">
     <div class="entrada-month-nav">

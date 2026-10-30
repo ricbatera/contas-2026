@@ -9,6 +9,19 @@
   min-width: 260px;
 }
 
+.pessoa-saidas-filtros {
+  align-items: flex-end;
+}
+
+.pessoa-exportar {
+  display: flex;
+  gap: 8px;
+}
+
+.pessoa-exportar-erro {
+  margin-bottom: 16px;
+}
+
 .pessoa-total {
   display: flex;
   flex-direction: column;

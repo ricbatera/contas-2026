@@ -4,8 +4,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Pessoa } from '../../core/pessoa.service';
 import { Saida } from '../../core/saida.service';
+import { vi } from 'vitest';
 import { mesReferencia } from '../../shared/data/mes-referencia';
 import { PessoaSaidas } from './pessoa-saidas';
+import { DadosRelatorioPessoa, RelatorioPessoaService } from './relatorio-pessoa';
 
 const PESSOAS: Pessoa[] = [
   { id: 'pessoa-2', nome: 'Bruno', ativo: true, criadoEm: null },
@@ -58,11 +60,18 @@ function saida(overrides: Partial<Saida>): Saida {
 
 describe('PessoaSaidas', () => {
   let http: HttpTestingController;
+  let exportar: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    exportar = vi.fn(() => Promise.resolve());
     TestBed.configureTestingModule({
       imports: [PessoaSaidas],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: RelatorioPessoaService, useValue: { exportar } },
+      ],
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -138,5 +147,56 @@ describe('PessoaSaidas', () => {
     fixture.detectChanges();
     barras = element.querySelectorAll('.chart-bar');
     expect(barras).toHaveLength(6);
+  });
+
+  it('exports only what the search shows, with the filtered total and the chart', async () => {
+    const { fixture, element } = criar([
+      saida({}),
+      saida({
+        id: 'saida-2', descricao: 'Farmácia', quantidadeParcelas: 1, formaPagamento: 'PIX', cartaoNome: null,
+        responsabilidades: [{ pessoaId: 'pessoa-1', usuarioId: null, nome: 'Ana', valorPorParcela: 25 }],
+        parcelas: [{ id: 'p-f', numero: 1, valor: 25, vencimento: data(0, 3), faturaId: null, vencimentoFatura: null }],
+      }),
+    ]);
+    const busca = element.querySelector<HTMLInputElement>('input[type="search"]')!;
+    busca.value = 'mercado';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const botao = Array.from(element.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'PDF')!;
+    botao.click();
+    await fixture.whenStable();
+
+    const [tipo, dados, nome] = exportar.mock.calls[0] as [string, DadosRelatorioPessoa, string];
+    const { mes, ano } = mesReferencia();
+    expect(tipo).toBe('pdf');
+    expect(nome).toBe(`saidas-ana-${ano}-${String(mes).padStart(2, '0')}.pdf`);
+    expect(dados.pessoa).toBe('Ana');
+    expect(dados.busca).toBe('mercado');
+    expect(dados.total).toBe(40);
+    expect(dados.itens).toHaveLength(1);
+    expect(dados.itens[0]).toMatchObject({
+      descricao: 'Mercado',
+      detalhe: 'Casa · Alimentação',
+      valor: 40,
+      valorParcela: 100,
+    });
+    expect(dados.itens[0].info).toContain('Parcela 1/3 · Cartão de crédito · Nubank');
+    expect(dados.progressao).toHaveLength(12);
+    // O gráfico, como na tela, não é filtrado pela busca: no 1º mês soma a Farmácia também.
+    expect(dados.progressao.slice(0, 4).map((item) => item.total)).toEqual([65, 40, 40, 0]);
+  });
+
+  it('shows an error when the file cannot be generated', async () => {
+    exportar.mockRejectedValueOnce(new Error('sem canvas'));
+    const { fixture, element } = criar([saida({})]);
+
+    Array.from(element.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Imagem')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(element.querySelector('[role="alert"]')!.textContent).toContain('Não foi possível gerar a imagem');
+    expect(Array.from(element.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Imagem')!.disabled)
+      .toBe(false);
   });
 });

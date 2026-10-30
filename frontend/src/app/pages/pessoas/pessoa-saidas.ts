@@ -8,6 +8,7 @@ import { FormaPagamento, Saida, SaidaParcela, SaidaService } from '../../core/sa
 import { correspondeBusca } from '../../shared/busca/busca';
 import { CampoBusca } from '../../shared/busca/campo-busca';
 import { mesReferencia } from '../../shared/data/mes-referencia';
+import { DadosRelatorioPessoa, nomeArquivoRelatorio, RelatorioPessoaService } from './relatorio-pessoa';
 
 /** Parcela de uma saída que vence no mês, com a parte da pessoa. */
 interface ParcelaDaPessoa {
@@ -60,6 +61,7 @@ const BASE = 260;
 })
 export class PessoaSaidas implements OnInit {
   private readonly service = inject(SaidaService);
+  private readonly relatorio = inject(RelatorioPessoaService);
 
   readonly pessoas = input.required<Pessoa[]>();
 
@@ -71,6 +73,8 @@ export class PessoaSaidas implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly busca = signal('');
+  protected readonly gerando = signal<'png' | 'pdf' | null>(null);
+  protected readonly erroExportacao = signal<string | null>(null);
 
   protected readonly pessoasOrdenadas = computed(() =>
     [...this.pessoas()].sort((a, b) => Number(b.ativo) - Number(a.ativo) || a.nome.localeCompare(b.nome, 'pt-BR')));
@@ -201,6 +205,52 @@ export class PessoaSaidas implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  /** Gera a imagem ou o PDF do que está na tela (itens da busca) e entrega ao usuário. */
+  protected async exportar(tipo: 'png' | 'pdf'): Promise<void> {
+    if (this.gerando()) {
+      return;
+    }
+    this.gerando.set(tipo);
+    this.erroExportacao.set(null);
+    const dados = this.dadosRelatorio();
+    const { mes, ano } = this.competencia();
+    try {
+      await this.relatorio.exportar(tipo, dados, nomeArquivoRelatorio(dados.pessoa, mes, ano, tipo));
+    } catch {
+      this.erroExportacao.set(`Não foi possível gerar ${tipo === 'png' ? 'a imagem' : 'o PDF'}. Tente novamente.`);
+    } finally {
+      this.gerando.set(null);
+    }
+  }
+
+  private dadosRelatorio(): DadosRelatorioPessoa {
+    const data = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+    return {
+      pessoa: this.nomePessoa(),
+      competencia: this.rotuloCompetencia(),
+      busca: this.busca().trim(),
+      total: this.totalDoMes(),
+      itens: this.itensEncontrados().map(({ saida, parcela, valor }) => ({
+        descricao: saida.descricao,
+        detalhe: `${saida.categoriaNome} · ${saida.subcategoriaNome}`,
+        info: [
+          `Vence em ${data.format(new Date(`${parcela.vencimento}T00:00:00Z`))}`,
+          saida.quantidadeParcelas > 1 ? `Parcela ${parcela.numero}/${saida.quantidadeParcelas}` : null,
+          this.nomeForma(saida.formaPagamento),
+          saida.cartaoNome,
+          saida.contaFixa ? 'Conta fixa' : null,
+        ].filter(Boolean).join(' · '),
+        valor,
+        valorParcela: valor !== parcela.valor ? parcela.valor : null,
+      })),
+      progressao: this.barrasGrafico().map((barra, indice) => ({
+        rotulo: barra.rotuloMes,
+        total: this.progressao()[indice].total,
+      })),
+      geradoEm: new Date(),
+    };
   }
 
   protected selecionarPessoa(event: Event): void {
