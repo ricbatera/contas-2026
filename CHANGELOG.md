@@ -2,6 +2,15 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## frontend 1.0.7 — 2026-10-30
+
+- Imagem: `ricardo1782/financas-frontend:1.0.7` (também `latest`)
+- Commit: `b8126da` (tag `frontend-v1.0.7`)
+- Próxima versão de desenvolvimento: 1.0.8
+- Mudanças:
+  - 0d070d1 feat(frontend): avisar campos obrigatórios e rolar até o primeiro erro
+  - 44d970a feat: máscara pt-BR nos campos monetários e valor negativo como reembolso
+
 ## backend 1.0.5 — 2026-10-30
 
 - Imagem: `ricardo1782/financas-backend:1.0.5` (também `latest`)
