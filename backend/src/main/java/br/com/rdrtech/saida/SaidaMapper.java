@@ -63,6 +63,7 @@ public final class SaidaMapper {
                 responsabilidades,
                 parcelas,
                 saida.getAuditoria() != null ? saida.getAuditoria().getCreatedAt() : null,
-                saida.isContaFixa());
+                saida.isContaFixa(),
+                saida.getSerieContaFixaId());
     }
 }

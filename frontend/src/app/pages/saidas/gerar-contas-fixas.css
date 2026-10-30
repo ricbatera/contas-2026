@@ -1,0 +1,99 @@
+.conta-fixa-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.conta-fixa-ajuda,
+.conta-fixa-vazia {
+  margin: 0;
+  color: #5d6b80;
+  font-size: 12px;
+}
+
+.conta-fixa-vazia {
+  padding: 18px;
+  border: 1px dashed #dfe5ed;
+  border-radius: 9px;
+  text-align: center;
+}
+
+.conta-fixa-lista {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conta-fixa-item {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e4e9f0;
+  border-radius: 9px;
+}
+
+.conta-fixa-item.desmarcada {
+  background: #f8fafc;
+}
+
+.conta-fixa-item.desmarcada .conta-fixa-titulo strong {
+  color: #8995a7;
+}
+
+.conta-fixa-titulo {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 10px;
+  cursor: pointer;
+}
+
+.conta-fixa-titulo input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: #1e6fd0;
+}
+
+.conta-fixa-titulo span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.conta-fixa-titulo strong {
+  color: #172b4d;
+  font-size: 14px;
+}
+
+.conta-fixa-titulo small {
+  color: #6b7a90;
+  font-size: 11px;
+}
+
+.conta-fixa-aviso {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: #8a5300;
+  background: #fff7e8;
+  font-size: 11px;
+}
+
+.conta-fixa-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.conta-fixa-total {
+  color: #172b4d;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .conta-fixa-campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

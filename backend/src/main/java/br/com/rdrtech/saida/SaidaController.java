@@ -1,6 +1,9 @@
 package br.com.rdrtech.saida;
 
 import br.com.rdrtech.api.response.SuccessResponse;
+import br.com.rdrtech.saida.dto.ContaFixaPreviaResponse;
+import br.com.rdrtech.saida.dto.GerarContasFixasRequest;
+import br.com.rdrtech.saida.dto.GerarContasFixasResponse;
 import br.com.rdrtech.saida.dto.SaidaRequest;
 import br.com.rdrtech.saida.dto.SaidaResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SaidaController {
 
     private final SaidaService saidaService;
+    private final ContasFixasService contasFixasService;
 
     @GetMapping
     public SuccessResponse<List<SaidaResponse>> listar() {
@@ -53,5 +58,18 @@ public class SaidaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluir(@PathVariable UUID id) {
         saidaService.excluir(id);
+    }
+
+    @GetMapping("/contas-fixas/previa")
+    public SuccessResponse<List<ContaFixaPreviaResponse>> previaContasFixas(
+            @RequestParam int mes, @RequestParam int ano) {
+        return SuccessResponse.of(contasFixasService.previa(mes, ano));
+    }
+
+    @PostMapping("/contas-fixas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SuccessResponse<GerarContasFixasResponse> gerarContasFixas(
+            @Valid @RequestBody GerarContasFixasRequest request) {
+        return SuccessResponse.of(contasFixasService.gerar(request), "Contas fixas geradas com sucesso");
     }
 }

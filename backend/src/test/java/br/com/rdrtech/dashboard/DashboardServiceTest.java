@@ -2,6 +2,7 @@ package br.com.rdrtech.dashboard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +52,8 @@ class DashboardServiceTest {
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
         lenient().when(entradaOcorrenciaRepository.somarPrevistasNoPeriodo(any(), any())).thenReturn(BigDecimal.ZERO);
         lenient().when(entradaOcorrenciaRepository.somarRecebidasNoPeriodo(any(), any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(any(), any(), any(), eq(true)))
+                .thenReturn(BigDecimal.ZERO);
     }
 
     @AfterEach
@@ -59,12 +62,15 @@ class DashboardServiceTest {
     }
 
     @Test
-    void consultar_deveSomarContasFixasDoMesAnteriorACompetencia() {
+    void consultar_deveSomarContasFixasGeradasEPrevistasDoMesAnterior() {
         when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(
-                        usuarioId, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1)))
+                        usuarioId, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1), true))
+                .thenReturn(new BigDecimal("30.00"));
+        when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(
+                        usuarioId, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1), false))
                 .thenReturn(new BigDecimal("125.50"));
         when(bucketRepository.somarValorMensalDoUsuario(usuarioId)).thenReturn(new BigDecimal("200.00"));
-        when(saidaResponsavelRepository.somarPartesFixasUsuarioNoPeriodo(
+        when(saidaResponsavelRepository.somarPartesFixasPrevistasUsuarioNoPeriodo(
                         usuarioId, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 1)))
                 .thenReturn(new BigDecimal("150.00"));
 
@@ -72,53 +78,54 @@ class DashboardServiceTest {
 
         assertThat(response.gastosLancados()).isEqualByComparingTo("125.50");
         assertThat(response.bucketsReservados()).isEqualByComparingTo("200.00");
-        assertThat(response.contasFixasMesAnterior()).isEqualByComparingTo("150.00");
-        assertThat(response.totalPrevisto()).isEqualByComparingTo("475.50");
+        assertThat(response.contasFixas()).isEqualByComparingTo("180.00");
+        assertThat(response.contasFixasPrevistas()).isEqualByComparingTo("150.00");
+        assertThat(response.totalPrevisto()).isEqualByComparingTo("505.50");
         verify(saidaResponsavelRepository).somarPartesUsuarioNoPeriodo(
-                usuarioId, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1));
-        verify(saidaResponsavelRepository).somarPartesFixasUsuarioNoPeriodo(
+                usuarioId, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1), false);
+        verify(saidaResponsavelRepository).somarPartesFixasPrevistasUsuarioNoPeriodo(
                 usuarioId, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 1));
     }
 
     @Test
     void consultar_deveSomarSomenteMesAnteriorAoCruzarAno() {
         when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(
-                        usuarioId, LocalDate.of(2027, 1, 1), LocalDate.of(2027, 2, 1)))
+                        usuarioId, LocalDate.of(2027, 1, 1), LocalDate.of(2027, 2, 1), false))
                 .thenReturn(BigDecimal.ZERO);
         when(bucketRepository.somarValorMensalDoUsuario(usuarioId)).thenReturn(BigDecimal.ZERO);
-        when(saidaResponsavelRepository.somarPartesFixasUsuarioNoPeriodo(
+        when(saidaResponsavelRepository.somarPartesFixasPrevistasUsuarioNoPeriodo(
                         usuarioId, LocalDate.of(2026, 12, 1), LocalDate.of(2027, 1, 1)))
                 .thenReturn(new BigDecimal("10.00"));
 
         var response = service.consultar(1, 2027);
 
-        assertThat(response.contasFixasMesAnterior()).isEqualByComparingTo("10.00");
+        assertThat(response.contasFixas()).isEqualByComparingTo("10.00");
         assertThat(response.totalPrevisto()).isEqualByComparingTo("10.00");
     }
 
     @Test
     void consultar_deveUsarZeroQuandoNaoHaContaFixaNoMesAnterior() {
         when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(
-                        usuarioId, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1)))
+                        usuarioId, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1), false))
                 .thenReturn(BigDecimal.ZERO);
         when(bucketRepository.somarValorMensalDoUsuario(usuarioId)).thenReturn(BigDecimal.ZERO);
-        when(saidaResponsavelRepository.somarPartesFixasUsuarioNoPeriodo(
+        when(saidaResponsavelRepository.somarPartesFixasPrevistasUsuarioNoPeriodo(
                         usuarioId, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 1)))
                 .thenReturn(BigDecimal.ZERO);
 
         var response = service.consultar(10, 2026);
 
-        assertThat(response.contasFixasMesAnterior()).isEqualByComparingTo("0.00");
+        assertThat(response.contasFixas()).isEqualByComparingTo("0.00");
     }
 
     @Test
     void consultar_deveSomarReceitasDoMesECalcularSaldoPrevisto() {
         LocalDate inicio = LocalDate.of(2026, 10, 1);
         LocalDate fim = LocalDate.of(2026, 11, 1);
-        when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(usuarioId, inicio, fim))
+        when(saidaResponsavelRepository.somarPartesUsuarioNoPeriodo(usuarioId, inicio, fim, false))
                 .thenReturn(new BigDecimal("300.00"));
         when(bucketRepository.somarValorMensalDoUsuario(usuarioId)).thenReturn(new BigDecimal("200.00"));
-        when(saidaResponsavelRepository.somarPartesFixasUsuarioNoPeriodo(usuarioId, inicio.minusMonths(1), inicio))
+        when(saidaResponsavelRepository.somarPartesFixasPrevistasUsuarioNoPeriodo(usuarioId, inicio.minusMonths(1), inicio))
                 .thenReturn(BigDecimal.ZERO);
         when(entradaOcorrenciaRepository.somarPrevistasNoPeriodo(inicio, fim)).thenReturn(new BigDecimal("5000.00"));
         when(entradaOcorrenciaRepository.somarRecebidasNoPeriodo(inicio, fim)).thenReturn(new BigDecimal("4800.00"));

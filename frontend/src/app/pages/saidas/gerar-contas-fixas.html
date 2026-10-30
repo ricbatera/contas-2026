@@ -1,0 +1,87 @@
+<app-dialogo-rapido secao="REVISE E APROVE" [titulo]="titulo()" (fechar)="cancelado.emit()">
+  <div class="filter-dialog-content conta-fixa-content">
+    @if (error()) {
+      <div class="form-error filter-full" role="alert">{{ error() }}</div>
+    }
+
+    @if (linhas().length === 0) {
+      <p class="conta-fixa-vazia filter-full">
+        Todas as contas fixas deste mês já foram lançadas. Só entram aqui as que não são de cartão de crédito.
+      </p>
+    } @else {
+      <p class="conta-fixa-ajuda filter-full">
+        Cada conta repete a última ocorrência. Ajuste o valor e a data se precisar e desmarque o que não quer lançar.
+      </p>
+      <ul class="conta-fixa-lista filter-full">
+        @for (linha of linhas(); track linha.item.serieId) {
+          <li class="conta-fixa-item" [class.desmarcada]="!linha.selecionada">
+            <label class="conta-fixa-titulo">
+              <input
+                type="checkbox"
+                [checked]="linha.selecionada"
+                (change)="alternar(linha.item.serieId, $event)"
+              />
+              <span>
+                <strong>{{ linha.item.descricao }}</strong>
+                <small>
+                  {{ linha.item.categoriaNome }} · {{ linha.item.subcategoriaNome }} ·
+                  {{ nomeForma(linha.item.formaPagamento) }} · {{ linha.item.responsaveis.join(', ') }}
+                </small>
+              </span>
+            </label>
+            @if (linha.item.aviso) {
+              <p class="conta-fixa-aviso" role="note">{{ linha.item.aviso }} Ajuste a saída anterior antes de gerar.</p>
+            }
+            <div class="conta-fixa-campos">
+              <label class="form-field">
+                Valor (R$)
+                <app-campo-calculadora>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    [value]="linha.valor"
+                    [disabled]="!linha.selecionada"
+                    (input)="alterarValor(linha.item.serieId, $event)"
+                  />
+                </app-campo-calculadora>
+              </label>
+              <label class="form-field">
+                Data
+                <input
+                  type="date"
+                  [min]="primeiroDia()"
+                  [max]="ultimoDia()"
+                  [value]="linha.data"
+                  [disabled]="!linha.selecionada"
+                  (input)="alterarData(linha.item.serieId, $event)"
+                />
+              </label>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <footer class="filter-dialog-actions">
+    @if (linhas().length > 0) {
+      <span class="conta-fixa-total" aria-live="polite">Total: {{ total() | currency: 'BRL' }}</span>
+    } @else {
+      <span></span>
+    }
+    <div>
+      <button class="secondary-button" type="button" (click)="cancelado.emit()">
+        {{ linhas().length === 0 ? 'Fechar' : 'Cancelar' }}
+      </button>
+      @if (linhas().length > 0) {
+        <button
+          class="primary-button"
+          type="button"
+          [disabled]="saving() || selecionadas().length === 0"
+          (click)="aprovar()"
+        >{{ saving() ? 'Gerando...' : 'Aprovar (' + selecionadas().length + ')' }}</button>
+      }
+    </div>
+  </footer>
+</app-dialogo-rapido>

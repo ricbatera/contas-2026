@@ -12,6 +12,19 @@ import org.springframework.data.repository.query.Param;
 
 public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsavel, UUID> {
 
+    /**
+     * A conta fixa do mês M só vira previsão de M+1 enquanto a série dela não tiver saída em M+1
+     * (gerada pelo "Gerar contas fixas"); senão ela seria contada duas vezes.
+     */
+    String SEM_OCORRENCIA_NO_MES_SEGUINTE = """
+              and not exists (
+                  select 1 from Saida s2
+                  join s2.parcelas p2
+                  where s2.serieContaFixaId = s.serieContaFixaId
+                    and year(p2.vencimento) * 12 + month(p2.vencimento)
+                        = year(p.vencimento) * 12 + month(p.vencimento) + 1)
+            """;
+
     @Query("""
             select coalesce(sum(r.valorPorParcela), 0)
             from SaidaResponsavel r
@@ -50,13 +63,15 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
             join r.saida s
             join s.parcelas p
             where r.usuario.id = :usuarioId
+              and s.contaFixa = :contaFixa
               and p.vencimento >= :inicio
               and p.vencimento < :fim
             """)
     BigDecimal somarPartesUsuarioNoPeriodo(
             @Param("usuarioId") UUID usuarioId,
             @Param("inicio") LocalDate inicio,
-            @Param("fim") LocalDate fim);
+            @Param("fim") LocalDate fim,
+            @Param("contaFixa") boolean contaFixa);
 
     @Query("""
             select coalesce(sum(r.valorPorParcela), 0)
@@ -67,8 +82,8 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
               and s.contaFixa = true
               and p.vencimento >= :inicio
               and p.vencimento < :fim
-            """)
-    BigDecimal somarPartesFixasUsuarioNoPeriodo(
+            """ + SEM_OCORRENCIA_NO_MES_SEGUINTE)
+    BigDecimal somarPartesFixasPrevistasUsuarioNoPeriodo(
             @Param("usuarioId") UUID usuarioId,
             @Param("inicio") LocalDate inicio,
             @Param("fim") LocalDate fim);
@@ -82,6 +97,7 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
             join r.saida s
             join s.parcelas p
             where r.usuario.id = :usuarioId
+              and s.contaFixa = :contaFixa
               and p.vencimento >= :inicio
               and p.vencimento < :fim
             group by year(p.vencimento), month(p.vencimento)
@@ -89,7 +105,8 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
     List<DashboardMonthlyAmountResponse> somarPartesUsuarioAgrupadasPorMes(
             @Param("usuarioId") UUID usuarioId,
             @Param("inicio") LocalDate inicio,
-            @Param("fim") LocalDate fim);
+            @Param("fim") LocalDate fim,
+            @Param("contaFixa") boolean contaFixa);
 
     @Query("""
             select new br.com.rdrtech.dashboard.dto.DashboardMonthlyAmountResponse(
@@ -103,9 +120,10 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
               and s.contaFixa = true
               and p.vencimento >= :inicio
               and p.vencimento < :fim
+            """ + SEM_OCORRENCIA_NO_MES_SEGUINTE + """
             group by year(p.vencimento), month(p.vencimento)
             """)
-    List<DashboardMonthlyAmountResponse> somarPartesFixasUsuarioAgrupadasPorMes(
+    List<DashboardMonthlyAmountResponse> somarPartesFixasPrevistasUsuarioAgrupadasPorMes(
             @Param("usuarioId") UUID usuarioId,
             @Param("inicio") LocalDate inicio,
             @Param("fim") LocalDate fim);
@@ -123,6 +141,7 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
             join r.saida s
             join s.parcelas p
             where r.usuario.id = :usuarioId
+              and s.contaFixa = :contaFixa
               and p.vencimento >= :inicio
               and p.vencimento < :fim
             order by p.vencimento, s.descricao
@@ -130,7 +149,8 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
     List<DashboardItemResponse> listarPartesUsuarioDetalhadasNoPeriodo(
             @Param("usuarioId") UUID usuarioId,
             @Param("inicio") LocalDate inicio,
-            @Param("fim") LocalDate fim);
+            @Param("fim") LocalDate fim,
+            @Param("contaFixa") boolean contaFixa);
 
     @Query("""
             select new br.com.rdrtech.dashboard.dto.DashboardItemResponse(
@@ -148,9 +168,10 @@ public interface SaidaResponsavelRepository extends JpaRepository<SaidaResponsav
               and s.contaFixa = true
               and p.vencimento >= :inicio
               and p.vencimento < :fim
+            """ + SEM_OCORRENCIA_NO_MES_SEGUINTE + """
             order by p.vencimento, s.descricao
             """)
-    List<DashboardItemResponse> listarPartesFixasUsuarioDetalhadasNoPeriodo(
+    List<DashboardItemResponse> listarPartesFixasPrevistasUsuarioDetalhadasNoPeriodo(
             @Param("usuarioId") UUID usuarioId,
             @Param("inicio") LocalDate inicio,
             @Param("fim") LocalDate fim);

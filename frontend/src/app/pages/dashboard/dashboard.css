@@ -410,6 +410,32 @@
   font-size: 11px;
 }
 
+.dashboard-detail-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-detail-item .dashboard-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.dashboard-detail-item .dashboard-badge.gerada {
+  color: #1f6b3a;
+  background: #e3f4e8;
+}
+
+.dashboard-detail-item .dashboard-badge.prevista {
+  color: #8a5300;
+  background: #fdf0d9;
+}
+
 .dashboard-detail-value {
   color: #293b50;
   font-size: 13px;

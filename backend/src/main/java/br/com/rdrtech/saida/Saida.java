@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -42,6 +43,10 @@ public class Saida extends TenantAwareEntity {
 
     @Column(name = "conta_fixa", nullable = false)
     private boolean contaFixa;
+
+    /** Liga as ocorrências mensais da mesma conta fixa; a primeira usa o próprio id. */
+    @Column(name = "serie_conta_fixa_id")
+    private UUID serieContaFixaId;
 
     @Column(name = "valor_por_parcela", nullable = false, precision = 12, scale = 2)
     private BigDecimal valorPorParcela;

@@ -43,7 +43,7 @@ class DashboardControllerIT {
                 .andExpect(jsonPath("$.data.ano").value(2026))
                 .andExpect(jsonPath("$.data.gastosLancados").value(0))
                 .andExpect(jsonPath("$.data.bucketsReservados").value(0))
-                .andExpect(jsonPath("$.data.contasFixasMesAnterior").value(0))
+                .andExpect(jsonPath("$.data.contasFixas").value(0))
                 .andExpect(jsonPath("$.data.totalPrevisto").value(0));
 
         mockMvc.perform(get("/api/dashboard/saidas")

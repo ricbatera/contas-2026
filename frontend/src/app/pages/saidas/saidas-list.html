@@ -23,6 +23,17 @@
           }
         </button>
       }
+      <button
+        class="secondary-button gerar-contas-fixas-button"
+        type="button"
+        aria-haspopup="dialog"
+        title="Lançar as contas fixas do mês que não são de cartão de crédito"
+        [disabled]="carregandoContasFixas()"
+        (click)="abrirContasFixas()"
+      >
+        <span aria-hidden="true">↻</span>
+        {{ carregandoContasFixas() ? 'Carregando...' : 'Gerar contas fixas' }}
+      </button>
       <a class="secondary-button" routerLink="/home/comprovantes/novo" title="Lançar a partir da foto do comprovante">
         <span aria-hidden="true">◉</span> Comprovante
       </a>
@@ -37,6 +48,10 @@
         <button class="secondary-button" type="button" (click)="carregar()">Tentar novamente</button>
       }
     </div>
+  }
+
+  @if (mensagemContasFixas()) {
+    <div class="saida-page-success" role="status">{{ mensagemContasFixas() }}</div>
   }
 
   @if (loading()) {
@@ -280,5 +295,15 @@
         </footer>
       </section>
     </div>
+  }
+
+  @if (previaContasFixas(); as previa) {
+    <app-gerar-contas-fixas
+      [itens]="previa.itens"
+      [mes]="previa.mes"
+      [ano]="previa.ano"
+      (gerado)="contasFixasGeradas($event)"
+      (cancelado)="previaContasFixas.set(null)"
+    />
   }
 </section>

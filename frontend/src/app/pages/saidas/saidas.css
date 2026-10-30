@@ -104,6 +104,16 @@
   margin-bottom: 14px;
 }
 
+.saida-page-success {
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border: 1px solid #cfe8d6;
+  border-radius: 8px;
+  color: #1f6b3a;
+  background: #f1faf3;
+  font-size: 13px;
+}
+
 .saida-toolbar-actions {
   display: flex;
   align-items: center;

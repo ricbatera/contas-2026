@@ -128,7 +128,7 @@ export class Dashboard implements OnInit {
     const titulo = {
       saidas: 'Saídas lançadas no mês',
       buckets: 'Reservas dos buckets',
-      'contas-fixas': 'Contas fixas do mês anterior',
+      'contas-fixas': 'Contas fixas do mês',
       entradas: 'Receitas previstas no mês',
     }[tipo];
     this.detalheRequest += 1;
@@ -225,7 +225,7 @@ export class Dashboard implements OnInit {
     const series = [
       { chave: 'saidas', rotulo: 'Saídas lançadas', campo: 'gastosLancados', cor: '#3278c7' },
       { chave: 'buckets', rotulo: 'Buckets', campo: 'bucketsReservados', cor: '#39a785' },
-      { chave: 'contas-fixas', rotulo: 'Contas Fixas', campo: 'contasFixasMesAnterior', cor: '#e9a23b' },
+      { chave: 'contas-fixas', rotulo: 'Contas Fixas', campo: 'contasFixas', cor: '#e9a23b' },
     ] as const;
 
     return itens.map((item, index) => {
@@ -247,7 +247,7 @@ export class Dashboard implements OnInit {
       });
       const rotuloMes = `${this.nomeMes(item.mes).slice(0, 3)}/${String(item.ano).slice(-2)}`;
       const descricao = `${this.nomeMes(item.mes)} de ${item.ano}: Saídas lançadas ${this.formatarMoeda(item.gastosLancados)}, `
-        + `Buckets ${this.formatarMoeda(item.bucketsReservados)}, Contas Fixas ${this.formatarMoeda(item.contasFixasMesAnterior)}, `
+        + `Buckets ${this.formatarMoeda(item.bucketsReservados)}, Contas Fixas ${this.formatarMoeda(item.contasFixas)}, `
         + `total ${this.formatarMoeda(item.totalPrevisto)}; receitas previstas ${this.formatarMoeda(item.receitasPrevistas)}, `
         + `saldo ${this.formatarMoeda(item.saldoPrevisto)}.`;
       return {

@@ -102,13 +102,14 @@ class DashboardCalculationIT {
         autenticarComo(usuario.getId());
         DashboardResponse response = dashboardService.consultar(10, 2026);
 
-        assertThat(response.gastosLancados()).isEqualByComparingTo("120.00");
+        assertThat(response.gastosLancados()).isEqualByComparingTo("75.00");
         assertThat(response.bucketsReservados()).isEqualByComparingTo("200.00");
-        assertThat(response.contasFixasMesAnterior()).isEqualByComparingTo("0.06");
+        assertThat(response.contasFixas()).isEqualByComparingTo("45.06");
+        assertThat(response.contasFixasPrevistas()).isEqualByComparingTo("0.06");
         assertThat(response.totalPrevisto()).isEqualByComparingTo("320.06");
 
         var saidas = dashboardService.listarSaidas(10, 2026);
-        assertThat(saidas).hasSize(2);
+        assertThat(saidas).hasSize(1);
         assertThat(saidas.getFirst().descricao()).isEqualTo("Despesa 2026-10-15");
         assertThat(saidas.getFirst().categoriaNome()).isEqualTo("Saúde");
         assertThat(saidas.getFirst().subcategoriaNome()).isEqualTo("Medicamentos");
@@ -125,23 +126,28 @@ class DashboardCalculationIT {
         assertThat(buckets.stream().map(item -> item.valor()).reduce(BigDecimal.ZERO, BigDecimal::add))
                 .isEqualByComparingTo(response.bucketsReservados());
 
-        var contasFixas = dashboardService.listarContasFixasMesAnterior(10, 2026);
-        assertThat(contasFixas).hasSize(2);
-        assertThat(contasFixas).allSatisfy(item ->
-                assertThat(item.valor()).isEqualByComparingTo("0.03"));
+        var contasFixas = dashboardService.listarContasFixas(10, 2026);
+        assertThat(contasFixas).extracting("vencimento", "situacao").containsExactly(
+                org.assertj.core.groups.Tuple.tuple(LocalDate.of(2026, 10, 15), "PREVISTA"),
+                org.assertj.core.groups.Tuple.tuple(LocalDate.of(2026, 10, 20), "PREVISTA"),
+                org.assertj.core.groups.Tuple.tuple(LocalDate.of(2026, 10, 20), "GERADA"));
+        assertThat(contasFixas.get(0).numeroParcela()).isNull();
+        assertThat(contasFixas.get(2).numeroParcela()).isEqualTo(1);
         assertThat(contasFixas.stream().map(item -> item.valor()).reduce(BigDecimal.ZERO, BigDecimal::add))
-                .isEqualByComparingTo(response.contasFixasMesAnterior());
+                .isEqualByComparingTo(response.contasFixas());
 
         var projecao = dashboardService.consultarProjecao(10, 2026, 3);
         assertThat(projecao).hasSize(3);
         assertThat(projecao.get(0).ano()).isEqualTo(2026);
         assertThat(projecao.get(0).mes()).isEqualTo(10);
-        assertThat(projecao.get(0).gastosLancados()).isEqualByComparingTo("120.00");
-        assertThat(projecao.get(0).contasFixasMesAnterior()).isEqualByComparingTo("0.06");
+        assertThat(projecao.get(0).gastosLancados()).isEqualByComparingTo("75.00");
+        assertThat(projecao.get(0).contasFixas()).isEqualByComparingTo("45.06");
+        assertThat(projecao.get(0).totalPrevisto()).isEqualByComparingTo(response.totalPrevisto());
         assertThat(projecao.get(1).mes()).isEqualTo(11);
         assertThat(projecao.get(1).gastosLancados()).isEqualByComparingTo("0");
         assertThat(projecao.get(1).bucketsReservados()).isEqualByComparingTo("200.00");
-        assertThat(projecao.get(1).contasFixasMesAnterior()).isEqualByComparingTo("45.00");
+        assertThat(projecao.get(1).contasFixas()).isEqualByComparingTo("45.00");
+        assertThat(projecao.get(1).contasFixasPrevistas()).isEqualByComparingTo("45.00");
         assertThat(projecao.get(2).totalPrevisto()).isEqualByComparingTo("200.00");
     }
 
@@ -171,11 +177,13 @@ class DashboardCalculationIT {
                 org.assertj.core.groups.Tuple.tuple(2026, 12),
                 org.assertj.core.groups.Tuple.tuple(2027, 1),
                 org.assertj.core.groups.Tuple.tuple(2027, 2));
-        assertThat(projecao.get(0).contasFixasMesAnterior()).isEqualByComparingTo("80.00");
-        assertThat(projecao.get(1).contasFixasMesAnterior()).isEqualByComparingTo("60.00");
+        assertThat(projecao.get(0).gastosLancados()).isEqualByComparingTo("0");
+        assertThat(projecao.get(0).contasFixas()).isEqualByComparingTo("140.00");
+        assertThat(projecao.get(0).contasFixasPrevistas()).isEqualByComparingTo("80.00");
+        assertThat(projecao.get(1).contasFixas()).isEqualByComparingTo("60.00");
         assertThat(projecao.get(1).gastosLancados()).isEqualByComparingTo("35.00");
         assertThat(projecao.get(2).gastosLancados()).isEqualByComparingTo("0");
-        assertThat(projecao.get(2).contasFixasMesAnterior()).isEqualByComparingTo("0");
+        assertThat(projecao.get(2).contasFixas()).isEqualByComparingTo("0");
         assertThat(projecao.get(2).totalPrevisto()).isEqualByComparingTo("10.00");
     }
 

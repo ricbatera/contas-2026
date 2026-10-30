@@ -35,7 +35,8 @@ describe('Simulacao', () => {
         ano: month.getUTCFullYear(),
         gastosLancados: 80,
         bucketsReservados: 15,
-        contasFixasMesAnterior: 5,
+        contasFixas: 5,
+        contasFixasPrevistas: 5,
         totalPrevisto: 100,
       };
     }) });
@@ -143,7 +144,8 @@ describe('Simulacao', () => {
         ano: month.getUTCFullYear(),
         gastosLancados: 0,
         bucketsReservados: 0,
-        contasFixasMesAnterior: 0,
+        contasFixas: 0,
+        contasFixasPrevistas: 0,
         totalPrevisto: 0,
       };
     }) });

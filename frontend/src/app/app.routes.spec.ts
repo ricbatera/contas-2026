@@ -41,7 +41,8 @@ describe('Application routes', () => {
       ano: now.getFullYear(),
       gastosLancados: 100,
       bucketsReservados: 200,
-      contasFixasMesAnterior: 50,
+      contasFixas: 50,
+      contasFixasPrevistas: 50,
       totalPrevisto: 350,
     } });
     http.expectOne((item) => item.url === '/api/dashboard/projecao')
@@ -52,7 +53,8 @@ describe('Application routes', () => {
           ano: competencia.getUTCFullYear(),
           gastosLancados: 0,
           bucketsReservados: 0,
-          contasFixasMesAnterior: 0,
+          contasFixas: 0,
+          contasFixasPrevistas: 0,
           totalPrevisto: 0,
         };
       }) });
@@ -81,7 +83,8 @@ describe('Application routes', () => {
         ano: month.getUTCFullYear(),
         gastosLancados: 100,
         bucketsReservados: 50,
-        contasFixasMesAnterior: 20,
+        contasFixas: 20,
+        contasFixasPrevistas: 20,
         totalPrevisto: 170,
       };
     }) });

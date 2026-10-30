@@ -3,9 +3,23 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Cartao, CartaoService } from '../../core/cartao.service';
-import { FormaPagamento, Saida, SaidaParcela, SaidaService } from '../../core/saida.service';
+import {
+  ContaFixaPrevia,
+  FormaPagamento,
+  GerarContasFixasResponse,
+  Saida,
+  SaidaParcela,
+  SaidaService,
+} from '../../core/saida.service';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { mesReferencia } from '../../shared/data/mes-referencia';
+import { GerarContasFixas } from './gerar-contas-fixas';
+
+interface PreviaContasFixas {
+  mes: number;
+  ano: number;
+  itens: ContaFixaPrevia[];
+}
 
 interface FiltrosSaida {
   texto: string;
@@ -72,7 +86,7 @@ const MESES = Array.from({ length: 12 }, (_, index) => ({
 
 @Component({
   selector: 'app-saidas-list',
-  imports: [CampoCalculadora, CurrencyPipe, DatePipe, RouterLink],
+  imports: [CampoCalculadora, CurrencyPipe, DatePipe, GerarContasFixas, RouterLink],
   templateUrl: './saidas-list.html',
   styleUrls: ['../cartoes/cartoes.css', './saidas.css'],
 })
@@ -168,6 +182,9 @@ export class SaidasList implements OnInit {
   );
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly previaContasFixas = signal<PreviaContasFixas | null>(null);
+  protected readonly carregandoContasFixas = signal(false);
+  protected readonly mensagemContasFixas = signal<string | null>(null);
   protected readonly workingId = signal<string | null>(null);
   protected readonly filtrosAbertos = signal(false);
   protected readonly filtrosRascunho = signal<FiltrosSaida>(filtrosMesReferencia());
@@ -257,6 +274,36 @@ export class SaidasList implements OnInit {
       next: (cartoes) => this.cartoes.set(cartoes),
       error: () => this.cartoes.set([]),
     });
+  }
+
+  /** Monta a prévia do mês de referência (regra do dia 10) e abre a revisão; nada é gravado ainda. */
+  protected abrirContasFixas(): void {
+    if (this.carregandoContasFixas()) {
+      return;
+    }
+    const { mes, ano } = mesReferencia();
+    this.carregandoContasFixas.set(true);
+    this.error.set(null);
+    this.mensagemContasFixas.set(null);
+    this.service.previaContasFixas(mes, ano).subscribe({
+      next: (itens) => {
+        this.previaContasFixas.set({ mes, ano, itens });
+        this.carregandoContasFixas.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.mensagemErro(err, 'Não foi possível montar as contas fixas do mês.'));
+        this.carregandoContasFixas.set(false);
+      },
+    });
+  }
+
+  protected contasFixasGeradas(resposta: GerarContasFixasResponse): void {
+    this.previaContasFixas.set(null);
+    const ignoradas = resposta.ignoradas > 0
+      ? ` Ignoradas por já estarem lançadas: ${resposta.ignoradas}.`
+      : '';
+    this.mensagemContasFixas.set(`${resposta.criadas.length} conta(s) fixa(s) gerada(s).${ignoradas}`);
+    this.carregar();
   }
 
   protected valorGrupoCartao(principalId: string): string {

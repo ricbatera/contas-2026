@@ -51,7 +51,7 @@
         <button class="forecast-breakdown-item" type="button" (click)="abrirDetalhes('saidas')">
           <span>Saídas lançadas no mês</span>
           <strong>{{ dados.gastosLancados | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
-          <small>Parcelas do mês atribuídas a você</small>
+          <small>Parcelas do mês atribuídas a você, sem as contas fixas</small>
         </button>
         <button class="forecast-breakdown-item" type="button" (click)="abrirDetalhes('buckets')">
           <span>Reservas dos buckets</span>
@@ -59,9 +59,12 @@
           <small>Soma dos seus orçamentos mensais</small>
         </button>
         <button class="forecast-breakdown-item" type="button" (click)="abrirDetalhes('contas-fixas')">
-          <span>Contas fixas do mês anterior</span>
-          <strong>{{ dados.contasFixasMesAnterior | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
-          <small>Soma das parcelas fixas atribuídas a você</small>
+          <span>Contas fixas</span>
+          <strong>{{ dados.contasFixas | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</strong>
+          <small>
+            {{ dados.contasFixas - dados.contasFixasPrevistas | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }} lançadas ·
+            {{ dados.contasFixasPrevistas | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }} previstas
+          </small>
         </button>
       </div>
       @if (dados.totalPrevisto === 0) {
@@ -105,7 +108,7 @@
       <div class="projection-legend" aria-label="Legenda do gráfico">
         <span><i class="legend-expenses"></i>Saídas lançadas</span>
         <span><i class="legend-buckets"></i>Buckets</span>
-        <span><i class="legend-fixed"></i>Contas Fixas do mês anterior</span>
+        <span><i class="legend-fixed"></i>Contas Fixas</span>
         <span><i class="legend-income"></i>Receitas previstas</span>
       </div>
 
@@ -155,8 +158,8 @@
           </svg>
         </div>
         <p class="projection-note">
-          Saídas consideram parcelas atribuídas a você; os buckets se repetem mensalmente; Contas Fixas usam
-          as parcelas do mês anterior. A linha verde mostra as receitas previstas. Passe o cursor ou foque em uma barra para ver os valores.
+          Saídas consideram parcelas atribuídas a você; os buckets se repetem mensalmente; Contas Fixas somam
+          as já lançadas no mês e a previsão das que faltam, pelas do mês anterior. A linha verde mostra as receitas previstas. Passe o cursor ou foque em uma barra para ver os valores.
         </p>
       }
     </article>
@@ -186,13 +189,22 @@
                 @for (item of detalhes(); track $index) {
                   <article class="dashboard-detail-item">
                     <div>
-                      @if (item.descricao) {
-                        <strong>{{ item.descricao }}</strong>
+                      @if (item.descricao || item.situacao) {
+                        <strong class="dashboard-detail-title">
+                          {{ item.descricao }}
+                          @if (item.situacao === 'GERADA') {
+                            <span class="dashboard-badge gerada" title="Saída já lançada neste mês">Gerada</span>
+                          } @else if (item.situacao === 'PREVISTA') {
+                            <span class="dashboard-badge prevista"
+                              title="Ainda não lançada: valor e data vêm do mês anterior">Previsão</span>
+                          }
+                        </strong>
                       }
                       <span>{{ item.categoriaNome }} · {{ item.subcategoriaNome }}</span>
                       @if (item.vencimento) {
                         <small>
-                          {{ detalhesRotuloData() }}: {{ item.vencimento | date: 'dd/MM/yyyy' : '' : 'pt-BR' }}
+                          {{ item.situacao === 'PREVISTA' ? 'Previsto para' : detalhesRotuloData() }}:
+                          {{ item.vencimento | date: 'dd/MM/yyyy' : '' : 'pt-BR' }}
                           @if (item.numeroParcela && item.quantidadeParcelas) {
                             · Parcela {{ item.numeroParcela }}/{{ item.quantidadeParcelas }}
                           }

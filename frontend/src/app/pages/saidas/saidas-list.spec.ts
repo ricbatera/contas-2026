@@ -163,6 +163,45 @@ describe('SaidasList', () => {
     return element.textContent ?? '';
   }
 
+  it('generates the fixed accounts of the reference month after the user approves them', () => {
+    const fixture = TestBed.createComponent(SaidasList);
+    fixture.detectChanges();
+    http.expectOne('/api/saidas').flush({ data: [saida({ contaFixa: true, descricao: 'Internet' })] });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const referencia = inicioMesReferencia();
+
+    element.querySelector<HTMLButtonElement>('.gerar-contas-fixas-button')!.click();
+    const previa = http.expectOne((request) => request.url === '/api/saidas/contas-fixas/previa');
+    expect(previa.request.params.get('mes')).toBe(String(referencia.getMonth() + 1));
+    expect(previa.request.params.get('ano')).toBe(String(referencia.getFullYear()));
+    previa.flush({
+      data: [{
+        serieId: 'serie-1',
+        saidaOrigemId: 'expense-1',
+        descricao: 'Internet',
+        categoriaNome: 'Casa',
+        subcategoriaNome: 'Serviços',
+        formaPagamento: 'PIX',
+        modoResponsabilidade: 'USUARIO',
+        responsaveis: ['Ana Silva'],
+        valorPorParcela: 100,
+        dataSugerida: dataEsteMes(10),
+        aviso: null,
+      }],
+    });
+    fixture.detectChanges();
+    expect(element.querySelector('[role="dialog"]')?.textContent).toContain('Internet');
+
+    element.querySelector<HTMLButtonElement>('[role="dialog"] .primary-button')!.click();
+    http.expectOne('/api/saidas/contas-fixas').flush({ data: { criadas: [saida({ id: 'expense-2' })], ignoradas: 0 } });
+    fixture.detectChanges();
+
+    expect(element.querySelector('[role="dialog"]')).toBeNull();
+    expect(element.textContent).toContain('1 conta(s) fixa(s) gerada(s).');
+    http.expectOne('/api/saidas').flush({ data: [] });
+  });
+
   it('filters by the main card with its additional cards, only the main card or only one additional card', () => {
     const fixture = TestBed.createComponent(SaidasList);
     fixture.detectChanges();

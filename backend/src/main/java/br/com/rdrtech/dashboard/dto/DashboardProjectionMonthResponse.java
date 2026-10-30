@@ -7,7 +7,8 @@ public record DashboardProjectionMonthResponse(
         int ano,
         BigDecimal gastosLancados,
         BigDecimal bucketsReservados,
-        BigDecimal contasFixasMesAnterior,
+        BigDecimal contasFixas,
+        BigDecimal contasFixasPrevistas,
         BigDecimal totalPrevisto,
         BigDecimal receitasPrevistas,
         BigDecimal saldoPrevisto) {

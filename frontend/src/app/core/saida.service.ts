@@ -67,6 +67,34 @@ export interface Saida {
   responsabilidades: SaidaResponsavel[];
   parcelas: SaidaParcela[];
   criadoEm: string | null;
+  /** Liga as ocorrências mensais da mesma conta fixa. */
+  serieContaFixaId?: string | null;
+}
+
+/** Conta fixa proposta para o mês, ainda não gravada; com `aviso`, ela não pode ser gerada como está. */
+export interface ContaFixaPrevia {
+  serieId: string;
+  saidaOrigemId: string;
+  descricao: string;
+  categoriaNome: string;
+  subcategoriaNome: string;
+  formaPagamento: FormaPagamento;
+  modoResponsabilidade: ModoResponsabilidade;
+  responsaveis: string[];
+  valorPorParcela: number;
+  dataSugerida: string;
+  aviso: string | null;
+}
+
+export interface GerarContasFixasRequest {
+  mes: number;
+  ano: number;
+  itens: { serieId: string; valorPorParcela: number; data: string }[];
+}
+
+export interface GerarContasFixasResponse {
+  criadas: Saida[];
+  ignoradas: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -98,5 +126,19 @@ export class SaidaService {
 
   excluir(id: string): Observable<void> {
     return this.http.delete<void>(`${this.endpoint}/${encodeURIComponent(id)}`);
+  }
+
+  previaContasFixas(mes: number, ano: number): Observable<ContaFixaPrevia[]> {
+    return this.http
+      .get<ApiResponse<ContaFixaPrevia[]>>(`${this.endpoint}/contas-fixas/previa`, {
+        params: { mes, ano },
+      })
+      .pipe(map(({ data }) => data));
+  }
+
+  gerarContasFixas(request: GerarContasFixasRequest): Observable<GerarContasFixasResponse> {
+    return this.http
+      .post<ApiResponse<GerarContasFixasResponse>>(`${this.endpoint}/contas-fixas`, request)
+      .pipe(map(({ data }) => data));
   }
 }

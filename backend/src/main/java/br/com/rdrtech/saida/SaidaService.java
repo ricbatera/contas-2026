@@ -61,9 +61,20 @@ public class SaidaService {
 
     @Transactional
     public SaidaResponse criar(SaidaRequest request) {
+        return criar(request, null);
+    }
+
+    /** Cria a saída numa série de conta fixa já existente (geração do mês seguinte). */
+    @Transactional
+    public SaidaResponse criar(SaidaRequest request, UUID serieContaFixaId) {
         Saida saida = new Saida();
+        saida.setSerieContaFixaId(serieContaFixaId);
         aplicarRequest(saida, request, null);
-        return SaidaMapper.toResponse(saidaRepository.save(saida));
+        Saida salva = saidaRepository.save(saida);
+        if (salva.isContaFixa() && salva.getSerieContaFixaId() == null) {
+            salva.setSerieContaFixaId(salva.getId());
+        }
+        return SaidaMapper.toResponse(salva);
     }
 
     @Transactional
@@ -114,6 +125,9 @@ public class SaidaService {
         saida.setDescricao(request.descricao().trim());
         saida.setDescricaoFatura(request.descricaoFatura() == null ? null : request.descricaoFatura().trim());
         saida.setContaFixa(request.contaFixa());
+        if (request.contaFixa() && saida.getSerieContaFixaId() == null && saida.getId() != null) {
+            saida.setSerieContaFixaId(saida.getId());
+        }
         saida.setValorPorParcela(request.valorPorParcela());
         saida.setQuantidadeParcelas(request.quantidadeParcelas());
         saida.setFormaPagamento(request.formaPagamento());

@@ -8,7 +8,8 @@ export interface DashboardResumo {
   ano: number;
   gastosLancados: number;
   bucketsReservados: number;
-  contasFixasMesAnterior: number;
+  contasFixas: number;
+  contasFixasPrevistas: number;
   totalPrevisto: number;
   receitasPrevistas: number;
   receitasRecebidas: number;
@@ -20,7 +21,8 @@ export interface DashboardProjecaoMes {
   ano: number;
   gastosLancados: number;
   bucketsReservados: number;
-  contasFixasMesAnterior: number;
+  contasFixas: number;
+  contasFixasPrevistas: number;
   totalPrevisto: number;
   receitasPrevistas: number;
   saldoPrevisto: number;
@@ -34,6 +36,8 @@ export interface DashboardItem {
   numeroParcela: number | null;
   quantidadeParcelas: number | null;
   valor: number;
+  /** Só nas contas fixas: já lançada no mês ou ainda uma previsão. */
+  situacao?: 'GERADA' | 'PREVISTA' | null;
 }
 
 @Injectable({ providedIn: 'root' })

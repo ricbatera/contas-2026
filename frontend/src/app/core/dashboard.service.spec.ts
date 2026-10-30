@@ -31,7 +31,8 @@ describe('DashboardService', () => {
       ano: 2026,
       gastosLancados: 125.5,
       bucketsReservados: 200,
-      contasFixasMesAnterior: 25,
+      contasFixas: 25,
+      contasFixasPrevistas: 25,
       totalPrevisto: 350.5,
     } });
     expect(result).toEqual({
@@ -39,7 +40,8 @@ describe('DashboardService', () => {
       ano: 2026,
       gastosLancados: 125.5,
       bucketsReservados: 200,
-      contasFixasMesAnterior: 25,
+      contasFixas: 25,
+      contasFixasPrevistas: 25,
       totalPrevisto: 350.5,
     });
   });
@@ -59,7 +61,8 @@ describe('DashboardService', () => {
       ano: 2026,
       gastosLancados: 125.5,
       bucketsReservados: 200,
-      contasFixasMesAnterior: 25,
+      contasFixas: 25,
+      contasFixasPrevistas: 25,
       totalPrevisto: 350.5,
     }];
     request.flush({ data: months });

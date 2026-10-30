@@ -22,7 +22,8 @@ describe('Dashboard', () => {
         ano: competencia.getUTCFullYear(),
         gastosLancados: 125.5,
         bucketsReservados: 200,
-        contasFixasMesAnterior: 25,
+        contasFixas: 25,
+        contasFixasPrevistas: 25,
         totalPrevisto: 350.5,
         receitasPrevistas: 0,
         receitasRecebidas: 0,
@@ -61,7 +62,8 @@ describe('Dashboard', () => {
       ano: current.getFullYear(),
       gastosLancados: 125.5,
       bucketsReservados: 200,
-      contasFixasMesAnterior: 25,
+      contasFixas: 25,
+      contasFixasPrevistas: 25,
       totalPrevisto: 350.5,
       receitasPrevistas: 0,
       receitasRecebidas: 0,
@@ -72,7 +74,7 @@ describe('Dashboard', () => {
 
     expect(element.textContent).toContain('Saídas lançadas no mês');
     expect(element.textContent).toContain('Reservas dos buckets');
-    expect(element.textContent).toContain('Contas fixas do mês anterior');
+    expect(element.textContent).toContain('Contas fixas');
     expect(element.textContent).toContain('R$ 350,50');
     const projectionCount = element.querySelector<HTMLSelectElement>('.projection-count select')!;
     expect(projectionCount.value).toBe('12');
@@ -93,7 +95,8 @@ describe('Dashboard', () => {
         ano: inicioMesReferencia().getFullYear(),
         gastosLancados: 0,
         bucketsReservados: 0,
-        contasFixasMesAnterior: 0,
+        contasFixas: 0,
+        contasFixasPrevistas: 0,
         totalPrevisto: 0,
         receitasPrevistas: 0,
         receitasRecebidas: 0,
@@ -126,7 +129,8 @@ describe('Dashboard', () => {
       ano: 2025 + Math.floor((index + 11) / 12),
       gastosLancados: 0,
       bucketsReservados: 0,
-      contasFixasMesAnterior: 0,
+      contasFixas: 0,
+      contasFixasPrevistas: 0,
       totalPrevisto: 0,
       receitasPrevistas: 0,
       receitasRecebidas: 0,
@@ -146,7 +150,8 @@ describe('Dashboard', () => {
       ano: now.getFullYear(),
       gastosLancados: 0,
       bucketsReservados: 0,
-      contasFixasMesAnterior: 0,
+      contasFixas: 0,
+      contasFixasPrevistas: 0,
       totalPrevisto: 0,
       receitasPrevistas: 0,
       receitasRecebidas: 0,
@@ -175,7 +180,8 @@ describe('Dashboard', () => {
       ano: now.getFullYear(),
       gastosLancados: 0,
       bucketsReservados: 0,
-      contasFixasMesAnterior: 0,
+      contasFixas: 0,
+      contasFixasPrevistas: 0,
       totalPrevisto: 0,
       receitasPrevistas: 0,
       receitasRecebidas: 0,
@@ -202,7 +208,8 @@ describe('Dashboard', () => {
       ano: now.getFullYear(),
       gastosLancados: 125.5,
       bucketsReservados: 200,
-      contasFixasMesAnterior: 25,
+      contasFixas: 25,
+      contasFixasPrevistas: 25,
       totalPrevisto: 350.5,
       receitasPrevistas: 0,
       receitasRecebidas: 0,
@@ -252,7 +259,8 @@ describe('Dashboard', () => {
       ano: now.getFullYear(),
       gastosLancados: 1000,
       bucketsReservados: 0,
-      contasFixasMesAnterior: 0,
+      contasFixas: 0,
+      contasFixasPrevistas: 0,
       totalPrevisto: 1000,
       receitasPrevistas: 5000,
       receitasRecebidas: 4800,
@@ -281,7 +289,7 @@ describe('Dashboard', () => {
     expect(element.textContent).toContain('Salário · Salário mensal');
   });
 
-  it('loads bucket and previous-month fixed expense details on demand', () => {
+  it('loads bucket and fixed expense details with their status on demand', () => {
     const now = inicioMesReferencia();
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
@@ -290,7 +298,8 @@ describe('Dashboard', () => {
       ano: now.getFullYear(),
       gastosLancados: 0,
       bucketsReservados: 200,
-      contasFixasMesAnterior: 50,
+      contasFixas: 50,
+      contasFixasPrevistas: 50,
       totalPrevisto: 250,
       receitasPrevistas: 0,
       receitasRecebidas: 0,
@@ -325,19 +334,64 @@ describe('Dashboard', () => {
       && item.params.get('mes') === String(now.getMonth() + 1)
       && item.params.get('ano') === String(now.getFullYear()),
     );
-    request.flush({ data: [{
-      descricao: 'Internet',
-      categoriaNome: 'Casa',
-      subcategoriaNome: 'Internet',
-      vencimento: '2026-09-10',
-      numeroParcela: 1,
-      quantidadeParcelas: 1,
-      valor: 50,
-    }] });
+    request.flush({ data: [
+      {
+        descricao: 'Internet',
+        categoriaNome: 'Casa',
+        subcategoriaNome: 'Internet',
+        vencimento: '2026-09-10',
+        numeroParcela: 1,
+        quantidadeParcelas: 1,
+        valor: 50,
+        situacao: 'GERADA',
+      },
+      {
+        descricao: 'Luz',
+        categoriaNome: 'Casa',
+        subcategoriaNome: 'Energia',
+        vencimento: '2026-09-15',
+        numeroParcela: null,
+        quantidadeParcelas: null,
+        valor: 30,
+        situacao: 'PREVISTA',
+      },
+    ] });
     fixture.detectChanges();
+    expect(element.textContent).toContain('Contas fixas do mês');
     expect(element.textContent).toContain('Internet');
     expect(element.textContent).toContain('10/09/2026');
     expect(element.textContent).toContain('50,00');
+    const itens = element.querySelectorAll<HTMLElement>('.dashboard-detail-item');
+    expect(itens[0].querySelector('.dashboard-badge.gerada')?.textContent).toContain('Gerada');
+    expect(itens[1].querySelector('.dashboard-badge.prevista')?.textContent).toContain('Previsão');
+    expect(itens[1].textContent).toContain('Previsto para');
+  });
+
+  it('splits the fixed expense card between registered and forecast amounts', () => {
+    const now = inicioMesReferencia();
+    const fixture = TestBed.createComponent(Dashboard);
+    fixture.detectChanges();
+    http.expectOne((item) => item.url === '/api/dashboard').flush({ data: {
+      mes: now.getMonth() + 1,
+      ano: now.getFullYear(),
+      gastosLancados: 0,
+      bucketsReservados: 0,
+      contasFixas: 80,
+      contasFixasPrevistas: 30,
+      totalPrevisto: 80,
+      receitasPrevistas: 0,
+      receitasRecebidas: 0,
+      saldoPrevisto: -80,
+    } });
+    responderProjecao(now.getMonth() + 1, now.getFullYear());
+    fixture.detectChanges();
+    const card = (fixture.nativeElement as HTMLElement)
+      .querySelectorAll<HTMLButtonElement>('.forecast-breakdown .forecast-breakdown-item')[2];
+
+    expect(card.textContent).toContain('Contas fixas');
+    expect(card.textContent).not.toContain('mês anterior');
+    expect(card.textContent).toMatch(/50,00\s+lançadas/);
+    expect(card.textContent).toMatch(/30,00\s+previstas/);
   });
 
   it('shows an error when loading a breakdown fails', () => {
@@ -349,7 +403,8 @@ describe('Dashboard', () => {
       ano: now.getFullYear(),
       gastosLancados: 1,
       bucketsReservados: 0,
-      contasFixasMesAnterior: 0,
+      contasFixas: 0,
+      contasFixasPrevistas: 0,
       totalPrevisto: 1,
       receitasPrevistas: 0,
       receitasRecebidas: 0,

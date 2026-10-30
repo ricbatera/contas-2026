@@ -29,5 +29,6 @@ public record SaidaResponse(
         List<SaidaResponsavelResponse> responsabilidades,
         List<SaidaParcelaResponse> parcelas,
         LocalDateTime criadoEm,
-        boolean contaFixa) {
+        boolean contaFixa,
+        UUID serieContaFixaId) {
 }
