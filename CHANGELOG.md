@@ -2,6 +2,14 @@
 
 Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pelos scripts em `scripts/docker/`.
 
+## backend 1.0.7 — 2026-11-01
+
+- Imagem: `ricardo1782/financas-backend:1.0.7` (também `latest`)
+- Commit: `a10d93b` (tag `backend-v1.0.7`)
+- Próxima versão de desenvolvimento: 1.0.8
+- Mudanças:
+  - a10d93b feat: excluir parcelas futuras de sa├¡da no cart├úo
+
 ## frontend 1.0.9 — 2026-10-30
 
 - Imagem: `ricardo1782/financas-frontend:1.0.9` (também `latest`)
