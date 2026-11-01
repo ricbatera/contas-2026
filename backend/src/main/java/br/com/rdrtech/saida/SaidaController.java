@@ -60,6 +60,14 @@ public class SaidaController {
         saidaService.excluir(id);
     }
 
+    /** Exclui as parcelas a partir da informada (serviço cancelado no cartão); as anteriores continuam. */
+    @DeleteMapping("/{id}/parcelas")
+    public SuccessResponse<SaidaResponse> excluirParcelasAPartirDe(
+            @PathVariable UUID id, @RequestParam int aPartirDe) {
+        return SuccessResponse.of(
+                saidaService.excluirParcelasAPartirDe(id, aPartirDe), "Parcelas futuras excluídas com sucesso");
+    }
+
     @GetMapping("/contas-fixas/previa")
     public SuccessResponse<List<ContaFixaPreviaResponse>> previaContasFixas(
             @RequestParam int mes, @RequestParam int ano) {

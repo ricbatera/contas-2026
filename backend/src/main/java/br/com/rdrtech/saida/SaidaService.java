@@ -120,6 +120,38 @@ public class SaidaService {
         removerFaturasVazias(faturasAnteriores);
     }
 
+    /**
+     * Exclui as parcelas de número {@code numero} em diante, para quando o serviço cobrado no cartão é
+     * cancelado. A quantidade de parcelas passa a ser {@code numero - 1}, então editar a saída depois
+     * não recria as excluídas.
+     */
+    @Transactional
+    public SaidaResponse excluirParcelasAPartirDe(UUID id, int numero) {
+        Saida saida = saidaRepository.buscarPorId(id).orElseThrow(SaidaNaoEncontradaException::new);
+        if (saida.getFormaPagamento() != FormaPagamento.CARTAO_CREDITO) {
+            throw new SaidaInvalidaException("Só saídas no cartão de crédito podem ter as parcelas futuras excluídas.");
+        }
+        if (numero < 2 || numero > saida.getQuantidadeParcelas()) {
+            throw new SaidaInvalidaException(
+                    "Informe uma parcela entre 2 e " + saida.getQuantidadeParcelas() + "; para excluir todas, exclua a saída.");
+        }
+        Set<Fatura> faturasAnteriores = new HashSet<>();
+        for (SaidaParcela parcela : new ArrayList<>(saida.getParcelas())) {
+            if (parcela.getNumero() < numero) {
+                continue;
+            }
+            if (parcela.getFatura() != null) {
+                faturasAnteriores.add(parcela.getFatura());
+                parcela.getFatura().removerParcela(parcela);
+            }
+            saida.getParcelas().remove(parcela);
+        }
+        saida.setQuantidadeParcelas(numero - 1);
+        saidaRepository.flush();
+        removerFaturasVazias(faturasAnteriores);
+        return SaidaMapper.toResponse(saida);
+    }
+
     private void aplicarRequest(Saida saida, SaidaRequest request, ExistingReferences referencesAnteriores) {
         ValidatedReferences references = validarRequest(request, referencesAnteriores);
         saida.setDescricao(request.descricao().trim());

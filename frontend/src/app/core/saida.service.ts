@@ -128,6 +128,15 @@ export class SaidaService {
     return this.http.delete<void>(`${this.endpoint}/${encodeURIComponent(id)}`);
   }
 
+  /** Exclui as parcelas de `numero` em diante (serviço cancelado no cartão); as anteriores continuam. */
+  excluirParcelasAPartirDe(id: string, numero: number): Observable<Saida> {
+    return this.http
+      .delete<ApiResponse<Saida>>(`${this.endpoint}/${encodeURIComponent(id)}/parcelas`, {
+        params: { aPartirDe: numero },
+      })
+      .pipe(map(({ data }) => data));
+  }
+
   previaContasFixas(mes: number, ano: number): Observable<ContaFixaPrevia[]> {
     return this.http
       .get<ApiResponse<ContaFixaPrevia[]>>(`${this.endpoint}/contas-fixas/previa`, {

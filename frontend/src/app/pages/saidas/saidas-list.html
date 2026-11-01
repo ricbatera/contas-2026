@@ -301,6 +301,15 @@
     </div>
   }
 
+  @if (saidaExcluindo(); as saida) {
+    <app-excluir-saida
+      [saida]="saida"
+      (excluida)="saidaExcluida($event)"
+      (atualizada)="parcelasFuturasExcluidas($event)"
+      (cancelado)="saidaExcluindo.set(null)"
+    />
+  }
+
   @if (previaContasFixas(); as previa) {
     <app-gerar-contas-fixas
       [itens]="previa.itens"

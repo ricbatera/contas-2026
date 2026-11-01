@@ -239,6 +239,91 @@ class SaidaControllerIT {
     }
 
     @Test
+    void deveExcluirParcelasFuturasERemoverFaturasQueFicaramVazias() throws Exception {
+        String token = registrar("saida-parcelas-futuras");
+        ExpenseReferences references = criarReferencias(token, false);
+        LocalDate vencimento = LocalDate.of(2026, 11, 15);
+        String saidaId = postAndReadId(token, "/api/saidas",
+                requestCredito(references, new BigDecimal("100.00"), vencimento, 6, false));
+        // Outra compra na fatura da parcela 4 (fev/2027), que precisa continuar existindo.
+        SaidaRequest outra = new SaidaRequest(
+                "Outra compra",
+                null,
+                new BigDecimal("50.00"),
+                1,
+                FormaPagamento.CARTAO_CREDITO,
+                null,
+                vencimento.plusMonths(3),
+                UUID.fromString(references.principalId()),
+                UUID.fromString(references.categoriaId()),
+                UUID.fromString(references.subcategoriaId()),
+                ModoResponsabilidade.USUARIO,
+                null,
+                List.of());
+        postAndReadId(token, "/api/saidas", outra);
+
+        mockMvc.perform(delete("/api/saidas/" + saidaId + "/parcelas")
+                        .param("aPartirDe", "4")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.quantidadeParcelas").value(3))
+                .andExpect(jsonPath("$.data.valorTotal").value(300.00))
+                .andExpect(jsonPath("$.data.parcelas.length()").value(3))
+                .andExpect(jsonPath("$.data.parcelas[2].numero").value(3));
+
+        mockMvc.perform(get("/api/faturas/cartoes/" + references.principalId() + "/competencias")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(4));
+        mockMvc.perform(get("/api/faturas/cartoes/" + references.principalId() + "/202702")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/saidas/" + saidaId).header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.data.parcelas.length()").value(3));
+    }
+
+    @Test
+    void deveRejeitarExclusaoDeParcelasFuturasInvalida() throws Exception {
+        String token = registrar("saida-parcelas-futuras-invalida");
+        ExpenseReferences references = criarReferencias(token, false);
+        String creditoId = postAndReadId(token, "/api/saidas",
+                requestCredito(references, new BigDecimal("100.00"), LocalDate.of(2026, 11, 15), 6, false));
+        String pixId = postAndReadId(token, "/api/saidas", new SaidaRequest(
+                "Conta de energia",
+                null,
+                new BigDecimal("75.50"),
+                3,
+                FormaPagamento.PIX,
+                LocalDate.of(2026, 1, 31),
+                null,
+                null,
+                UUID.fromString(references.categoriaId()),
+                UUID.fromString(references.subcategoriaId()),
+                ModoResponsabilidade.USUARIO,
+                null,
+                List.of()));
+
+        for (String aPartirDe : List.of("1", "7")) {
+            mockMvc.perform(delete("/api/saidas/" + creditoId + "/parcelas")
+                            .param("aPartirDe", aPartirDe)
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(delete("/api/saidas/" + pixId + "/parcelas")
+                        .param("aPartirDe", "2")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+
+        String outroToken = registrar("saida-parcelas-futuras-outro");
+        mockMvc.perform(delete("/api/saidas/" + creditoId + "/parcelas")
+                        .param("aPartirDe", "2")
+                        .header("Authorization", "Bearer " + outroToken))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/saidas/" + creditoId).header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.data.parcelas.length()").value(6));
+    }
+
+    @Test
     void boletoPixDeveGerarParcelasMensaisSemFaturas() throws Exception {
         String token = registrar("saida-pix");
         ExpenseReferences references = criarReferencias(token, false);

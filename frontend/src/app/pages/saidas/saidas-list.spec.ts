@@ -420,6 +420,70 @@ describe('SaidasList', () => {
     confirm.mockRestore();
   });
 
+  function assinaturaCartao(quantidade: number): Saida {
+    return saida({
+      id: 'assinatura',
+      descricao: 'Streaming',
+      formaPagamento: 'CARTAO_CREDITO',
+      cartaoId: 'card-1',
+      cartaoNome: 'Principal',
+      valorPorParcela: 30,
+      valorTotal: 30 * quantidade,
+      quantidadeParcelas: quantidade,
+      parcelas: Array.from({ length: quantidade }, (_, index) => ({
+        id: `assinatura-${index + 1}`,
+        numero: index + 1,
+        valor: 30,
+        vencimento: dataMesOffset(index, 15),
+        faturaId: `fatura-${index + 1}`,
+        vencimentoFatura: dataMesOffset(index, 15),
+      })),
+    });
+  }
+
+  it('opens the delete dialog for installment credit-card expenses and updates the list after deleting future installments', () => {
+    const confirm = vi.spyOn(window, 'confirm');
+    const fixture = TestBed.createComponent(SaidasList);
+    fixture.detectChanges();
+    http.expectOne('/api/saidas').flush({ data: [assinaturaCartao(6)] });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('.saida-card .delete-button')!.click();
+    fixture.detectChanges();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(element.querySelector('app-excluir-saida')).not.toBeNull();
+
+    selecionar(element, 'A partir da parcela', '4');
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.excluir-saida-confirmar')!.click();
+    const request = http.expectOne((req) => req.url === '/api/saidas/assinatura/parcelas');
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.params.get('aPartirDe')).toBe('4');
+    const atualizada = assinaturaCartao(3);
+    request.flush({ data: atualizada });
+    fixture.detectChanges();
+
+    expect(element.querySelector('app-excluir-saida')).toBeNull();
+    expect(element.querySelector('.saida-installment-highlight')?.textContent).toContain('1/3');
+    confirm.mockRestore();
+  });
+
+  it('keeps the simple confirmation for single-installment credit-card expenses', () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const fixture = TestBed.createComponent(SaidasList);
+    fixture.detectChanges();
+    http.expectOne('/api/saidas').flush({ data: [assinaturaCartao(1)] });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('.saida-card .delete-button')!.click();
+    fixture.detectChanges();
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(element.querySelector('app-excluir-saida')).toBeNull();
+    confirm.mockRestore();
+  });
+
   it('combines description, payment, category, card, person, fixed, due-date and installment-value filters', () => {
     const fixture = TestBed.createComponent(SaidasList);
     fixture.detectChanges();

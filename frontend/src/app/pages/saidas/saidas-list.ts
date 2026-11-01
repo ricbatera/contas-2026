@@ -16,6 +16,7 @@ import { CampoBusca } from '../../shared/busca/campo-busca';
 import { CampoCalculadora } from '../../shared/calculadora/campo-calculadora';
 import { CampoMoeda } from '../../shared/moeda/campo-moeda';
 import { mesReferencia } from '../../shared/data/mes-referencia';
+import { ExcluirSaida } from './excluir-saida';
 import { GerarContasFixas } from './gerar-contas-fixas';
 
 interface PreviaContasFixas {
@@ -89,7 +90,7 @@ const MESES = Array.from({ length: 12 }, (_, index) => ({
 
 @Component({
   selector: 'app-saidas-list',
-  imports: [CampoBusca, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, GerarContasFixas, RouterLink],
+  imports: [CampoBusca, CampoCalculadora, CampoMoeda, CurrencyPipe, DatePipe, ExcluirSaida, GerarContasFixas, RouterLink],
   templateUrl: './saidas-list.html',
   styleUrls: ['../cartoes/cartoes.css', './saidas.css'],
 })
@@ -208,6 +209,8 @@ export class SaidasList implements OnInit {
   protected readonly carregandoContasFixas = signal(false);
   protected readonly mensagemContasFixas = signal<string | null>(null);
   protected readonly workingId = signal<string | null>(null);
+  /** Saída parcelada no cartão aguardando a escolha entre excluir todas as parcelas ou só as futuras. */
+  protected readonly saidaExcluindo = signal<Saida | null>(null);
   protected readonly filtrosAbertos = signal(false);
   protected readonly filtrosRascunho = signal<FiltrosSaida>(filtrosMesReferencia());
   protected readonly filtrosAplicados = signal<FiltrosSaida>(filtrosMesReferencia());
@@ -414,6 +417,11 @@ export class SaidasList implements OnInit {
   }
 
   protected excluir(saida: Saida): void {
+    if (saida.formaPagamento === 'CARTAO_CREDITO' && saida.quantidadeParcelas > 1) {
+      this.error.set(null);
+      this.saidaExcluindo.set(saida);
+      return;
+    }
     if (!window.confirm(`Deseja excluir "${saida.descricao}" e suas parcelas? Essa ação não pode ser desfeita.`)) {
       return;
     }
@@ -429,6 +437,16 @@ export class SaidasList implements OnInit {
         this.workingId.set(null);
       },
     });
+  }
+
+  protected saidaExcluida(id: string): void {
+    this.saidaExcluindo.set(null);
+    this.saidas.update((items) => items.filter((item) => item.id !== id));
+  }
+
+  protected parcelasFuturasExcluidas(atualizada: Saida): void {
+    this.saidaExcluindo.set(null);
+    this.saidas.update((items) => items.map((item) => (item.id === atualizada.id ? atualizada : item)));
   }
 
   private mensagemErro(err: HttpErrorResponse, fallback: string): string {

@@ -1,0 +1,71 @@
+<app-dialogo-rapido secao="EXCLUIR SAÍDA" [titulo]="saida().descricao" (fechar)="cancelado.emit()">
+  <div class="filter-dialog-content excluir-saida-content">
+    @if (error()) {
+      <div class="form-error" role="alert">{{ error() }}</div>
+    }
+
+    <fieldset class="excluir-saida-opcoes">
+      <legend>O que você quer excluir?</legend>
+
+      <label class="excluir-saida-opcao" [class.selecionada]="modo() === 'FUTURAS'">
+        <input
+          type="radio"
+          name="modo-exclusao"
+          value="FUTURAS"
+          [checked]="modo() === 'FUTURAS'"
+          (change)="escolherModo('FUTURAS')"
+        />
+        <span>
+          <strong>Excluir as parcelas futuras</strong>
+          <small>O serviço foi cancelado. As parcelas anteriores continuam.</small>
+        </span>
+      </label>
+
+      @if (modo() === 'FUTURAS') {
+        <div class="excluir-saida-futuras">
+          <label class="form-field">
+            A partir da parcela
+            <select [value]="aPartirDe()" (change)="escolherParcela($event)">
+              @for (parcela of opcoesParcela(); track parcela.id) {
+                <option [value]="parcela.numero" [selected]="parcela.numero === aPartirDe()">
+                  {{ parcela.numero }}/{{ saida().quantidadeParcelas }} · venc. {{ parcela.vencimento | date: 'dd/MM/yyyy' }}
+                  · {{ parcela.valor | currency: 'BRL' }}
+                </option>
+              }
+            </select>
+          </label>
+          <p class="excluir-saida-resumo" aria-live="polite">
+            Ficam {{ ficam() }} parcela(s). Serão excluídas {{ excluidas().length }}
+            ({{ totalExcluido() | currency: 'BRL' }}).
+          </p>
+        </div>
+      }
+
+      <label class="excluir-saida-opcao" [class.selecionada]="modo() === 'TODAS'">
+        <input
+          type="radio"
+          name="modo-exclusao"
+          value="TODAS"
+          [checked]="modo() === 'TODAS'"
+          (change)="escolherModo('TODAS')"
+        />
+        <span>
+          <strong>Excluir todas as parcelas</strong>
+          <small>O lançamento foi um erro. A saída e as {{ parcelas().length }} parcelas são excluídas.</small>
+        </span>
+      </label>
+    </fieldset>
+
+    <p class="excluir-saida-aviso">Essa ação não pode ser desfeita.</p>
+  </div>
+
+  <footer class="filter-dialog-actions">
+    <span></span>
+    <div>
+      <button class="secondary-button" type="button" (click)="cancelado.emit()">Cancelar</button>
+      <button class="delete-button excluir-saida-confirmar" type="button" [disabled]="saving()" (click)="confirmar()">
+        {{ saving() ? 'Excluindo...' : 'Excluir' }}
+      </button>
+    </div>
+  </footer>
+</app-dialogo-rapido>
