@@ -8,7 +8,7 @@ Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pel
 - Commit: `a10d93b` (tag `frontend-v1.0.10`)
 - Próxima versão de desenvolvimento: 1.0.11
 - Mudanças:
-  - a10d93b feat: excluir parcelas futuras de sa├¡da no cart├úo
+  - a10d93b feat: excluir parcelas futuras de saída no cartão
 
 ## backend 1.0.7 — 2026-11-01
 
@@ -16,7 +16,7 @@ Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pel
 - Commit: `a10d93b` (tag `backend-v1.0.7`)
 - Próxima versão de desenvolvimento: 1.0.8
 - Mudanças:
-  - a10d93b feat: excluir parcelas futuras de sa├¡da no cart├úo
+  - a10d93b feat: excluir parcelas futuras de saída no cartão
 
 ## frontend 1.0.9 — 2026-10-30
 
