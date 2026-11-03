@@ -8,7 +8,7 @@ Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pel
 - Commit: `f8bde10` (tag `frontend-v1.0.11`)
 - Próxima versão de desenvolvimento: 1.0.12
 - Mudanças:
-  - 59abc78 feat(cartao): cart├úo virtual tempor├írio criado na importa├º├úo de fatura
+  - 59abc78 feat(cartao): cartão virtual temporário criado na importação de fatura
 
 ## backend 1.0.8 — 2026-11-02
 
@@ -16,8 +16,8 @@ Imagens publicadas no Docker Hub, da mais recente para a mais antiga. Gerado pel
 - Commit: `59abc78` (tag `backend-v1.0.8`)
 - Próxima versão de desenvolvimento: 1.0.9
 - Mudanças:
-  - 59abc78 feat(cartao): cart├úo virtual tempor├írio criado na importa├º├úo de fatura
-  - ea642d0 fix(fatura): tolerar JSON fora do formato e n├úo sugerir cobran├ºa recorrente do m├¬s anterior
+  - 59abc78 feat(cartao): cartão virtual temporário criado na importação de fatura
+  - ea642d0 fix(fatura): tolerar JSON fora do formato e não sugerir cobrança recorrente do mês anterior
 
 ## frontend 1.0.10 — 2026-11-01
 
