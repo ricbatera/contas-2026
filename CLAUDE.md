@@ -39,6 +39,15 @@ npm test             # ng test (Vitest + jsdom)
 npx ng test --include src/app/core/saida.service.spec.ts   # um arquivo
 ```
 
+### Teste manual local (skill `testar-local`)
+
+Quando o usuário disser "vamos testar", siga `.claude/skills/testar-local`:
+1. confira o container `postgres-financas` no WSL;
+2. suba o backend (perfil `local`) e o frontend em segundo plano, com a saída em `logs/local/backend.log` e `logs/local/frontend.log`;
+3. use esses logs e o banco `financas` para diagnosticar o que o usuário relatar.
+
+O backend tem `spring-boot-devtools`: depois de mudar o código, rode `./mvnw -q compile` para o hot reload, sem reiniciar o processo. Não rode `clean` com o backend no ar.
+
 ### Docker (produção)
 
 ```bash
