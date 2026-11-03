@@ -1,8 +1,11 @@
 package br.com.rdrtech.faturaimportacao;
 
 import br.com.rdrtech.exception.FaturaImportacaoInvalidaException;
+import br.com.rdrtech.exception.LeituraFaturaIaException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -14,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -230,11 +234,19 @@ public class LeitorFaturaIa {
                 bruta.toString(), modelo, avisos);
     }
 
-    /** Consulta a IA para um trecho, com uma nova tentativa quando a resposta não vem como JSON válido. */
+    /**
+     * Consulta a IA para um trecho. Se a resposta não vier como JSON válido, tenta de novo dizendo
+     * à IA qual foi o erro. Na falha definitiva, a exceção leva as respostas recebidas até ali.
+     */
     private ChatResponse lerTrecho(ChatModel chatModel, String mensagem, String rotulo, StringBuilder bruta) {
+        String erroAnterior = null;
         for (int tentativa = 1; ; tentativa++) {
+            String conteudo = erroAnterior == null ? mensagem : mensagem + "\n\nATENÇÃO: sua resposta anterior para "
+                    + "este texto não era um JSON válido (" + erroAnterior + "). Responda de novo só com o objeto "
+                    + "JSON: datas entre aspas (\"2026-09-02\"), números com ponto decimal e sem sinal depois do "
+                    + "número, e vírgula entre os campos.";
             ChatResponse resposta = chatModel.chat(ChatRequest.builder()
-                    .messages(SystemMessage.from(INSTRUCOES), UserMessage.from(mensagem))
+                    .messages(SystemMessage.from(INSTRUCOES), UserMessage.from(conteudo))
                     .build());
             String texto = resposta.aiMessage() == null ? null : resposta.aiMessage().text();
             bruta.append("=== ").append(rotulo).append(tentativa > 1 ? " (nova tentativa)" : "")
@@ -244,8 +256,10 @@ public class LeitorFaturaIa {
                 return resposta;
             } catch (FaturaImportacaoInvalidaException e) {
                 if (tentativa >= 2) {
-                    throw new FaturaImportacaoInvalidaException(rotulo + ": " + e.getMessage());
+                    throw new LeituraFaturaIaException(rotulo + ": " + e.getMessage(), bruta.toString(),
+                            resposta.modelName());
                 }
+                erroAnterior = e.getMessage();
             }
         }
     }
@@ -281,12 +295,41 @@ public class LeitorFaturaIa {
         if (inicio < 0 || fim <= inicio) {
             throw new FaturaImportacaoInvalidaException(mensagemSemJson);
         }
+        String json = resposta.substring(inicio, fim + 1);
+        ObjectReader leitor = objectMapper.readerFor(tipo).withFeatures(JsonReadFeature.ALLOW_TRAILING_COMMA,
+                JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_SINGLE_QUOTES);
         try {
-            return objectMapper.readValue(resposta.substring(inicio, fim + 1), tipo);
+            return leitor.readValue(json);
         } catch (JsonProcessingException e) {
+            String reparado = repararJson(json);
+            if (!reparado.equals(json)) {
+                try {
+                    return leitor.readValue(reparado);
+                } catch (JsonProcessingException ignorada) {
+                    // Vale o erro do JSON original, que é o que a IA de fato mandou.
+                }
+            }
             throw new FaturaImportacaoInvalidaException(
                     "A resposta da IA não está no formato esperado: " + e.getOriginalMessage());
         }
+    }
+
+    /** Valor de campo seguido do fim do valor: vírgula, chave ou colchete (com espaços antes). */
+    private static final String FIM_DO_VALOR = "(?=\\s*[,}\\]])";
+    private static final Pattern DATA_SEM_ASPAS = Pattern.compile(":\\s*(\\d{4}-\\d{2}-\\d{2})" + FIM_DO_VALOR);
+    private static final Pattern SINAL_DEPOIS_DO_NUMERO = Pattern.compile(":\\s*(\\d+(?:\\.\\d+)?)\\s*-" + FIM_DO_VALOR);
+    private static final Pattern NUMERO_PT_BR = Pattern.compile(":\\s*(-?\\d{1,3}(?:\\.\\d{3})*,\\d{2})" + FIM_DO_VALOR);
+
+    /**
+     * Corrige desvios comuns de modelos menores, que copiam o formato do PDF para o JSON: data
+     * sem aspas ({@code 2026-09-02}), crédito com o sinal no fim ({@code 25.00-}) e número no
+     * formato brasileiro ({@code 1.234,56}).
+     */
+    static String repararJson(String json) {
+        String reparado = DATA_SEM_ASPAS.matcher(json).replaceAll(": \"$1\"");
+        reparado = SINAL_DEPOIS_DO_NUMERO.matcher(reparado).replaceAll(": -$1");
+        return NUMERO_PT_BR.matcher(reparado).replaceAll(resultado -> ": "
+                + resultado.group(1).replace(".", "").replace(',', '.'));
     }
 
     public static String descreverCategorias(List<OpcaoCategoria> categorias) {

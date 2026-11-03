@@ -3,6 +3,7 @@ package br.com.rdrtech.faturaimportacao;
 import br.com.rdrtech.categoria.CategoriaRepository;
 import br.com.rdrtech.categoria.TipoCategoria;
 import br.com.rdrtech.exception.BusinessException;
+import br.com.rdrtech.exception.LeituraFaturaIaException;
 import br.com.rdrtech.exception.FaturaImportacaoEmProcessamentoException;
 import br.com.rdrtech.exception.FaturaImportacaoNaoEncontradaException;
 import br.com.rdrtech.faturaimportacao.LeitorFaturaIa.OpcaoCategoria;
@@ -160,6 +161,11 @@ public class FaturaImportacaoService {
         LeitorFaturaIa.Leitura leitura;
         try {
             leitura = leitorIa.ler(chatModel, paginas, categorias);
+        } catch (LeituraFaturaIaException e) {
+            // Guarda as respostas da IA para dar para ver o que veio fora do formato.
+            log.warn("Leitura por IA da importação de fatura {} falhou: {}", id, e.getMessage());
+            registrarErro(id, e.getMessage(), e.getRespostaBruta(), e.getModelo());
+            return;
         } catch (BusinessException e) {
             registrarErro(id, e.getMessage(), null, null);
             return;

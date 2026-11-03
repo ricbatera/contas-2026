@@ -229,10 +229,14 @@ final class MotorConciliacao {
                 || similaridade(item.descricao(), parcela.descricaoFatura()) >= SIMILARIDADE_DESCRICAO;
     }
 
-    /** Parcela de mês vizinho só entra se a descrição de fatura estiver vazia ou for a do PDF. */
+    /**
+     * Parcela de mês vizinho só entra se a descrição de fatura estiver vazia: a saída foi lançada à
+     * mão (talvez com o mês deslocado) e nunca casou com uma fatura. Com descrição, ela já pertence
+     * à fatura do mês dela; sugeri-la faria uma cobrança recorrente de mesmo valor (pedágio,
+     * assinatura 1/1) ser vinculada à do mês anterior, sem criar a saída deste mês.
+     */
     private static boolean vizinhaCompativel(Item item, Parcela parcela) {
-        return parcela.descricaoFatura() == null || parcela.descricaoFatura().isBlank()
-                || similaridade(item.descricao(), parcela.descricaoFatura()) >= 0.8;
+        return parcela.descricaoFatura() == null || parcela.descricaoFatura().isBlank();
     }
 
     private static boolean vizinhaElegivel(Parcela parcela, List<Item> itens) {

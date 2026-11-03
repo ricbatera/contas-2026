@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import br.com.rdrtech.exception.FaturaImportacaoInvalidaException;
+import br.com.rdrtech.exception.LeituraFaturaIaException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -122,8 +123,45 @@ class LeitorFaturaIaTest {
         ChatModel chatModel = responder(mensagem -> "sem json");
 
         assertThatThrownBy(() -> leitor.ler(chatModel, List.of(PAGINA_1, PAGINA_2), List.of()))
-                .isInstanceOf(FaturaImportacaoInvalidaException.class)
-                .hasMessageStartingWith("Página 1 de 2:");
+                .isInstanceOf(LeituraFaturaIaException.class)
+                .hasMessageStartingWith("Página 1 de 2:")
+                .satisfies(e -> assertThat(((LeituraFaturaIaException) e).getRespostaBruta())
+                        .contains("sem json").contains("nova tentativa"));
+    }
+
+    @Test
+    void deveRepetirAConsultaInformandoOErroDoJson() {
+        List<String> mensagens = new ArrayList<>();
+        ChatModel chatModel = responder(mensagem -> {
+            mensagens.add(mensagem);
+            return mensagens.size() == 1
+                    ? "{\"vencimento\": \"2026-10-10\" \"itens\": []}"
+                    : "{\"vencimento\": \"2026-10-10\", \"itens\": []}";
+        });
+
+        leitor.ler(chatModel, List.of(PAGINA_1), List.of());
+
+        assertThat(mensagens).hasSize(2);
+        assertThat(mensagens.get(0)).doesNotContain("não era um JSON válido");
+        assertThat(mensagens.get(1)).contains("não era um JSON válido");
+    }
+
+    @Test
+    void deveAceitarDataSemAspasSinalNoFimENumeroNoFormatoBrasileiro() {
+        FaturaLidaIa lida = leitor.interpretar("""
+                {"vencimento": 2026-10-10, "total": 1.234,56, "cartoes": [],
+                 "itens": [
+                   {"ultimosDigitos": "5464", "data": 2026-09-02, "descricao": "ESTORNO LOJA", "valor": 25.00-,
+                    "parcelaAtual": 1, "totalParcelas": 1, "tipo": "ESTORNO"},
+                   {"ultimosDigitos": "5464", "data": "2026-09-03", "descricao": "MERCADO", "valor": 80.10,},
+                 ]}""");
+
+        assertThat(lida.vencimento()).isEqualTo("2026-10-10");
+        assertThat(lida.total()).isEqualByComparingTo("1234.56");
+        assertThat(lida.itens()).hasSize(2);
+        assertThat(lida.itens().getFirst().data()).isEqualTo("2026-09-02");
+        assertThat(lida.itens().getFirst().valor()).isEqualByComparingTo("-25.00");
+        assertThat(lida.itens().get(1).valor()).isEqualByComparingTo("80.10");
     }
 
     @Test

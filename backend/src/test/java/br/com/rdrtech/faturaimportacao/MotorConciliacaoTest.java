@@ -137,6 +137,22 @@ class MotorConciliacaoTest {
     }
 
     @Test
+    void naoDeveSugerirCobrancaRecorrenteJaConciliadaNoMesVizinho() {
+        // Pedágios de R$ 50 do mês anterior, já conciliados com a fatura deles.
+        List<Parcela> outubro = List.of(
+                new Parcela(UUID.randomUUID(), UUID.randomUUID(), "SEM PARAR", "SEM PARAR", CARTAO, "1111",
+                        new BigDecimal("50.00"), 1, 1, 202609, true),
+                new Parcela(UUID.randomUUID(), UUID.randomUUID(), "SEM PARAR", "SEM PARAR", CARTAO, "1111",
+                        new BigDecimal("50.00"), 1, 1, 202609, true));
+
+        Resultado resultado = conciliar(
+                List.of(item(0, "SEM PARAR", "50.00", 1, 1), item(1, "SEM PARAR", "50.00", 1, 1)), outubro);
+
+        assertThat(resultado.decisoes().values()).containsOnly(new Nova(null));
+        assertThat(resultado.desempate().parcelas()).isEmpty();
+    }
+
+    @Test
     void deveReaproveitarPreSaidaDeOutraImportacaoEConsumirAParcelaDaVinculada() {
         UUID saidaVinculada = UUID.randomUUID();
         Parcela prime = new Parcela(UUID.randomUUID(), saidaVinculada, "Amazon Prime", "AMAZONPRIME*BR", CARTAO, "1111",
