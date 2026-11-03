@@ -291,7 +291,8 @@ public class ComprovanteService {
         int parcelas = lido.parcelas() == null ? 1 : Math.clamp(lido.parcelas(), 1, 60);
         comprovante.setQuantidadeParcelas(debito ? 1 : parcelas);
 
-        Cartao cartao = IdentificacaoCartao.escolher(cartaoRepository.listarComPrincipal(), digitos, bandeira)
+        Cartao cartao = IdentificacaoCartao.escolher(cartaoRepository.listarComPrincipal(), digitos, bandeira,
+                        comprovante.getDataCompra())
                 .orElse(null);
         comprovante.setCartao(cartao);
         if (cartao == null) {

@@ -55,6 +55,11 @@
                 @if (cartao.virtual) {
                   <span class="type-badge virtual-badge">Virtual</span>
                 }
+                @if (cartao.validoAte) {
+                  <span class="type-badge" [class.inactive]="!vigente(cartao)">
+                    {{ vigente(cartao) ? 'Temporário · até ' : 'Vencido em ' }}{{ cartao.validoAte | date: 'dd/MM/yyyy' }}
+                  </span>
+                }
                 <span class="type-badge" [class.inactive]="!cartao.ativo">
                   {{ cartao.ativo ? 'Ativo' : 'Inativo' }}
                 </span>

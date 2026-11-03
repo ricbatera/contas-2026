@@ -6,7 +6,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
-import { Cartao, CartaoService } from '../../core/cartao.service';
+import { Cartao, CartaoService, cartaoVigente } from '../../core/cartao.service';
 import { Categoria, CategoriaService } from '../../core/categoria.service';
 import {
   calcularVencimento,
@@ -82,9 +82,11 @@ export class ComprovanteRevisao implements OnInit {
     this.categorias()
       .find((categoria) => categoria.id === this.valores().categoriaId)
       ?.subcategorias.filter((subcategoria) => subcategoria.ativo) ?? []);
-  /** Cartões ativos, mais o selecionado (que pode ter sido inativado depois). */
+  /** Cartões ativos e vigentes na data da compra, mais o selecionado (que pode ter sido inativado depois). */
   protected readonly cartoesDisponiveis = computed(() =>
-    this.cartoes().filter((cartao) => cartao.ativo || cartao.id === this.valores().cartaoId));
+    this.cartoes().filter((cartao) =>
+      (cartao.ativo && cartaoVigente(cartao, this.valores().dataCompra || new Date()))
+      || cartao.id === this.valores().cartaoId));
   protected readonly faltando = computed(() => {
     const valor = this.valores();
     const faltam: string[] = [];

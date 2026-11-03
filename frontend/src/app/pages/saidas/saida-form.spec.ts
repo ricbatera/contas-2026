@@ -28,22 +28,22 @@ describe('SaidaForm', () => {
 
   afterEach(() => http.verify());
 
-  function flushDependencies(): void {
-    http.expectOne('/api/cartoes').flush({
-      data: [{
-        id: 'card-1',
-        nome: 'Principal',
-        banco: 'Banco',
-        bandeira: 'VISA',
-        ultimosDigitos: '1234',
-        cor: '#123456',
-        criadoEm: null,
-        tipo: 'PRINCIPAL',
-        virtual: false,
-        cartaoPrincipalId: null,
-        ativo: true,
-      }],
-    });
+  const cartaoPadrao = {
+    id: 'card-1',
+    nome: 'Principal',
+    banco: 'Banco',
+    bandeira: 'VISA',
+    ultimosDigitos: '1234',
+    cor: '#123456',
+    criadoEm: null,
+    tipo: 'PRINCIPAL',
+    virtual: false,
+    cartaoPrincipalId: null,
+    ativo: true,
+  };
+
+  function flushDependencies(cartoes: object[] = [cartaoPadrao]): void {
+    http.expectOne('/api/cartoes').flush({ data: cartoes });
     http.expectOne('/api/pessoas').flush({
       data: [{ id: 'person-1', nome: 'Maria', ativo: true, criadoEm: null }],
     });
@@ -70,6 +70,21 @@ describe('SaidaForm', () => {
       data: { id: 'user-1', nome: 'Ana', sobrenome: 'Silva' },
     });
   }
+
+  it('hides expired temporary virtual cards from new expenses', () => {
+    const fixture = TestBed.createComponent(SaidaForm);
+    fixture.detectChanges();
+    flushDependencies([
+      cartaoPadrao,
+      { ...cartaoPadrao, id: 'card-expired', nome: 'Virtual vencido', virtual: true, validoAte: '2000-01-31' },
+      { ...cartaoPadrao, id: 'card-valid', nome: 'Virtual vigente', virtual: true, validoAte: '2999-12-31' },
+    ]);
+    fixture.detectChanges();
+
+    const texto = (fixture.nativeElement as HTMLElement).textContent;
+    expect(texto).toContain('Virtual vigente');
+    expect(texto).not.toContain('Virtual vencido');
+  });
 
   it('loads default expense category and submits a credit-card purchase', async () => {
     const fixture = TestBed.createComponent(SaidaForm);

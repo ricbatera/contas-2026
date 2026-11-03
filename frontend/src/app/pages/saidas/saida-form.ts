@@ -6,7 +6,7 @@ import { AvisoFormulario } from '../../shared/formulario/aviso-formulario';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApiResponse } from '../../core/auth.service';
-import { Cartao, CartaoService } from '../../core/cartao.service';
+import { Cartao, CartaoService, cartaoVigente } from '../../core/cartao.service';
 import { Categoria, CategoriaService, Subcategoria } from '../../core/categoria.service';
 import {
   FORMAS_PAGAMENTO,
@@ -75,6 +75,8 @@ export class SaidaForm {
   protected readonly error = signal<string | null>(null);
   protected readonly dataError = signal<string | null>(null);
   protected readonly cartoes = signal<Cartao[]>([]);
+  /** Todos os cartões, inclusive inativos e vencidos, para mostrar o da saída editada. */
+  private todosCartoes: Cartao[] = [];
   protected readonly pessoas = signal<Pessoa[]>([]);
   protected readonly categorias = signal<Categoria[]>([]);
   protected readonly profile = signal<UserProfile | null>(null);
@@ -112,7 +114,9 @@ export class SaidaForm {
       profile: this.http.get<ApiResponse<UserProfile>>('/api/usuarios/me'),
     }).subscribe({
       next: ({ cartoes, pessoas, categorias, profile }) => {
-        this.cartoes.set(cartoes.filter((cartao) => cartao.ativo));
+        this.todosCartoes = cartoes;
+        // Virtuais temporários vencidos saem da seleção de novas saídas.
+        this.cartoes.set(cartoes.filter((cartao) => cartao.ativo && cartaoVigente(cartao)));
         this.pessoas.set(pessoas.filter((pessoa) => pessoa.ativo));
         this.categorias.set(
           categorias.filter(
@@ -349,9 +353,10 @@ export class SaidaForm {
 
   private adicionarReferenciasHistoricas(saida: Saida): void {
     if (saida.cartaoId && !this.cartoes().some((cartao) => cartao.id === saida.cartaoId)) {
+      const cadastrado = this.todosCartoes.find((cartao) => cartao.id === saida.cartaoId);
       this.cartoes.update((cartoes) => [
         ...cartoes,
-        {
+        cadastrado ?? {
           id: saida.cartaoId!,
           nome: saida.cartaoNome ?? 'Cartão inativo',
           banco: '',

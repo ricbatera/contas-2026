@@ -44,11 +44,18 @@ export class CartaoForm {
     cartaoPrincipalId: [''],
     diaFechamento: this.fb.control<number | null>(null, [Validators.min(1), Validators.max(31)]),
     diaVencimento: this.fb.control<number | null>(null, [Validators.min(1), Validators.max(31)]),
+    validoAte: '',
   });
 
   constructor() {
     this.carregarPrincipais();
     this.form.controls.tipo.valueChanges.subscribe(() => this.atualizarValidacaoPrincipal());
+    // Só cartões virtuais têm validade.
+    this.form.controls.virtual.valueChanges.subscribe((virtual) => {
+      if (!virtual) {
+        this.form.controls.validoAte.setValue('');
+      }
+    });
     if (this.cardId) {
       this.service.buscarPorId(this.cardId).subscribe({
         next: (cartao) => {
@@ -64,6 +71,7 @@ export class CartaoForm {
             cartaoPrincipalId: cartao.cartaoPrincipalId ?? '',
             diaFechamento: cartao.diaFechamento ?? null,
             diaVencimento: cartao.diaVencimento ?? null,
+            validoAte: cartao.validoAte ?? '',
           });
           this.atualizarValidacaoPrincipal();
           this.loading.set(false);
@@ -95,6 +103,7 @@ export class CartaoForm {
       // O adicional entra na fatura do principal e usa os dias dele.
       diaFechamento: principal ? value.diaFechamento : null,
       diaVencimento: principal ? value.diaVencimento : null,
+      validoAte: value.virtual && value.validoAte ? value.validoAte : null,
     };
     this.saving.set(true);
     this.error.set(null);

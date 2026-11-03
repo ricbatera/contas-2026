@@ -36,10 +36,11 @@ public final class IdentificacaoCartao {
 
     /**
      * Escolhe o cartão de um comprovante. Entre os que terminam no final lido, ficam os ativos
-     * (se houver) e, persistindo o empate, os da bandeira lida. Sem um candidato único, devolve
-     * vazio e o usuário escolhe.
+     * (se houver), depois os vigentes na data da compra (se houver) e, persistindo o empate, os
+     * da bandeira lida. Sem um candidato único, devolve vazio e o usuário escolhe.
      */
-    public static Optional<Cartao> escolher(List<Cartao> cartoes, String digitosLidos, Bandeira bandeira) {
+    public static Optional<Cartao> escolher(List<Cartao> cartoes, String digitosLidos, Bandeira bandeira,
+            LocalDate dataCompra) {
         String finalLido = normalizarDigitos(digitosLidos);
         if (finalLido == null) {
             return Optional.empty();
@@ -48,6 +49,10 @@ public final class IdentificacaoCartao {
         List<Cartao> ativos = candidatos.stream().filter(Cartao::isAtivo).toList();
         if (!ativos.isEmpty()) {
             candidatos = ativos;
+        }
+        List<Cartao> vigentes = candidatos.stream().filter(cartao -> cartao.vigenteEm(dataCompra)).toList();
+        if (!vigentes.isEmpty()) {
+            candidatos = vigentes;
         }
         if (candidatos.size() > 1 && bandeira != null) {
             List<Cartao> mesmaBandeira = candidatos.stream().filter(cartao -> cartao.getBandeira() == bandeira).toList();

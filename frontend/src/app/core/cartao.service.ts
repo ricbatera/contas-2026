@@ -23,6 +23,8 @@ export interface Cartao {
   ativo: boolean;
   diaFechamento?: number | null;
   diaVencimento?: number | null;
+  /** Último dia de uso de um cartão virtual temporário (yyyy-MM-dd). */
+  validoAte?: string | null;
 }
 
 export interface CartaoRequest {
@@ -37,6 +39,8 @@ export interface CartaoRequest {
   ativo: boolean;
   diaFechamento?: number | null;
   diaVencimento?: number | null;
+  /** Último dia de uso de um cartão virtual temporário (yyyy-MM-dd). */
+  validoAte?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -73,4 +77,23 @@ export class CartaoService {
       .put<ApiResponse<Cartao>>(`${this.endpoint}/${encodeURIComponent(id)}`, request)
       .pipe(map((response) => response.data));
   }
+}
+
+/** Data local em yyyy-MM-dd, no formato de `validoAte`. */
+function dataIso(data: Date): string {
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${data.getFullYear()}-${mes}-${dia}`;
+}
+
+/**
+ * O cartão pode ser usado na data (padrão: hoje)? Cartões sem validade sempre podem; os virtuais
+ * temporários só até `validoAte`. `data` aceita yyyy-MM-dd; vazia conta como vigente.
+ */
+export function cartaoVigente(cartao: Pick<Cartao, 'validoAte'>, data: string | Date | null = new Date()): boolean {
+  if (!cartao.validoAte || data === null || data === '') {
+    return true;
+  }
+  const referencia = typeof data === 'string' ? data.slice(0, 10) : dataIso(data);
+  return referencia <= cartao.validoAte;
 }

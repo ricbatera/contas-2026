@@ -11,12 +11,14 @@ import static org.mockito.Mockito.verify;
 import br.com.rdrtech.cartao.dto.CartaoRequest;
 import br.com.rdrtech.cartao.dto.CartaoResponse;
 import br.com.rdrtech.exception.CartaoDuplicadoException;
+import br.com.rdrtech.exception.CartaoInvalidoException;
 import br.com.rdrtech.exception.CartaoNaoEncontradoException;
 import br.com.rdrtech.exception.CartaoPrincipalEmUsoException;
 import br.com.rdrtech.exception.CartaoPrincipalInvalidoException;
 import br.com.rdrtech.exception.LimiteCartoesExcedidoException;
 import br.com.rdrtech.fatura.FaturaRepository;
 import br.com.rdrtech.saida.SaidaRepository;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,7 +61,7 @@ class CartaoServiceTest {
     @Test
     void criar_deveSalvarCartao_quandoDadosValidos() {
         CartaoRequest request = requestValido();
-        when(cartaoRepository.count()).thenReturn(0L);
+        when(cartaoRepository.countByValidoAteIsNull()).thenReturn(0L);
         when(cartaoRepository.existsByBandeiraAndUltimosDigitos(request.bandeira(), request.ultimosDigitos()))
                 .thenReturn(false);
         when(cartaoRepository.save(any(Cartao.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -85,7 +87,7 @@ class CartaoServiceTest {
         CartaoRequest request = new CartaoRequest(
                 "Adicional virtual", "Banco", Bandeira.VISA, "5678", null,
                 TipoCartao.ADICIONAL, true, principalId);
-        when(cartaoRepository.count()).thenReturn(0L);
+        when(cartaoRepository.countByValidoAteIsNull()).thenReturn(0L);
         when(cartaoRepository.existsByBandeiraAndUltimosDigitos(request.bandeira(), request.ultimosDigitos()))
                 .thenReturn(false);
         when(cartaoRepository.buscarPrincipalPorId(principalId)).thenReturn(Optional.of(principal));
@@ -107,7 +109,7 @@ class CartaoServiceTest {
         CartaoRequest request = new CartaoRequest(
                 "Adicional", "Banco", Bandeira.VISA, "5678", null,
                 TipoCartao.ADICIONAL, false, principalId);
-        when(cartaoRepository.count()).thenReturn(0L);
+        when(cartaoRepository.countByValidoAteIsNull()).thenReturn(0L);
         when(cartaoRepository.existsByBandeiraAndUltimosDigitos(request.bandeira(), request.ultimosDigitos()))
                 .thenReturn(false);
         when(cartaoRepository.buscarPrincipalPorId(principalId)).thenReturn(Optional.empty());
@@ -119,7 +121,7 @@ class CartaoServiceTest {
 
     @Test
     void criar_deveLancarLimiteCartoesExcedidoException_quandoJaTem20Cartoes() {
-        when(cartaoRepository.count()).thenReturn(20L);
+        when(cartaoRepository.countByValidoAteIsNull()).thenReturn(20L);
 
         assertThatThrownBy(() -> cartaoService.criar(requestValido()))
                 .isInstanceOf(LimiteCartoesExcedidoException.class);
@@ -127,9 +129,32 @@ class CartaoServiceTest {
     }
 
     @Test
+    void criar_devePermitirVirtualTemporarioMesmoComLimiteAtingido() {
+        CartaoRequest request = new CartaoRequest("Virtual", "Nubank", Bandeira.MASTERCARD, "4321", null,
+                TipoCartao.PRINCIPAL, true, null, true, null, null, LocalDate.of(2026, 12, 31));
+        when(cartaoRepository.save(any(Cartao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CartaoResponse response = cartaoService.criar(request);
+
+        assertThat(response.validoAte()).isEqualTo(LocalDate.of(2026, 12, 31));
+        verify(cartaoRepository, never()).countByValidoAteIsNull();
+    }
+
+    @Test
+    void criar_deveRejeitarValidadeEmCartaoNaoVirtual() {
+        CartaoRequest request = new CartaoRequest("Fisico", "Nubank", Bandeira.MASTERCARD, "4321", null,
+                TipoCartao.PRINCIPAL, false, null, true, null, null, LocalDate.of(2026, 12, 31));
+
+        assertThatThrownBy(() -> cartaoService.criar(request))
+                .isInstanceOf(CartaoInvalidoException.class)
+                .hasMessageContaining("virtuais");
+        verify(cartaoRepository, never()).save(any());
+    }
+
+    @Test
     void criar_deveLancarCartaoDuplicadoException_quandoBandeiraEDigitosJaExistem() {
         CartaoRequest request = requestValido();
-        when(cartaoRepository.count()).thenReturn(0L);
+        when(cartaoRepository.countByValidoAteIsNull()).thenReturn(0L);
         when(cartaoRepository.existsByBandeiraAndUltimosDigitos(request.bandeira(), request.ultimosDigitos()))
                 .thenReturn(true);
 

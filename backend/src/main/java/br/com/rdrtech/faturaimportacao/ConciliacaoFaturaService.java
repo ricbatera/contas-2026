@@ -3,6 +3,7 @@ package br.com.rdrtech.faturaimportacao;
 import br.com.rdrtech.cartao.Cartao;
 import br.com.rdrtech.cartao.CartaoRepository;
 import br.com.rdrtech.cartao.IdentificacaoCartao;
+import br.com.rdrtech.cartao.TipoCartao;
 import br.com.rdrtech.categoria.Categoria;
 import br.com.rdrtech.categoria.CategoriaRepository;
 import br.com.rdrtech.categoria.TipoCategoria;
@@ -34,6 +35,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -43,6 +45,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +68,7 @@ public class ConciliacaoFaturaService {
     private static final int TAMANHO_DESCRICAO = 120;
     private static final int LIMITE_AVISOS_FALTANTES = 20;
     private static final Set<String> TIPOS_QUE_GERAM_SAIDA = Set.of("COMPRA", "TARIFA", "IOF", "JUROS");
+    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final CartaoRepository cartaoRepository;
     private final FaturaRepository faturaRepository;
@@ -74,7 +78,7 @@ public class ConciliacaoFaturaService {
     /** Itens sem par e parcelas candidatas, para a IA indicar possíveis correspondências. */
     @Transactional(readOnly = true)
     public Desempate planejar(UUID importacaoId, FaturaLidaIa lida) {
-        Contexto contexto = carregar(importacaoId, lida, new ArrayList<>());
+        Contexto contexto = carregar(importacaoId, lida, new ArrayList<>(), false);
         return MotorConciliacao.conciliar(contexto.itens(), contexto.parcelas(), contexto.preSaidas(), null)
                 .desempate();
     }
@@ -83,7 +87,7 @@ public class ConciliacaoFaturaService {
     public ResumoImportacao aplicar(FaturaImportacao importacao, FaturaLidaIa lida, List<ParIa> paresIa,
             List<String> avisosAdicionais) {
         List<String> avisos = new ArrayList<>(avisosAdicionais);
-        Contexto contexto = carregar(importacao.getId(), lida, avisos);
+        Contexto contexto = carregar(importacao.getId(), lida, avisos, true);
         importacao.setCartaoPrincipal(contexto.principal());
         importacao.setCompetencia(contexto.competencia());
         importacao.setVencimento(contexto.vencimento());
@@ -171,15 +175,18 @@ public class ConciliacaoFaturaService {
                 saida.getId(), saida.getDescricao(), anterior, criterio, observacao);
     }
 
-    /** Lê o que a conciliação precisa: cartões, itens válidos, parcelas da competência e vizinhas. */
-    private Contexto carregar(UUID importacaoId, FaturaLidaIa lida, List<String> avisos) {
+    /**
+     * Lê o que a conciliação precisa: cartões, itens válidos, parcelas da competência e vizinhas.
+     * Com {@code criarTemporarios}, cadastra os cartões virtuais dos finais desconhecidos.
+     */
+    private Contexto carregar(UUID importacaoId, FaturaLidaIa lida, List<String> avisos, boolean criarTemporarios) {
         LocalDate vencimento = MotorConciliacao.converterData(lida.vencimento());
         if (vencimento == null) {
             throw new FaturaImportacaoInvalidaException("A IA não identificou a data de vencimento da fatura.");
         }
         YearMonth mes = YearMonth.from(vencimento);
         int competencia = competencia(mes);
-        CartoesIdentificados cartoes = identificarCartoes(lida, avisos);
+        CartoesIdentificados cartoes = identificarCartoes(lida, vencimento, avisos, criarTemporarios);
 
         List<Item> itens = new ArrayList<>();
         Map<Integer, Item> itemPorIndice = new HashMap<>();
@@ -204,7 +211,7 @@ public class ConciliacaoFaturaService {
                 continue;
             }
             String digitos = MotorConciliacao.normalizarDigitos(lido.ultimosDigitos());
-            Cartao cartao = digitos == null ? cartoes.unicoOuPrincipal() : cartoes.porDigitos().get(digitos);
+            Cartao cartao = digitos == null ? cartoes.semDigitos() : cartoes.porDigitos().get(digitos);
             if (digitos != null && cartao == null) {
                 avisos.add("Cartão final " + digitos + " não cadastrado: \"" + descricao
                         + "\" ficou sem cartão na pré-saída.");
@@ -267,7 +274,8 @@ public class ConciliacaoFaturaService {
         return mes.getYear() * 100 + mes.getMonthValue();
     }
 
-    private CartoesIdentificados identificarCartoes(FaturaLidaIa lida, List<String> avisos) {
+    private CartoesIdentificados identificarCartoes(FaturaLidaIa lida, LocalDate vencimento, List<String> avisos,
+            boolean criarTemporarios) {
         Set<String> digitos = new LinkedHashSet<>();
         lida.cartoes().forEach(c -> adicionarSeValido(digitos, MotorConciliacao.normalizarDigitos(c.ultimosDigitos())));
         lida.itens().forEach(i -> adicionarSeValido(digitos, MotorConciliacao.normalizarDigitos(i.ultimosDigitos())));
@@ -313,11 +321,47 @@ public class ConciliacaoFaturaService {
                     .findFirst()
                     .ifPresent(cartao -> porDigitos.put(finalLido, cartao));
         }
-        digitos.stream()
-                .filter(d -> !porDigitos.containsKey(d))
-                .forEach(d -> avisos.add("O final " + d + " aparece na fatura, mas não é um cartão de "
-                        + principal.getNome() + "."));
-        return new CartoesIdentificados(principal, porDigitos);
+        // Item sem dígitos: se a fatura só tem um cartão cadastrado, é dele; senão fica com o principal.
+        Cartao semDigitos = porDigitos.size() == 1 ? porDigitos.values().iterator().next() : principal;
+
+        for (String finalLido : digitos) {
+            if (porDigitos.containsKey(finalLido)) {
+                continue;
+            }
+            // Final completo que nenhum cartão usa: cartão virtual temporário gerado no app do banco.
+            boolean desconhecido = finalLido.length() == 4
+                    && cadastrados.stream().noneMatch(cartao -> IdentificacaoCartao.terminaEm(cartao, finalLido));
+            if (!desconhecido) {
+                avisos.add("O final " + finalLido + " aparece na fatura, mas não é um cartão de "
+                        + principal.getNome() + ".");
+            } else if (criarTemporarios) {
+                Cartao temporario = cartaoRepository.save(Cartao.builder()
+                        .nome("Virtual " + finalLido)
+                        .banco(principal.getBanco())
+                        .bandeira(principal.getBandeira())
+                        .ultimosDigitos(finalLido)
+                        .cor(principal.getCor())
+                        .tipo(TipoCartao.ADICIONAL)
+                        .virtual(true)
+                        .cartaoPrincipal(principal)
+                        .validoAte(ultimaCompra(lida, finalLido, vencimento))
+                        .build());
+                porDigitos.put(finalLido, temporario);
+                avisos.add("Cartão virtual final " + finalLido + " criado como adicional de " + principal.getNome()
+                        + " (válido até " + temporario.getValidoAte().format(DATA_BR) + ").");
+            }
+        }
+        return new CartoesIdentificados(principal, porDigitos, semDigitos);
+    }
+
+    /** Validade do cartão temporário: a compra mais recente com esse final, ou o vencimento da fatura. */
+    private static LocalDate ultimaCompra(FaturaLidaIa lida, String finalLido, LocalDate vencimento) {
+        return lida.itens().stream()
+                .filter(item -> finalLido.equals(MotorConciliacao.normalizarDigitos(item.ultimosDigitos())))
+                .map(item -> MotorConciliacao.converterData(item.data()))
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(vencimento);
     }
 
     private SugestoesCategoria carregarSugestoes() {
@@ -386,12 +430,7 @@ public class ConciliacaoFaturaService {
         }
     }
 
-    private record CartoesIdentificados(Cartao principal, Map<String, Cartao> porDigitos) {
-
-        /** Item sem dígitos: se a fatura só tem um cartão, é dele; senão fica com o principal. */
-        Cartao unicoOuPrincipal() {
-            return porDigitos.size() == 1 ? porDigitos.values().iterator().next() : principal;
-        }
+    private record CartoesIdentificados(Cartao principal, Map<String, Cartao> porDigitos, Cartao semDigitos) {
     }
 
     private record SugestaoCategoria(Categoria categoria, Subcategoria subcategoria) {

@@ -29,6 +29,9 @@ public interface CartaoRepository extends JpaRepository<Cartao, UUID> {
 
     boolean existsByCartaoPrincipal_Id(UUID cartaoPrincipalId);
 
+    /** Cartões permanentes (sem validade); os virtuais temporários não contam no limite de cadastro. */
+    long countByValidoAteIsNull();
+
     /** Todos os cartões do usuário com o principal carregado, para casar finais (às vezes parciais) da fatura. */
     @Query("select c from Cartao c left join fetch c.cartaoPrincipal")
     java.util.List<Cartao> listarComPrincipal();

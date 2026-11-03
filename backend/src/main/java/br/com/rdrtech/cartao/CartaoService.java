@@ -47,13 +47,14 @@ public class CartaoService {
 
     @Transactional
     public CartaoResponse criar(CartaoRequest request) {
-        if (cartaoRepository.count() >= LIMITE_CARTOES) {
+        if (request.validoAte() == null && cartaoRepository.countByValidoAteIsNull() >= LIMITE_CARTOES) {
             throw new LimiteCartoesExcedidoException();
         }
         validarDuplicidade(request.bandeira(), request.ultimosDigitos(), null);
         TipoCartao tipo = tipoEfetivo(request);
         Cartao principal = resolverPrincipal(tipo, request.cartaoPrincipalId());
         validarDias(tipo, request);
+        validarValidade(request);
 
         Cartao cartao = Cartao.builder()
                 .nome(request.nome())
@@ -67,6 +68,7 @@ public class CartaoService {
                 .cartaoPrincipal(principal)
                 .diaFechamento(request.diaFechamento())
                 .diaVencimento(request.diaVencimento())
+                .validoAte(request.validoAte())
                 .build();
         return CartaoMapper.toResponse(cartaoRepository.save(cartao));
     }
@@ -83,6 +85,12 @@ public class CartaoService {
         }
         Cartao principal = resolverPrincipal(tipo, request.cartaoPrincipalId());
         validarDias(tipo, request);
+        validarValidade(request);
+        // Um temporário que vira permanente passa a contar no limite.
+        if (cartao.getValidoAte() != null && request.validoAte() == null
+                && cartaoRepository.countByValidoAteIsNull() >= LIMITE_CARTOES) {
+            throw new LimiteCartoesExcedidoException();
+        }
 
         cartao.setNome(request.nome());
         cartao.setBanco(request.banco());
@@ -97,6 +105,7 @@ public class CartaoService {
         cartao.setCartaoPrincipal(principal);
         cartao.setDiaFechamento(request.diaFechamento());
         cartao.setDiaVencimento(request.diaVencimento());
+        cartao.setValidoAte(request.validoAte());
         return CartaoMapper.toResponse(cartao);
     }
 
@@ -126,6 +135,13 @@ public class CartaoService {
         if (tipo == TipoCartao.ADICIONAL && (request.diaFechamento() != null || request.diaVencimento() != null)) {
             throw new CartaoInvalidoException(
                     "Dias de fechamento e vencimento são do cartão principal; o adicional usa os do principal.");
+        }
+    }
+
+    /** A validade marca um cartão virtual temporário (uso único ou por período). */
+    private void validarValidade(CartaoRequest request) {
+        if (request.validoAte() != null && !Boolean.TRUE.equals(request.virtual())) {
+            throw new CartaoInvalidoException("Só cartões virtuais têm validade.");
         }
     }
 

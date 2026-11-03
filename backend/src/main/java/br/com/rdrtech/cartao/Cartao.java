@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.LocalDate;
 import org.hibernate.annotations.Check;
 
 @Entity
@@ -66,4 +67,16 @@ public class Cartao extends TenantAwareEntity {
     /** Dia de vencimento da fatura; só no principal. */
     @Column(name = "dia_vencimento")
     private Integer diaVencimento;
+
+    /**
+     * Último dia de uso de um cartão virtual temporário (uso único ou por período). Depois dele o
+     * cartão sai da seleção de novas saídas e comprovantes; a importação de fatura ainda casa com ele.
+     */
+    @Column(name = "valido_ate")
+    private LocalDate validoAte;
+
+    /** Sem validade, ou com a data até o último dia de uso; data {@code null} conta como vigente. */
+    public boolean vigenteEm(LocalDate data) {
+        return validoAte == null || data == null || !data.isAfter(validoAte);
+    }
 }

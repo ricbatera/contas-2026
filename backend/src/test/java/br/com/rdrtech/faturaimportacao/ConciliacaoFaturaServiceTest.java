@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -158,6 +159,80 @@ class ConciliacaoFaturaServiceTest {
                 faturaDoFinal("*111", item("X", "1.00", 1, 1, "*111")), List.of(), List.of()))
                 .isInstanceOf(FaturaImportacaoInvalidaException.class)
                 .hasMessageContaining("mais de um cartão principal");
+    }
+
+    @Test
+    void deveCriarCartaoVirtualTemporarioParaFinalDesconhecido() {
+        when(cartaoRepository.save(any(Cartao.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        ResumoImportacao resumo = service.aplicar(importacao, fatura(
+                        itemDatado("UBER *TRIP", "25.00", "2026-09-02", "7777"),
+                        itemDatado("IFOOD", "40.00", "2026-09-05", "7777")),
+                List.of(), List.of());
+
+        ArgumentCaptor<Cartao> cartaoCaptor = ArgumentCaptor.forClass(Cartao.class);
+        verify(cartaoRepository).save(cartaoCaptor.capture());
+        Cartao virtual = cartaoCaptor.getValue();
+        assertThat(virtual.getUltimosDigitos()).isEqualTo("7777");
+        assertThat(virtual.getTipo()).isEqualTo(TipoCartao.ADICIONAL);
+        assertThat(virtual.isVirtual()).isTrue();
+        assertThat(virtual.getCartaoPrincipal()).isSameAs(principal);
+        assertThat(virtual.getValidoAte()).isEqualTo(LocalDate.of(2026, 9, 5));
+
+        ArgumentCaptor<PreSaida> preSaidaCaptor = ArgumentCaptor.forClass(PreSaida.class);
+        verify(preSaidaRepository, times(2)).save(preSaidaCaptor.capture());
+        assertThat(preSaidaCaptor.getAllValues()).allSatisfy(p -> assertThat(p.getCartao()).isSameAs(virtual));
+        assertThat(resumo.avisos()).containsExactly(
+                "Cartão virtual final 7777 criado como adicional de Principal (válido até 05/09/2026).");
+    }
+
+    @Test
+    void planejarNaoDeveCriarCartaoTemporario() {
+        service.planejar(importacao.getId(), fatura(itemDatado("UBER", "25.00", "2026-09-02", "7777")));
+
+        verify(cartaoRepository, never()).save(any());
+    }
+
+    @Test
+    void naoDeveCriarCartaoParaFinalMascaradoOuDeOutroPrincipal() {
+        Cartao outro = Cartao.builder().nome("Outro").ultimosDigitos("8888").tipo(TipoCartao.PRINCIPAL).build();
+        outro.setId(UUID.randomUUID());
+        Cartao adicional = Cartao.builder().nome("Adicional").ultimosDigitos("3333").tipo(TipoCartao.ADICIONAL)
+                .cartaoPrincipal(principal).build();
+        adicional.setId(UUID.randomUUID());
+        when(cartaoRepository.listarComPrincipal()).thenReturn(List.of(principal, adicional, outro));
+
+        ResumoImportacao resumo = service.aplicar(importacao, fatura(
+                        itemDatado("LOJA C", "30.00", "2026-09-04", "3333"),
+                        itemDatado("LOJA A", "10.00", "2026-09-02", "*555"),
+                        itemDatado("LOJA B", "20.00", "2026-09-03", "8888")),
+                List.of(), List.of());
+
+        verify(cartaoRepository, never()).save(any());
+        assertThat(resumo.avisos()).contains(
+                "O final 555 aparece na fatura, mas não é um cartão de Principal.",
+                "O final 8888 aparece na fatura, mas não é um cartão de Principal.");
+    }
+
+    @Test
+    void deveUsarCartaoTemporarioJaCadastradoAoReprocessar() {
+        Cartao virtual = Cartao.builder().nome("Virtual 7777").ultimosDigitos("7777").tipo(TipoCartao.ADICIONAL)
+                .virtual(true).cartaoPrincipal(principal).validoAte(LocalDate.of(2026, 9, 2)).build();
+        virtual.setId(UUID.randomUUID());
+        when(cartaoRepository.listarComPrincipal()).thenReturn(List.of(principal, virtual));
+
+        ResumoImportacao resumo = service.aplicar(importacao,
+                fatura(itemDatado("UBER", "25.00", "2026-09-02", "7777")), List.of(), List.of());
+
+        verify(cartaoRepository, never()).save(any());
+        ArgumentCaptor<PreSaida> captor = ArgumentCaptor.forClass(PreSaida.class);
+        verify(preSaidaRepository).save(captor.capture());
+        assertThat(captor.getValue().getCartao()).isSameAs(virtual);
+        assertThat(resumo.avisos()).isEmpty();
+    }
+
+    private static ItemLido itemDatado(String descricao, String valor, String data, String finalCartao) {
+        return new ItemLido(finalCartao, data, descricao, new BigDecimal(valor), 1, 1, "COMPRA", null, null);
     }
 
     private Saida saidaComParcela(Fatura destino, String descricao, int numero, int quantidade, String valor) {

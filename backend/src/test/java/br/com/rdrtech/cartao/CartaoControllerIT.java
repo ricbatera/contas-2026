@@ -94,6 +94,28 @@ class CartaoControllerIT {
     }
 
     @Test
+    void criar_deveGravarValidadeSoEmCartaoVirtual() throws Exception {
+        String token = registrarERetornarToken("validade");
+        java.time.LocalDate validade = java.time.LocalDate.of(2026, 12, 31);
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CartaoRequest(
+                                "Temporario", "Banco", Bandeira.VISA, "8642", null, null, true, null, true, null, null,
+                                validade))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.validoAte").value(validade.toString()));
+
+        mockMvc.perform(post("/api/cartoes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CartaoRequest(
+                                "Fisico", "Banco", Bandeira.VISA, "9753", null, null, false, null, true, null, null,
+                                validade))))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     void criar_deveAceitarDiasDeFechamentoEVencimentoSoNoPrincipal() throws Exception {
         String token = registrarERetornarToken("dias-fatura");
         mockMvc.perform(post("/api/cartoes")

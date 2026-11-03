@@ -71,6 +71,17 @@
           <small>Cartões virtuais também podem ser principais ou adicionais.</small>
         </label>
 
+        @if (form.controls.virtual.value) {
+          <label class="form-field">
+            <span>Válido até (opcional)</span>
+            <input type="date" formControlName="validoAte" />
+            <small>
+              Para cartão temporário, de uso único ou por um período. Depois dessa data ele não aparece em
+              novas saídas e comprovantes, mas a importação de fatura ainda o reconhece.
+            </small>
+          </label>
+        }
+
         <label class="form-field virtual-option">
           <input type="checkbox" formControlName="ativo" />
           <span>Cartão ativo</span>

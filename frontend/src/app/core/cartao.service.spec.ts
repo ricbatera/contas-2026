@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { CartaoRequest, CartaoService } from './cartao.service';
+import { CartaoRequest, CartaoService, cartaoVigente } from './cartao.service';
 
 describe('CartaoService', () => {
   let service: CartaoService;
@@ -71,5 +71,13 @@ describe('CartaoService', () => {
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual(request);
     req.flush({ data: cartao });
+  });
+
+  it('treats a card as usable until its validity date', () => {
+    expect(cartaoVigente({ validoAte: null })).toBe(true);
+    expect(cartaoVigente({ validoAte: '2026-09-05' }, '2026-09-05')).toBe(true);
+    expect(cartaoVigente({ validoAte: '2026-09-05' }, '2026-09-06')).toBe(false);
+    expect(cartaoVigente({ validoAte: '2026-09-05' }, new Date(2026, 8, 4))).toBe(true);
+    expect(cartaoVigente({ validoAte: '2026-09-05' }, '')).toBe(true);
   });
 });

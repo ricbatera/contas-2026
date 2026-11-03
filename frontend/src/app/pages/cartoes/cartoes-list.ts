@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Cartao, CartaoService } from '../../core/cartao.service';
+import { Cartao, CartaoService, cartaoVigente } from '../../core/cartao.service';
 import { correspondeBusca } from '../../shared/busca/busca';
 import { CampoBusca } from '../../shared/busca/campo-busca';
 
@@ -49,6 +49,10 @@ export class CartoesList implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  protected vigente(cartao: Cartao): boolean {
+    return cartaoVigente(cartao);
   }
 
   protected nomeBandeira(bandeira: string): string {

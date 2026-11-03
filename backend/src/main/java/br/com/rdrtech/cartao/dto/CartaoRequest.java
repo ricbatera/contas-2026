@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record CartaoRequest(
@@ -24,11 +25,13 @@ public record CartaoRequest(
         UUID cartaoPrincipalId,
         Boolean ativo,
         @Min(1) @Max(31) Integer diaFechamento,
-        @Min(1) @Max(31) Integer diaVencimento) {
+        @Min(1) @Max(31) Integer diaVencimento,
+        /** Último dia de uso de um cartão virtual temporário; só vale com {@code virtual = true}. */
+        LocalDate validoAte) {
 
     public CartaoRequest(
             String nome, String banco, Bandeira bandeira, String ultimosDigitos, String cor) {
-        this(nome, banco, bandeira, ultimosDigitos, cor, null, false, null, true, null, null);
+        this(nome, banco, bandeira, ultimosDigitos, cor, null, false, null, true, null, null, null);
     }
 
     public CartaoRequest(
@@ -40,7 +43,7 @@ public record CartaoRequest(
             TipoCartao tipo,
             Boolean virtual,
             UUID cartaoPrincipalId) {
-        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, true, null, null);
+        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, true, null, null, null);
     }
 
     public CartaoRequest(
@@ -53,6 +56,22 @@ public record CartaoRequest(
             Boolean virtual,
             UUID cartaoPrincipalId,
             Boolean ativo) {
-        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, ativo, null, null);
+        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, ativo, null, null, null);
+    }
+
+    public CartaoRequest(
+            String nome,
+            String banco,
+            Bandeira bandeira,
+            String ultimosDigitos,
+            String cor,
+            TipoCartao tipo,
+            Boolean virtual,
+            UUID cartaoPrincipalId,
+            Boolean ativo,
+            Integer diaFechamento,
+            Integer diaVencimento) {
+        this(nome, banco, bandeira, ultimosDigitos, cor, tipo, virtual, cartaoPrincipalId, ativo, diaFechamento,
+                diaVencimento, null);
     }
 }

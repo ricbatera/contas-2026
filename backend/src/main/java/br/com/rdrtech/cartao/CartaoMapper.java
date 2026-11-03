@@ -21,6 +21,7 @@ public final class CartaoMapper {
                 cartao.getCartaoPrincipal() != null ? cartao.getCartaoPrincipal().getId() : null,
                 cartao.isAtivo(),
                 cartao.getDiaFechamento(),
-                cartao.getDiaVencimento());
+                cartao.getDiaVencimento(),
+                cartao.getValidoAte());
     }
 }

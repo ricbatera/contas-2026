@@ -152,6 +152,7 @@ describe('CartaoForm', () => {
       ativo: true,
       diaFechamento: null,
       diaVencimento: null,
+      validoAte: null,
     });
     request.flush({
       data: {
@@ -198,6 +199,44 @@ describe('CartaoForm', () => {
     type.dispatchEvent(new Event('change', { bubbles: true }));
     fixture.detectChanges();
     expect(element.querySelector('[formControlName="diaFechamento"]')).toBeNull();
+  });
+
+  it('shows the validity date only for virtual cards and sends it', () => {
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(CartaoForm);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    http.expectOne('/api/cartoes/principais').flush({ data: [] });
+    expect(element.querySelector('[formControlName="validoAte"]')).toBeNull();
+
+    for (const [name, value] of [
+      ['nome', 'Temporário'],
+      ['banco', 'Banco'],
+      ['ultimosDigitos', '7777'],
+    ]) {
+      const input = element.querySelector<HTMLInputElement>(`[formControlName="${name}"]`)!;
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    const virtual = element.querySelector<HTMLInputElement>('[formControlName="virtual"]')!;
+    virtual.checked = true;
+    virtual.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    const validade = element.querySelector<HTMLInputElement>('[formControlName="validoAte"]')!;
+    validade.value = '2026-12-31';
+    validade.dispatchEvent(new Event('input', { bubbles: true }));
+    element.querySelector<HTMLFormElement>('form')!.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+
+    const request = http.expectOne('/api/cartoes');
+    expect(request.request.body).toMatchObject({ virtual: true, validoAte: '2026-12-31' });
+    request.flush({ data: { id: 'card-1' } });
+
+    virtual.checked = false;
+    virtual.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    expect(element.querySelector('[formControlName="validoAte"]')).toBeNull();
   });
 
   it('updates the hexadecimal field when a color is picked', () => {

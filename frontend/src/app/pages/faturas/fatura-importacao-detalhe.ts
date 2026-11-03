@@ -319,7 +319,8 @@ export class FaturaImportacaoDetalhe implements OnInit {
   }
 
   protected rotuloCartao(cartao: Cartao): string {
-    return `${cartao.nome} · final ${cartao.ultimosDigitos}${cartao.tipo === 'ADICIONAL' ? ' (adicional)' : ''}`;
+    const tipo = cartao.tipo === 'ADICIONAL' ? (cartao.virtual ? ' (adicional virtual)' : ' (adicional)') : '';
+    return `${cartao.nome} · final ${cartao.ultimosDigitos}${tipo}`;
   }
 
   private gravar(id: string): Observable<unknown> {

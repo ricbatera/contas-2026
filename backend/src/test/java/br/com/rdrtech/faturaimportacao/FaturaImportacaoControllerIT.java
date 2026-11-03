@@ -139,7 +139,7 @@ class FaturaImportacaoControllerIT {
                 .andExpect(jsonPath("$.data.parcelas[0].vencimento").value(vencimento.minusMonths(2).toString()))
                 .andExpect(jsonPath("$.data.parcelas[2].vencimento").value(vencimento.toString()));
 
-        // Sem cartão (final desconhecido) e sem categoria, a pré-saída não pode ser aprovada.
+        // Sem categoria, a pré-saída não pode ser aprovada (o final desconhecido virou cartão virtual).
         JsonNode semCartao = preSaida(importacao, "UBER TRIP");
         mockMvc.perform(post("/api/pre-saidas/" + semCartao.at("/id").asText() + "/aprovar")
                         .header("Authorization", "Bearer " + token))
@@ -156,7 +156,49 @@ class FaturaImportacaoControllerIT {
     }
 
     @Test
-    void deveEditarEAprovarPreSaidaSemCartaoReconhecido() throws Exception {
+    void deveCriarCartaoVirtualTemporarioParaFinalDesconhecidoEAprovarSemEditar() throws Exception {
+        String token = registrar("importa-virtual");
+        Referencias ref = criarReferencias(token);
+        responderIa(jsonFatura(ref, item("7777", "APP DE TRANSPORTE", "33.00", 1, 1, "COMPRA", true)));
+
+        JsonNode importacao = importar(token, pdf(null), null);
+
+        assertThat(importacao.at("/status").asText()).isEqualTo("CONCLUIDA");
+        assertThat(importacao.at("/resumo/avisos").toString()).contains("Cartão virtual final 7777 criado");
+        JsonNode preSaida = preSaida(importacao, "APP DE TRANSPORTE");
+        assertThat(preSaida.at("/cartaoUltimosDigitos").asText()).isEqualTo("7777");
+
+        String cartoes = mockMvc.perform(get("/api/cartoes").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode virtual = null;
+        for (JsonNode cartao : objectMapper.readTree(cartoes).at("/data")) {
+            if (cartao.at("/ultimosDigitos").asText().equals("7777")) {
+                virtual = cartao;
+            }
+        }
+        assertThat(virtual).isNotNull();
+        assertThat(virtual.at("/tipo").asText()).isEqualTo("ADICIONAL");
+        assertThat(virtual.at("/virtual").asBoolean()).isTrue();
+        assertThat(virtual.at("/cartaoPrincipalId").asText()).isEqualTo(ref.principalId());
+        // Sem data de compra lida, a validade é o vencimento da fatura.
+        assertThat(virtual.at("/validoAte").asText()).isEqualTo(vencimento.toString());
+
+        mockMvc.perform(post("/api/pre-saidas/" + preSaida.at("/id").asText() + "/aprovar")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("APROVADA"));
+
+        // Reprocessar reaproveita o cartão criado.
+        reprocessar(token, importacao.at("/id").asText());
+        Long quantidade = jdbcTemplate.queryForObject(
+                "select count(*) from cartao where ultimos_digitos = '7777' and cartao_principal_id = ?", Long.class,
+                UUID.fromString(ref.principalId()));
+        assertThat(quantidade).isEqualTo(1L);
+    }
+
+    @Test
+    void deveEditarEAprovarPreSaidaComCartaoDaFatura() throws Exception {
         String token = registrar("importa-editar");
         Referencias ref = criarReferencias(token);
         responderIa(jsonFatura(ref,
